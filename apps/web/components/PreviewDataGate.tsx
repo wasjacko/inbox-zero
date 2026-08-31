@@ -14,6 +14,7 @@ const routesAvailableWithoutConnections = [
   "/integrations",
   "/help",
   "/support",
+  "/tasks",
 ];
 
 const emptyStateCopy = [
@@ -28,12 +29,6 @@ const emptyStateCopy = [
     title: "Aucun échange à analyser",
     description:
       "Connectez une messagerie pour que Mue puisse préparer vos premiers briefs.",
-  },
-  {
-    paths: ["/tasks"],
-    title: "Aucune tâche pour le moment",
-    description:
-      "Les actions détectées dans vos échanges apparaîtront ici après la connexion d’un canal.",
   },
   {
     paths: ["/stats", "/organization"],

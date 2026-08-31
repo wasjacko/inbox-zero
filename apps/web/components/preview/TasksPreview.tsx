@@ -2122,7 +2122,6 @@ function CreateTaskDialog({
   const [status, setStatus] = useState<TaskStatus>(defaultStatus);
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [due, setDue] = useState(TASKS_TODAY);
-  const [source, setSource] = useState<TaskSource>("manual");
 
   useEffect(() => {
     if (open) setStatus(defaultStatus);
@@ -2130,11 +2129,10 @@ function CreateTaskDialog({
 
   function submit() {
     if (!title.trim()) return;
-    onCreate({ title: title.trim(), status, priority, due, source });
+    onCreate({ title: title.trim(), status, priority, due, source: "manual" });
     setTitle("");
     setPriority("medium");
     setDue(TASKS_TODAY);
-    setSource("manual");
   }
 
   return (
@@ -2203,20 +2201,6 @@ function CreateTaskDialog({
                 onChange={(event) => setDue(event.target.value)}
               />
             </div>
-            <SelectField label="Origine">
-              <Select
-                value={source}
-                onValueChange={(value) => setSource(value as TaskSource)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Manuel</SelectItem>
-                  <SelectItem value="ai">Suggérée par Mue</SelectItem>
-                </SelectContent>
-              </Select>
-            </SelectField>
           </div>
         </div>
         <DialogFooter>

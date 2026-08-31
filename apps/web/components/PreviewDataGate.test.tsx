@@ -57,4 +57,16 @@ describe("PreviewDataGate", () => {
       expect(screen.getByText("Centre d’aide")).not.toBeNull(),
     );
   });
+
+  it("keeps manual task management available without a channel", async () => {
+    navigation.pathname = "/tasks";
+
+    render(
+      <PreviewDataGate>
+        <p>Créer une tâche manuelle</p>
+      </PreviewDataGate>,
+    );
+
+    expect(await screen.findByText("Créer une tâche manuelle")).not.toBeNull();
+  });
 });

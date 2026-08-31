@@ -54,44 +54,7 @@ type MobileTask = {
   done: boolean;
 };
 
-const initialMobileTasks: MobileTask[] = [
-  {
-    id: "theo",
-    title: "Confirmer le planning d’intégration à Théo",
-    client: "Théo Manili",
-    due: "Aujourd’hui · 11 h",
-    group: "Aujourd’hui",
-    urgent: true,
-    done: false,
-  },
-  {
-    id: "sarah",
-    title: "Envoyer la V2 des maquettes à Sarah",
-    client: "Sarah Lemoine",
-    due: "Aujourd’hui · 14 h",
-    group: "Aujourd’hui",
-    urgent: false,
-    done: false,
-  },
-  {
-    id: "maya",
-    title: "Relancer Maya pour la facture de juillet",
-    client: "Maya Chen",
-    due: "En retard d’un jour",
-    group: "En retard",
-    urgent: true,
-    done: false,
-  },
-  {
-    id: "seo",
-    title: "Prévenir Jon que les optimisations SEO sont terminées",
-    client: "Jon Bell",
-    due: "Demain",
-    group: "À venir",
-    urgent: false,
-    done: false,
-  },
-];
+const MOBILE_TASKS_STORAGE_KEY = "freescale-preview-mobile-tasks-v1";
 
 type MobileTaskFilter =
   | "Toutes"
@@ -102,7 +65,8 @@ type MobileTaskFilter =
 type MobileTaskSort = "Priorité" | "Échéance" | "Nom";
 
 export function MobileTasksPreview() {
-  const [tasks, setTasks] = useState<MobileTask[]>(initialMobileTasks);
+  const [tasks, setTasks] = useState<MobileTask[]>([]);
+  const [tasksHydrated, setTasksHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -146,6 +110,27 @@ export function MobileTasksPreview() {
         return Number(second.urgent) - Number(first.urgent);
       });
   }, [filter, query, sort, tasks]);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(MOBILE_TASKS_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setTasks(parsed as MobileTask[]);
+      } catch {
+        window.localStorage.removeItem(MOBILE_TASKS_STORAGE_KEY);
+      }
+    }
+    setTasksHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!tasksHydrated) return;
+    window.localStorage.setItem(
+      MOBILE_TASKS_STORAGE_KEY,
+      JSON.stringify(tasks),
+    );
+  }, [tasks, tasksHydrated]);
 
   const updateSelected = (changes: Partial<MobileTask>) => {
     if (!selectedId) return;
@@ -239,7 +224,7 @@ export function MobileTasksPreview() {
             </section>
           );
         })}
-        {visibleTasks.length === 0 ? (
+        {tasksHydrated && visibleTasks.length === 0 ? (
           <MobileEmpty
             icon={query ? SearchIcon : CheckIcon}
             title={
@@ -253,7 +238,7 @@ export function MobileTasksPreview() {
               query
                 ? "Essayez avec un autre mot."
                 : activeCount === 0
-                  ? "Vos prochaines tâches apparaîtront ici."
+                  ? "Créez votre première tâche avec le bouton +."
                   : "Modifiez les filtres pour retrouver vos tâches."
             }
           />
