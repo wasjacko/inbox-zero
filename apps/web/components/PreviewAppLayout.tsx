@@ -1,5 +1,6 @@
 import { Inter } from "next/font/google";
 import { PreviewOnboardingGate } from "@/components/PreviewOnboardingGate";
+import { PreviewDataGate } from "@/components/PreviewDataGate";
 import { SideNavWithTopNav } from "@/components/SideNavWithTopNav";
 import { EmailAccountPreviewProvider } from "@/providers/EmailAccountProvider";
 
@@ -17,7 +18,7 @@ export function PreviewAppLayout({ children }: { children: React.ReactNode }) {
       <PreviewOnboardingGate>
         <div className={`${inter.variable} min-h-svh font-inter`}>
           <SideNavWithTopNav defaultOpen previewMode>
-            {children}
+            <PreviewDataGate>{children}</PreviewDataGate>
           </SideNavWithTopNav>
         </div>
       </PreviewOnboardingGate>

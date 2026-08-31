@@ -84,6 +84,11 @@ import {
   PREVIEW_WORKSPACE_NAME_EVENT,
   PREVIEW_WORKSPACE_NAME_KEY,
 } from "@/utils/preview-workspace";
+import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
+import {
+  getPreviewConnectedChannels,
+  savePreviewConnectedChannels,
+} from "@/utils/preview-onboarding";
 
 const CrispWithNoSSR = dynamic(() => import("@/components/CrispChat"));
 
@@ -372,6 +377,7 @@ function PreviewContextBar() {
   const [workspaceName, setWorkspaceName] = useState(
     DEFAULT_PREVIEW_WORKSPACE_NAME,
   );
+  const connectedChannels = usePreviewConnectedChannels();
 
   useEffect(() => {
     setWorkspaceName(
@@ -450,7 +456,7 @@ function PreviewContextBar() {
       </div>
 
       <div className="flex h-10 shrink-0 items-center rounded-full border bg-background p-1 shadow-sm">
-        {!isAiHome ? (
+        {!isAiHome && connectedChannels?.length ? (
           <div className="group/mue relative order-2 rounded-full bg-transparent p-px transition-[background,box-shadow] duration-500 ease-out hover:bg-[linear-gradient(115deg,#60a5fa,#8b5cf6,#fb7185,#60a5fa)] hover:shadow-[0_0_0_3px_rgba(99,102,241,0.08)]">
             {taskTutorialStep === 1 ? (
               <span className="pointer-events-none absolute -inset-2 animate-pulse rounded-full bg-blue-500/30 blur-[3px]" />
@@ -2309,6 +2315,7 @@ function taskStatusClass(status: MueSuggestedTask["status"]) {
 
 function PreviewCommandCenter() {
   const pathname = usePathname();
+  const connectedChannels = usePreviewConnectedChannels();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [question, setQuestion] = useState("");
@@ -2333,6 +2340,7 @@ function PreviewCommandCenter() {
   }, []);
 
   const filteredResults = useMemo(() => {
+    if (!connectedChannels?.length) return [];
     const normalizedQuery = query.trim().toLocaleLowerCase("fr");
     return globalSearchResults.filter((result) => {
       const matchesScope =
@@ -2344,7 +2352,7 @@ function PreviewCommandCenter() {
           .includes(normalizedQuery);
       return matchesScope && matchesQuery;
     });
-  }, [activeScope, query]);
+  }, [activeScope, connectedChannels, query]);
 
   const currentContext = getPreviewContext(pathname);
 
@@ -2644,26 +2652,18 @@ function PreviewCommandCenter() {
 }
 
 function ConnectedChannels() {
-  const [connected, setConnected] = useState<ChannelId[]>([
-    "gmail",
-    "outlook",
-    "whatsapp",
-  ]);
+  const [connected, setConnected] = useState<ChannelId[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<ChannelId | null>(null);
   const [step, setStep] = useState<"select" | "confirm" | "success">("select");
   const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(CONNECTED_CHANNELS_STORAGE_KEY);
-    if (!saved) return;
-
-    try {
-      const parsed = JSON.parse(saved) as ChannelId[];
-      setConnected(parsed.filter((id) => channelIds.includes(id)));
-    } catch {
-      localStorage.removeItem(CONNECTED_CHANNELS_STORAGE_KEY);
-    }
+    setConnected(
+      getPreviewConnectedChannels(localStorage).filter((id): id is ChannelId =>
+        channelIds.includes(id as ChannelId),
+      ),
+    );
   }, []);
 
   const visibleConnected = connected.slice(0, 4);
@@ -2688,10 +2688,7 @@ function ConnectedChannels() {
         const next = current.includes(selected)
           ? current
           : [...current, selected];
-        localStorage.setItem(
-          CONNECTED_CHANNELS_STORAGE_KEY,
-          JSON.stringify(next),
-        );
+        savePreviewConnectedChannels(next);
         return next;
       });
       setIsConnecting(false);
@@ -2886,8 +2883,6 @@ function ConnectedChannels() {
     </Dialog>
   );
 }
-
-const CONNECTED_CHANNELS_STORAGE_KEY = "freescale-connected-channels";
 
 const channelIds = [
   "gmail",
