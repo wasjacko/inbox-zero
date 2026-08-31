@@ -237,7 +237,7 @@ function CalendarBookingLinkCard({
         >
           {disabledByInboxZeroLink ? (
             <span className="text-sm text-muted-foreground">
-              Using Inbox Zero booking link
+              Lien de réservation Freescale utilisé
             </span>
           ) : (
             <form

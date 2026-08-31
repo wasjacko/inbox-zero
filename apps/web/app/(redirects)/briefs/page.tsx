@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { BriefsPreview } from "@/components/preview/MainPreviewPages";
 
-export default async function BriefsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/briefs", await searchParams);
+export default function BriefsPage() {
+  return <BriefsPreview />;
 }

@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { ClientRelationsPreview } from "@/components/preview/ClientRelationsPreview";
 
-export default async function StatsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/stats", await searchParams);
+export default function AnalyticsPage() {
+  return <ClientRelationsPreview />;
 }

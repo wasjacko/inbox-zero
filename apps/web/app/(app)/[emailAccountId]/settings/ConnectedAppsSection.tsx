@@ -417,7 +417,7 @@ function MessagingConnectCodeDialog({
         <DialogHeader>
           <DialogTitle>Connect {providerName}</DialogTitle>
           <DialogDescription>
-            Send this command in a direct message with the Inbox Zero bot on{" "}
+            Envoyez cette commande en message direct au bot Freescale sur{" "}
             {providerName}. The code is one-time use and expires in 10 minutes.
           </DialogDescription>
         </DialogHeader>

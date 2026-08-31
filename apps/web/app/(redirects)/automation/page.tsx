@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { AutomationPreview } from "@/components/preview/AutomationPreview";
 
-export default async function AutomationPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/automation", await searchParams);
+export default function AutomationPage() {
+  return <AutomationPreview />;
 }

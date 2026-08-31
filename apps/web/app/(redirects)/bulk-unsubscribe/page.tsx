@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { BulkUnsubscribePreview } from "@/components/preview/MainPreviewPages";
 
-export default async function BulkUnsubscribePage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/bulk-unsubscribe", await searchParams);
+export default function BulkUnsubscribePage() {
+  return <BulkUnsubscribePreview />;
 }

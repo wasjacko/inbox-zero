@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { DrivePreview } from "@/components/preview/MainPreviewPages";
 
-export default async function DrivePage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/drive", await searchParams);
+export default function DrivePage() {
+  return <DrivePreview />;
 }

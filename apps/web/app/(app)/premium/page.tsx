@@ -1,9 +1,5 @@
-import { AppPricingLazy } from "@/app/(app)/premium/AppPricingLazy";
+import { PremiumPreview } from "@/components/preview/MainPreviewPages";
 
-export default function Premium() {
-  return (
-    <div className="bg-white pb-20">
-      <AppPricingLazy showSkipUpgrade />
-    </div>
-  );
+export default function PremiumPage() {
+  return <PremiumPreview />;
 }

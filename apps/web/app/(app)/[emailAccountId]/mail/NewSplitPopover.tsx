@@ -1,8 +1,11 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
 import { PlusIcon } from "lucide-react";
-import { MailSplitKind } from "@/generated/prisma/enums";
+import { type FormEvent, useState } from "react";
+import {
+  MailSplitKind,
+  type MailSplitKind as MailSplitKindType,
+} from "@/app/(app)/[emailAccountId]/mail/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,7 +14,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/utils";
-import { isOutlookInboxSection } from "@/utils/mail/outlook-inbox";
 
 /** Display grouping only — "To reply" is a LABEL split that belongs under State. */
 export type NewSplitOptionGroup = "state" | "inbox" | "category" | "label";
@@ -20,7 +22,7 @@ export type NewSplitOption = {
   /** Unique across every group; identifies the choice, not the split. */
   id: string;
   name: string;
-  kind: MailSplitKind;
+  kind: MailSplitKindType;
   /** Label id or category key the split filters on. `null` for ALL/UNREAD. */
   value: string | null;
   group: NewSplitOptionGroup;
@@ -28,7 +30,7 @@ export type NewSplitOption = {
 
 export type NewSplitDraft = {
   name: string;
-  kind: MailSplitKind;
+  kind: MailSplitKindType;
   value: string | null;
 };
 
@@ -166,9 +168,6 @@ function summarize(option: NewSplitOption | undefined): string {
     case MailSplitKind.UNREAD:
       return "Shows unread mail";
     case MailSplitKind.CATEGORY:
-      if (option.value && isOutlookInboxSection(option.value)) {
-        return `Shows ${option.name} inbox mail`;
-      }
       return `Shows mail in the ${option.name} category`;
     default:
       return `Shows mail labelled ${option.name}`;

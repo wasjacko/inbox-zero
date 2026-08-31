@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { UnifiedChannelsPreview } from "@/components/preview/UnifiedChannelsPreview";
 
-export default async function ChannelsRedirectPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/channels", await searchParams);
+export default function ChannelsPage() {
+  return <UnifiedChannelsPreview />;
 }

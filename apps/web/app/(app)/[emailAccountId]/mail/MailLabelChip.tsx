@@ -80,7 +80,7 @@ type ChipColor = keyof typeof CHIP_CLASSES;
 /** The colours the hash can land on. Exported so tests assert against the palette itself. */
 export const CHIP_COLORS = Object.keys(CHIP_CLASSES) as ChipColor[];
 
-/** Lowercased, so a label keeps its colour however the provider cases it. */
+/** Lowercased, so a label keeps its colour however its source cases it. */
 const NAMED_CHIP_COLORS: Record<string, ChipColor> = {
   "to reply": "blue",
   notification: "green",
@@ -100,7 +100,7 @@ const NAMED_CHIP_COLORS: Record<string, ChipColor> = {
  */
 export function chipColorForLabel(name: string): ChipColor {
   // Hash the same normalized key the named lookup uses, so a label doesn't
-  // change colour when the provider varies its casing or padding.
+  // change colour when its source varies casing or padding.
   const key = name.trim().toLowerCase();
   const named = NAMED_CHIP_COLORS[key];
   if (named) return named;

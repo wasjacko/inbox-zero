@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -8,7 +8,6 @@ import { GoogleTagManager } from "@next/third-parties/google";
 import { Analytics as DubAnalytics } from "@dub/analytics/react";
 import { Geist } from "next/font/google";
 import localFont from "next/font/local";
-import type { WebApplication, WithContext } from "schema-dts";
 import "../styles/globals.css";
 import { PostHogPageview, PostHogProvider } from "@/providers/PostHogProvider";
 import { env } from "@/env";
@@ -16,7 +15,9 @@ import { GlobalProviders } from "@/providers/GlobalProviders";
 import { UTM } from "@/app/utm";
 import { startupImage } from "@/app/startup-image";
 import { Toaster } from "@/components/Toast";
-import { BRAND_ICON_URL, BRAND_NAME, toAbsoluteUrl } from "@/utils/branding";
+import { ThemeProvider } from "@/components/theme-provider";
+import { BRAND_NAME } from "@/utils/branding";
+import { appViewport } from "@/app/viewport-config";
 
 const aeonikFont = localFont({
   src: "../styles/aeonik-medium.woff",
@@ -31,53 +32,9 @@ const geist = Geist({
   display: "swap",
 });
 
-const title = `${BRAND_NAME} | Automate and clean your inbox`;
+const title = `${BRAND_NAME} | Votre activité, enfin au clair`;
 const description =
-  "Your AI executive assistant to reach inbox zero fast. Automate emails, bulk unsubscribe, block cold emails, and analytics. Open-source";
-
-// JSON-LD structured data
-const jsonLd: WithContext<WebApplication> = {
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: BRAND_NAME,
-  url: env.NEXT_PUBLIC_BASE_URL,
-  description,
-  applicationCategory: "ProductivityApplication",
-  operatingSystem: "Web Browser",
-  offers: {
-    "@type": "Offer",
-    price: "20.00",
-    priceCurrency: "USD",
-    priceSpecification: {
-      "@type": "UnitPriceSpecification",
-      price: 20,
-      priceCurrency: "USD",
-      billingDuration: "P1M",
-    },
-    availability: "https://schema.org/InStock",
-  },
-  featureList: [
-    "AI Email Assistant",
-    "Email Automation",
-    "Bulk Unsubscribe",
-    "Cold Email Blocking",
-    "Email Analytics",
-    "Newsletter Management",
-  ],
-  publisher: {
-    "@type": "Organization",
-    name: BRAND_NAME,
-    url: env.NEXT_PUBLIC_BASE_URL,
-    logo: {
-      "@type": "ImageObject",
-      url: toAbsoluteUrl(BRAND_ICON_URL),
-    },
-    sameAs: [
-      "https://x.com/inboxzero_ai",
-      "https://github.com/elie222/inbox-zero",
-    ],
-  },
-};
+  "Freescale rassemble vos échanges, fait ressortir les priorités et vous aide à avancer avec Mue.";
 
 export const metadata: Metadata = {
   title,
@@ -93,7 +50,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    creator: "@inboxzero_ai",
   },
   metadataBase: new URL(env.NEXT_PUBLIC_BASE_URL),
   // issues with robots.txt: https://github.com/vercel/next.js/issues/58615#issuecomment-1852457285
@@ -105,7 +61,7 @@ export const metadata: Metadata = {
   applicationName: BRAND_NAME,
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: BRAND_NAME,
     startupImage,
   },
@@ -115,14 +71,10 @@ export const metadata: Metadata = {
   // safe area for iOS PWA
   other: {
     "mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "white-translucent",
   },
 };
 
-export const viewport = {
-  themeColor: "#FFF",
-};
+export const viewport: Viewport = appViewport;
 
 export default async function RootLayout({
   children,
@@ -130,25 +82,21 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full" suppressHydrationWarning>
+    <html lang="fr" className="h-full" suppressHydrationWarning>
+      <head />
       <body
         className={`h-full ${env.NEXT_PUBLIC_USE_AEONIK_FONT ? aeonikFont.variable : ""} ${geist.variable} font-sans antialiased`}
       >
-        <script
-          type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON.stringify on controlled object is safe
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLd),
-          }}
-        />
         <PostHogProvider>
           <Suspense>
             <PostHogPageview />
           </Suspense>
-          <GlobalProviders>
-            {children}
-            <Toaster closeButton richColors theme="light" visibleToasts={9} />
-          </GlobalProviders>
+          <ThemeProvider attribute="class" defaultTheme="light">
+            <GlobalProviders>
+              {children}
+              <Toaster closeButton richColors theme="light" visibleToasts={9} />
+            </GlobalProviders>
+          </ThemeProvider>
         </PostHogProvider>
         <Analytics />
         <AxiomWebVitals />

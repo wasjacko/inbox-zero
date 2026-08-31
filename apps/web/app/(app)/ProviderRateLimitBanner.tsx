@@ -22,7 +22,7 @@ export function ProviderRateLimitBanner() {
       title={`${providerLabel} Is Rate Limiting This Account`}
       description={
         <p>
-          Inbox Zero actions are temporarily paused until around{" "}
+          Les actions Freescale sont temporairement suspendues jusque vers{" "}
           <strong>{retryAtLabel}</strong>. This limit is enforced by{" "}
           {providerLabel}, and other apps connected to this mailbox can
           contribute to the same shared limit.

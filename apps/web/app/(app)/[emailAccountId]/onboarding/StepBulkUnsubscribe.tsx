@@ -217,8 +217,8 @@ export function StepBulkUnsubscribe({ onNext }: { onNext: () => void }) {
         <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-sm text-muted-foreground">
           <SparklesIcon className="size-3.5 text-amber-500" />
           {hasMore
-            ? `Showing your top ${previewSenders.length}. We'll keep spotting more as you use Inbox Zero.`
-            : "We'll keep spotting more as you use Inbox Zero."}
+            ? `Voici vos ${previewSenders.length} principaux expéditeurs. Freescale continuera d’en détecter au fil de votre utilisation.`
+            : "Freescale continuera d’en détecter au fil de votre utilisation."}
         </p>
 
         <div className="mt-7 flex flex-col items-center gap-3">

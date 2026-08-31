@@ -1,35 +1,24 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { MailIcon } from "lucide-react";
+import { ChevronDownIcon, MailIcon, SendIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 import { ReaderToolbar } from "@/app/(app)/[emailAccountId]/mail/ReaderToolbar";
 import type {
-  ListThread,
+  MailLabel,
   MailLayoutMode,
+  MailMessage,
+  MailThread,
 } from "@/app/(app)/[emailAccountId]/mail/types";
-import { EmailThread } from "@/components/email-list/EmailThread";
-import type { ThreadMessage } from "@/components/email-list/types";
-import { getEmailMessageCellLabels } from "@/components/EmailMessageCellLabels";
-import type { EmailLabels } from "@/providers/email-label-types";
-import {
-  extractEmailAddress,
-  extractNameFromEmail,
-  participant,
-} from "@/utils/email";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/utils";
+import { formatShortDate } from "@/utils/date";
 
 export type ThreadReaderProps = {
-  /** The row that is open. `null` renders the empty state. */
-  thread: ListThread | null;
-  /**
-   * The open thread's full messages. The list payload has no bodies, so this
-   * arrives from a second fetch; the header renders before it lands.
-   */
-  messages: ThreadMessage[];
-  userEmail: string;
-  userLabels: EmailLabels;
+  thread: MailThread | null;
+  labels: MailLabel[];
   layout: MailLayoutMode;
   isFocusMode: boolean;
-  /** 1-based position of the open thread in the list. */
   position?: { index: number; total: number };
   labelHref: (labelId: string) => string;
   onRemoveLabel?: (labelId: string) => void;
@@ -38,22 +27,14 @@ export type ThreadReaderProps = {
   onReply: () => void;
   onDelete: () => void;
   onToggleFocusMode: () => void;
-  /** Refreshes the open thread after a reply is sent or a draft changes. */
-  refetch: () => void;
-  /**
-   * Set by the reply action. Left unset the composer still opens on its own for
-   * a message that already has an AI draft.
-   */
-  autoOpenReplyForMessageId?: string;
-  /** The ⋯ dropdown, i.e. `RuleAttributionMenu`, composed by the shell. */
-  menu?: ReactNode;
+  showReplyComposer: boolean;
+  onCancelReply: () => void;
+  onSendReply: (body: string) => void;
 };
 
 export function ThreadReader({
   thread,
-  messages,
-  userEmail,
-  userLabels,
+  labels: availableLabels,
   layout,
   isFocusMode,
   position,
@@ -64,13 +45,19 @@ export function ThreadReader({
   onReply,
   onDelete,
   onToggleFocusMode,
-  refetch,
-  autoOpenReplyForMessageId,
-  menu,
+  showReplyComposer,
+  onCancelReply,
+  onSendReply,
 }: ThreadReaderProps) {
-  const headerMessage = thread?.messages.at(-1);
+  const labels = useMemo(
+    () =>
+      (thread?.labelIds ?? [])
+        .map((labelId) => availableLabels.find((label) => label.id === labelId))
+        .filter((label): label is MailLabel => Boolean(label)),
+    [availableLabels, thread?.labelIds],
+  );
 
-  if (!thread || !headerMessage) {
+  if (!thread) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-16 text-center">
         <MailIcon className="size-6 text-muted-foreground" />
@@ -82,13 +69,6 @@ export function ThreadReader({
     );
   }
 
-  const sender = participant(headerMessage, userEmail);
-  const labels =
-    getEmailMessageCellLabels({
-      labelIds: headerMessage.labelIds,
-      userLabels,
-    }) ?? [];
-
   return (
     <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-background">
       <div className={readerMeasure({ layout, isFocusMode })}>
@@ -97,7 +77,6 @@ export function ThreadReader({
           labelHref={labelHref}
           labels={labels}
           layout={layout}
-          menu={menu}
           onArchive={onArchive}
           onBack={onBack}
           onDelete={onDelete}
@@ -105,31 +84,141 @@ export function ThreadReader({
           onReply={onReply}
           onToggleFocusMode={onToggleFocusMode}
           position={position}
-          senderEmail={extractEmailAddress(sender)}
-          senderName={extractNameFromEmail(sender)}
-          subject={headerMessage.headers.subject}
+          senderEmail={thread.participant.email}
+          senderName={thread.participant.name}
+          subject={thread.subject}
         />
 
-        {messages.length > 0 ? (
-          // Workaround: `EmailThread` bakes in its own panel chrome, so the
-          // reader strips it from the outside to get a plain measure column.
-          // Fixing it properly means giving `EmailThread` a chrome-less mode.
-          <div className="[&>div]:bg-transparent [&>div]:p-0 [&>div>ul]:mt-0">
-            <EmailThread
-              autoOpenReplyForMessageId={autoOpenReplyForMessageId}
-              key={thread.id}
-              messages={messages}
-              refetch={refetch}
-              showReplyButton
-            />
-          </div>
-        ) : null}
+        <Conversation
+          key={thread.id}
+          messages={thread.messages}
+          onCancelReply={onCancelReply}
+          onSendReply={onSendReply}
+          showReplyComposer={showReplyComposer}
+        />
       </div>
     </div>
   );
 }
 
-/** A readable measure, centred whenever the reader owns the full width. */
+function Conversation({
+  messages,
+  showReplyComposer,
+  onCancelReply,
+  onSendReply,
+}: {
+  messages: MailMessage[];
+  showReplyComposer: boolean;
+  onCancelReply: () => void;
+  onSendReply: (body: string) => void;
+}) {
+  const latestMessageId = messages.at(-1)?.id;
+  const [expandedIds, setExpandedIds] = useState(
+    new Set(latestMessageId ? [latestMessageId] : []),
+  );
+  const [reply, setReply] = useState("");
+
+  return (
+    <div className="pt-4">
+      <ul className="space-y-2 sm:space-y-4">
+        {messages.map((message) => {
+          const expanded = expandedIds.has(message.id);
+          return (
+            <li
+              className={cn(
+                "bg-background p-4 shadow ring-1 ring-border/40 sm:rounded-lg",
+                !expanded && "cursor-pointer",
+              )}
+              key={message.id}
+              onClick={() => {
+                if (expanded) return;
+                setExpandedIds((current) => new Set(current).add(message.id));
+              }}
+              onKeyDown={(event) => {
+                if (expanded || (event.key !== "Enter" && event.key !== " ")) {
+                  return;
+                }
+                event.preventDefault();
+                setExpandedIds((current) => new Set(current).add(message.id));
+              }}
+              role={expanded ? undefined : "button"}
+              tabIndex={expanded ? undefined : 0}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium text-foreground text-sm">
+                      {message.isFromCurrentUser ? "Me" : message.sender.name}
+                    </span>
+                    {expanded ? (
+                      <span className="text-muted-foreground text-sm">
+                        wrote
+                      </span>
+                    ) : null}
+                  </div>
+                  {expanded ? (
+                    <div className="mt-0.5 truncate text-muted-foreground text-xs">
+                      {message.sender.email} to{" "}
+                      {message.recipients
+                        .map((recipient) => recipient.name)
+                        .join(", ")}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2 text-muted-foreground text-xs">
+                  <time dateTime={message.sentAt} suppressHydrationWarning>
+                    {formatShortDate(new Date(message.sentAt))}
+                  </time>
+                  {!expanded ? <ChevronDownIcon className="size-3.5" /> : null}
+                </div>
+              </div>
+
+              {expanded ? (
+                <div className="mt-4 whitespace-pre-wrap text-foreground text-sm leading-6">
+                  {message.body}
+                </div>
+              ) : (
+                <div className="mt-1 truncate text-muted-foreground text-sm">
+                  {message.body}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {showReplyComposer ? (
+        <div className="mt-4 rounded-lg border border-border bg-background p-4 shadow-sm">
+          <Textarea
+            autoFocus
+            className="min-h-28 resize-none"
+            onChange={(event) => setReply(event.target.value)}
+            placeholder="Write a reply…"
+            value={reply}
+          />
+          <div className="mt-3 flex items-center gap-2">
+            <Button
+              disabled={!reply.trim()}
+              onClick={() => {
+                onSendReply(reply.trim());
+                setReply("");
+              }}
+              size="sm"
+              variant="gradient"
+            >
+              <SendIcon className="mr-1.5 size-3.5" />
+              Send reply
+            </Button>
+            <Button onClick={onCancelReply} size="sm" variant="outline">
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function readerMeasure({
   layout,
   isFocusMode,
@@ -137,7 +226,6 @@ function readerMeasure({
   layout: MailLayoutMode;
   isFocusMode: boolean;
 }) {
-  // ~860px: the mock's measure, and about as wide as an email body stays legible.
   if (isFocusMode) return "mx-auto w-full max-w-[54rem] px-10 py-10";
   if (layout === "split") return "px-6 py-5";
   return "mx-auto w-full max-w-[54rem] px-6 py-5";

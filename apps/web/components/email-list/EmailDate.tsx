@@ -10,6 +10,7 @@ export function EmailDate({
 }) {
   return (
     <div
+      suppressHydrationWarning
       className={cn(
         "flex-shrink-0 text-sm font-medium leading-5 text-muted-foreground",
         className,

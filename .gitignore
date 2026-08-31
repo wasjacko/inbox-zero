@@ -69,6 +69,8 @@ dist
 TODO.md
 
 tasks/ 
+!apps/web/app/(redirects)/tasks/
+!apps/web/app/(redirects)/tasks/**
 
 # prisma
 apps/web/generated

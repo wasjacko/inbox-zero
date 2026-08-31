@@ -223,7 +223,7 @@ export function ProactiveUpdatesSetting({
           <DialogHeader>
             <DialogTitle>Scheduled check-ins</DialogTitle>
             <DialogDescription>
-              Configure when Inbox Zero sends scheduled summaries to{" "}
+              Configurez quand Freescale envoie des résumés planifiés à{" "}
               {getMessagingProviderName(channel.provider)}.
             </DialogDescription>
           </DialogHeader>

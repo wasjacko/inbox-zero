@@ -42,7 +42,7 @@ export function Header({ className }: HeaderProps) {
         </div>
         <Button asChild>
           <Link
-            href="/login"
+            href="/login?mode=signup"
             onClick={() => landingPageAnalytics.getStartedClicked(posthog)}
           >
             <span className="relative z-10">Get started free</span>

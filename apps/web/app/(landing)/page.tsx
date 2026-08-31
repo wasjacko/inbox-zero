@@ -23,8 +23,8 @@ export default function NewLanding() {
     return (
       <BasicLayout>
         <Hero
-          title={`${BRAND_NAME} for self-hosted teams`}
-          subtitle={`Deploy ${BRAND_NAME} on your own infrastructure and automate your inbox with full data control.`}
+          title={`${BRAND_NAME} pour les équipes indépendantes`}
+          subtitle={`Déployez ${BRAND_NAME} sur votre infrastructure et centralisez vos échanges tout en gardant le contrôle de vos données.`}
         />
       </BasicLayout>
     );
@@ -37,39 +37,37 @@ export default function NewLanding() {
           <WordReveal
             spaceBetween="w-2 md:w-3"
             words={[
-              "Meet",
-              "your",
-              "AI",
-              "email",
-              "assistant",
-              "that",
-              <em key="actually">actually</em>,
-              "works",
+              "Tous",
+              "vos",
+              "échanges",
+              "clients,",
+              "enfin",
+              <em key="centralises">centralisés</em>,
             ]}
           />
         }
-        subtitle={`${BRAND_NAME} organizes your inbox and calendar, drafts replies in your voice, and helps you reach inbox zero fast. Never miss an important email again.`}
+        subtitle={`${BRAND_NAME} centralise vos échanges, prépare vos réponses et vous aide à avancer sans perdre le contexte.`}
       >
         <HeroContent />
       </Hero>
       <OrganizedInbox
         title={
           <>
-            Automatically organized.
+            Vos échanges, automatiquement organisés.
             <br />
-            Never miss an important email again.
+            Rien d’important ne vous échappe.
           </>
         }
-        subtitle="Drowning in emails? Don't waste energy trying to prioritize your emails. Our AI assistant will label everything automatically."
+        subtitle="Freescale rassemble et priorise vos conversations pour que vous sachiez toujours quoi traiter ensuite."
       />
       <PreWrittenDrafts
-        title="Pre-written drafts waiting in your inbox"
-        subtitle="When you check your inbox, every email needing a response will have a pre-drafted reply in your tone, ready for you to send."
+        title="Des réponses préparées dans votre ton"
+        subtitle="Mue prépare les réponses utiles à partir du contexte de vos échanges. Vous gardez toujours la décision finale."
       />
       <ManageFromAnywhere />
       <StartedInMinutes
-        title="Get started in minutes"
-        subtitle="One-click setup. Start organizing and drafting replies in minutes."
+        title="Opérationnel en quelques minutes"
+        subtitle="Connectez vos sources, définissez votre périmètre et laissez Freescale organiser le reste."
       />
       <BulkUnsubscribe />
       <EverythingElseSection />

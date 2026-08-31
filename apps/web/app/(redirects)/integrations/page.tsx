@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { IntegrationsPreview } from "@/components/preview/MainPreviewPages";
 
-export default async function IntegrationsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/integrations", await searchParams);
+export default function IntegrationsPage() {
+  return <IntegrationsPreview />;
 }

@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { redirect } from "next/navigation";
 
-export default async function AssistantPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/assistant", await searchParams);
+export default function AssistantPage() {
+  redirect("/chat?chatView=assistant");
 }

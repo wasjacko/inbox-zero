@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { redirect } from "next/navigation";
 
-export default async function MailPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/mail", await searchParams);
+export default function MailPage() {
+  redirect("/inbox");
 }

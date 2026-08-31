@@ -4,18 +4,13 @@ import { memo, useMemo } from "react";
 import { MailLabelChip } from "@/app/(app)/[emailAccountId]/mail/MailLabelChip";
 import type {
   ListThread,
+  MailLabel,
   MailLayoutMode,
 } from "@/app/(app)/[emailAccountId]/mail/types";
 import { EmailDate } from "@/components/email-list/EmailDate";
-import { getEmailThreadLabels } from "@/components/EmailMessageCellLabels";
-import { getShortcutHint } from "@/lib/shortcuts/registry";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { EmailLabels } from "@/providers/email-label-types";
+import { getShortcutHint } from "@/lib/shortcuts/registry";
 import { cn } from "@/utils";
-import { internalDateToDate } from "@/utils/date";
-import { extractNameFromEmail, participant } from "@/utils/email";
-import { decodeSnippet } from "@/utils/gmail/decode";
-import { GmailLabel } from "@/utils/gmail/label";
 
 const SELECT_HINT = getShortcutHint("select");
 
@@ -24,8 +19,7 @@ export type ThreadRowProps = {
   /** Position in the rendered list — selection and focus are index-addressed. */
   index: number;
   layout: MailLayoutMode;
-  userEmail: string;
-  userLabels: EmailLabels;
+  labels: MailLabel[];
   isFocused: boolean;
   isSelected: boolean;
   /** Keeps every checkbox visible once the list has a selection. */
@@ -39,8 +33,7 @@ export const ThreadRow = memo(function ThreadRow({
   thread,
   index,
   layout,
-  userEmail,
-  userLabels,
+  labels: availableLabels,
   isFocused,
   isSelected,
   hasAnySelection,
@@ -48,27 +41,21 @@ export const ThreadRow = memo(function ThreadRow({
   onToggleSelect,
   onSelectRangeTo,
 }: ThreadRowProps) {
-  const message = thread.messages.at(-1);
-
   const labels = useMemo(
     () =>
-      getEmailThreadLabels({
-        messages: thread.messages,
-        userLabels,
-      }),
-    [thread.messages, userLabels],
+      thread.labelIds
+        .map((labelId) => availableLabels.find((label) => label.id === labelId))
+        .filter((label): label is MailLabel => Boolean(label)),
+    [availableLabels, thread.labelIds],
   );
 
-  if (!message) return null;
-
-  // Both providers normalise to these ids, so this is not a provider branch.
-  const isUnread = message.labelIds?.includes(GmailLabel.UNREAD) ?? false;
-  const isDraft = message.labelIds?.includes(GmailLabel.DRAFT) ?? false;
+  const isUnread = thread.unread;
+  const isDraft = thread.draft ?? false;
   const isWide = layout === "list";
 
-  const sender = extractNameFromEmail(participant(message, userEmail));
-  const subject = message.headers.subject;
-  const snippet = decodeSnippet(thread.snippet || message.snippet);
+  const sender = thread.participant.name;
+  const subject = thread.subject;
+  const snippet = thread.snippet;
   const chips = labels.slice(0, isWide ? 3 : 2);
   const showCheckbox = isSelected || hasAnySelection;
 
@@ -108,7 +95,7 @@ export const ThreadRow = memo(function ThreadRow({
   const date = (
     <EmailDate
       className="font-normal text-xs"
-      date={internalDateToDate(message.internalDate)}
+      date={new Date(thread.updatedAt)}
     />
   );
   const draftMarker = isDraft ? (

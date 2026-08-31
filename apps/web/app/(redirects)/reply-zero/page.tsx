@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { ReplyZeroPreview } from "@/components/preview/MainPreviewPages";
 
-export default async function ReplyZeroPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/reply-zero", await searchParams);
+export default function ReplyZeroPage() {
+  return <ReplyZeroPreview />;
 }

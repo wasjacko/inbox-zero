@@ -8,12 +8,13 @@ const defaultIcons: ManifestIcon[] = [
     src: "/icons/icon-192x192.png",
     sizes: "192x192",
     type: "image/png",
-    purpose: "maskable",
+    purpose: "any maskable",
   },
   {
     src: "/icons/icon-512x512.png",
     sizes: "512x512",
     type: "image/png",
+    purpose: "any maskable",
   },
 ];
 
@@ -26,11 +27,36 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: BRAND_NAME,
     short_name: BRAND_NAME,
+    description:
+      "Retrouvez vos messages, priorités et tâches dans un espace unique.",
+    id: "/",
+    lang: "fr",
+    categories: ["business", "productivity"],
     icons: [...customIcon, ...defaultIcons],
     theme_color: "#FFFFFF",
     background_color: "#FFFFFF",
-    start_url: "/",
+    start_url: "/chat",
+    scope: "/",
     display: "standalone",
-    orientation: "portrait",
+    shortcuts: [
+      {
+        name: "Accueil IA",
+        short_name: "Accueil",
+        description: "Voir les messages qui demandent votre attention.",
+        url: "/chat",
+      },
+      {
+        name: "Canaux",
+        short_name: "Canaux",
+        description: "Ouvrir vos conversations connectées.",
+        url: "/channels-v4",
+      },
+      {
+        name: "Tâches",
+        short_name: "Tâches",
+        description: "Consulter les prochaines actions.",
+        url: "/tasks",
+      },
+    ],
   };
 }

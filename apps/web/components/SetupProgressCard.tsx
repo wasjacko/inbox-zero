@@ -6,8 +6,31 @@ import Link from "next/link";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { prefixPath } from "@/utils/path";
 import { useSetupProgress } from "@/hooks/useSetupProgress";
+import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
 
-export function SetupProgressCard() {
+export function SetupProgressCard({
+  previewProgress,
+}: {
+  previewProgress?: { completed: number; total: number };
+}) {
+  const preview = usePreviewSetupProgress();
+
+  if (previewProgress) {
+    return (
+      <SetupProgressCardContent
+        completed={
+          preview.hydrated ? preview.completed : previewProgress.completed
+        }
+        total={preview.total}
+        href="/setup"
+      />
+    );
+  }
+
+  return <ConnectedSetupProgressCard />;
+}
+
+function ConnectedSetupProgressCard() {
   const { emailAccountId } = useAccount();
   const { data, isLoading } = useSetupProgress();
 
@@ -16,17 +39,50 @@ export function SetupProgressCard() {
   }
 
   return (
+    <SetupProgressCardContent
+      completed={data.completed}
+      href={prefixPath(emailAccountId, "/setup")}
+      total={data.total}
+    />
+  );
+}
+
+function SetupProgressCardContent({
+  completed,
+  total,
+  href,
+}: {
+  completed: number;
+  total: number;
+  href: string;
+}) {
+  const isComplete = completed >= total;
+  const title = isComplete
+    ? "Configuration"
+    : completed === 0
+      ? "Commencer la configuration"
+      : completed === total - 1
+        ? "Terminer la configuration"
+        : "Continuer la configuration";
+
+  return (
     <div className="px-3 pt-4">
-      <Link href={prefixPath(emailAccountId, "/setup")}>
-        <Card className="cursor-pointer transition-all shadow-none p-2.5 hover:shadow-sm">
+      <Link
+        aria-label={isComplete ? "Ouvrir la configuration" : undefined}
+        className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        href={href}
+      >
+        <Card className="cursor-pointer p-2.5 shadow-none transition-colors hover:bg-muted/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <ProgressCircle completed={data.completed} total={data.total} />
+              <ProgressCircle completed={completed} total={total} />
 
               <div>
-                <h3 className="text-sm font-semibold">Complete setup</h3>
+                <h3 className="text-sm font-semibold">{title}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {data.completed}/{data.total} Completed
+                  {isComplete
+                    ? "Terminée · Modifier"
+                    : `${completed} étape${completed > 1 ? "s" : ""} sur ${total}`}
                 </p>
               </div>
             </div>

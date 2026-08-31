@@ -1,4 +1,9 @@
-import { Serwist, type PrecacheEntry, type SerwistGlobalConfig } from "serwist";
+import {
+  NetworkOnly,
+  Serwist,
+  type PrecacheEntry,
+  type SerwistGlobalConfig,
+} from "serwist";
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -13,11 +18,27 @@ declare global {
 declare const self: ServiceWorkerGlobalScope;
 
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST,
+  precacheEntries: [
+    ...(self.__SW_MANIFEST ?? []),
+    { url: "/offline.html", revision: "freescale-offline-v2" },
+  ],
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: [], // caching disabled
+  runtimeCaching: [
+    {
+      matcher: ({ request }) => request.mode === "navigate",
+      handler: new NetworkOnly(),
+    },
+  ],
+  fallbacks: {
+    entries: [
+      {
+        url: "/offline.html",
+        matcher: ({ request }) => request.mode === "navigate",
+      },
+    ],
+  },
   disableDevLogs: process.env.NODE_ENV === "production",
 });
 

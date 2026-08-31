@@ -41,7 +41,7 @@ export type OnboardingStage =
 export const WELCOME_MESSAGE_ID = "onboarding-welcome";
 
 export const WELCOME_MESSAGE =
-  "Welcome to Inbox Zero. I'm the assistant that will be running your inbox, so before I touch anything I'd like to understand how you work.\n\nTo start: what do you do?";
+  "Bienvenue dans Freescale. Je suis Mue, votre copilote. Avant de vous aider, j’aimerais comprendre votre façon de travailler.\n\nPour commencer : quelle est votre activité ?";
 
 export const STAGE_CHIPS: Record<OnboardingStage, string[]> = {
   welcome: [

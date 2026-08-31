@@ -5,14 +5,14 @@ export function toastSuccess(options: {
   description: string;
   id?: string;
 }) {
-  return toast.success(options.title || "Success", {
+  return toast.success(options.title || "Succès", {
     description: options.description,
     id: options.id,
   });
 }
 
 export function toastError(options: { title?: string; description: string }) {
-  return toast.error(options.title || "Error", {
+  return toast.error(options.title || "Erreur", {
     description: options.description,
     duration: 10_000,
   });

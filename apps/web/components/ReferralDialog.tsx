@@ -71,8 +71,8 @@ export function Referrals() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join Inbox Zero with my referral link",
-          text: "Use my referral link to get started with Inbox Zero!",
+          title: "Rejoignez Freescale avec mon lien de parrainage",
+          text: "Utilisez mon lien de parrainage pour découvrir Freescale !",
           url: link,
         });
       } catch (error) {
@@ -101,8 +101,8 @@ export function Referrals() {
       <div className="text-center">
         <PageHeading>Refer Friends, Get Rewards</PageHeading>
         <PageSubHeading className="mt-2">
-          Share Inbox Zero with friends and get a free month for each friend who
-          completes their trial
+          Partagez Freescale avec vos proches et obtenez un mois offert pour
+          chaque personne qui completes their trial
         </PageSubHeading>
       </div>
 

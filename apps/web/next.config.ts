@@ -26,6 +26,9 @@ const zodV4CorePath = path.join(
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
+  // The dev toolbar sits over the fourth mobile navigation item at compact
+  // widths, making the local responsive preview impossible to test by touch.
+  devIndicators: false,
   experimental:
     isDevelopment || isProductionBuild
       ? {

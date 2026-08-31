@@ -1,5 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { SetupPreview } from "@/components/preview/MainPreviewPages";
 
-export default async function OnboardingBriefPage() {
-  await redirectToEmailAccountPath("/onboarding-brief");
+export default function OnboardingBriefPage() {
+  return <SetupPreview />;
 }

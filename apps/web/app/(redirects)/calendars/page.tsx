@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { CalendarsPreview } from "@/components/preview/MainPreviewPages";
 
-export default async function CalendarsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/calendars", await searchParams);
+export default function CalendarsPage() {
+  return <CalendarsPreview />;
 }

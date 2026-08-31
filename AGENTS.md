@@ -56,6 +56,13 @@
 - Do not optimize for migration paths: refactor call sites directly, including larger coordinated changes when clarity improves.
 - This is a public repository. Never include non-public data or internal details from private repositories or services in repository content or GitHub metadata; describe related private work only generically (for example, “updated the marketing repository”).
 
+## Freescale Mobile Adaptation
+- The current desktop experience is frozen. Mobile adaptation work must not change desktop layout, styling, copy, interactions, or behavior at viewport widths of 1024px and above unless the user explicitly lifts this constraint.
+- Prefer additive mobile-only components (`lg:hidden`) and preserve the existing desktop tree behind `hidden lg:*` when a layout needs substantial restructuring.
+- For smaller adjustments, scope overrides below 1024px with `max-lg:` variants. Do not rewrite desktop base classes into a new mobile-first cascade if that risks desktop regressions.
+- Every mobile change must be checked at 390px and 768px, with a desktop regression check at 1024px and 1440px.
+- The onboarding flow is part of the mobile adaptation scope and must follow the same desktop-freeze rule.
+
 ## LLM Features
 - Stay AI-first: fix general failure modes, not exact eval wording, and avoid brittle keyword or regex rules unless the product needs a hard guard.
 - Do not add keyword/phrase blacklists to prompts, evals, or tests just to catch a model's current bad wording. This product works across languages, so English-specific text checks are especially brittle. For LLM behavior, assert the semantic failure mode with a judge/eval criterion or structured contract instead. Example: test "does not ask unnecessary clarification or invent payment status," not "does not contain 'could you clarify' or 'specific payment'."

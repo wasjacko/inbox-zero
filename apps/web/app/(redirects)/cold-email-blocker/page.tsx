@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { ColdEmailBlockerPreview } from "@/components/preview/MainPreviewPages";
 
-export default async function ColdEmailBlockerPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/cold-email-blocker", await searchParams);
+export default function ColdEmailBlockerPage() {
+  return <ColdEmailBlockerPreview />;
 }

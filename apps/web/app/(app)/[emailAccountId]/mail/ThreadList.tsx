@@ -4,16 +4,15 @@ import { SelectionBar } from "@/app/(app)/[emailAccountId]/mail/SelectionBar";
 import { ThreadRow } from "@/app/(app)/[emailAccountId]/mail/ThreadRow";
 import type {
   ListThread,
+  MailLabel,
   MailLayoutMode,
 } from "@/app/(app)/[emailAccountId]/mail/types";
 import { Button } from "@/components/ui/button";
-import type { EmailLabels } from "@/providers/email-label-types";
 
 export type ThreadListProps = {
   threads: ListThread[];
   layout: MailLayoutMode;
-  userEmail: string;
-  userLabels: EmailLabels;
+  labels: MailLabel[];
   /** The row `J`/`K` sits on. */
   focusedIndex: number;
   isSelected: (threadId: string) => boolean;
@@ -33,8 +32,7 @@ export type ThreadListProps = {
 export function ThreadList({
   threads,
   layout,
-  userEmail,
-  userLabels,
+  labels,
   focusedIndex,
   isSelected,
   selectedCount,
@@ -81,8 +79,7 @@ export function ThreadList({
                   onSelectRangeTo={onSelectRangeTo}
                   onToggleSelect={onToggleSelect}
                   thread={thread}
-                  userEmail={userEmail}
-                  userLabels={userLabels}
+                  labels={labels}
                 />
               ))}
             </div>

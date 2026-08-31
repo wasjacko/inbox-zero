@@ -1,7 +1,5 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useState } from "react";
-import Link from "next/link";
 import {
   ArchiveIcon,
   ArrowLeftIcon,
@@ -16,21 +14,21 @@ import {
   PenLineIcon,
   PlusIcon,
   SendIcon,
-  SparklesIcon,
   UserIcon,
   Users2Icon,
 } from "lucide-react";
-import type { LabelCount } from "@/app/api/labels/counts/route";
+import Link from "next/link";
+import { type FormEvent, type ReactNode, useState } from "react";
+import type {
+  MailCount,
+  MailFolder,
+  MailLabel,
+} from "@/app/(app)/[emailAccountId]/mail/types";
 import { Kbd } from "@/components/Kbd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getShortcutHint } from "@/lib/shortcuts/registry";
-import type { EmailLabel } from "@/providers/email-label-types";
-import { GmailLabel } from "@/utils/gmail/label";
 import { cn } from "@/utils";
-import type { OutlookFolder } from "@/utils/outlook/folders";
-import { OUTLOOK_INBOX_SECTIONS } from "@/utils/mail/outlook-inbox";
-import { getMailSidebarFolders } from "./outlook-folder-list";
 
 /** Where a sidebar row navigates. Mirrors the mail page's `?type=` query shape. */
 export type MailNavTarget =
@@ -43,14 +41,13 @@ export type MailSidebarProps = {
   activeType: string | null;
   /** `?labelId=` of the current view, when a user label is open. */
   activeLabelId: string | null;
-  /** `?folderId=` of the current view, when an Outlook folder is open. */
+  /** `?folderId=` of the current view, when a custom folder is open. */
   activeFolderId: string | null;
   /** Builds the href for a row so the sidebar never owns routing. */
   hrefFor: (target: MailNavTarget) => string;
-  labels: EmailLabel[];
-  folders: OutlookFolder[];
-  /** Keyed by provider label/folder id. Arrives after first paint; may be empty. */
-  countsById: Map<string, LabelCount>;
+  labels: MailLabel[];
+  folders: MailFolder[];
+  countsById: Map<string, MailCount>;
   categories: MailCategory[];
   categoryHeading: string;
   labelsHeading: string;
@@ -63,10 +60,15 @@ export type MailSidebarProps = {
 };
 
 const SYSTEM_ITEMS = [
-  { name: "Inbox", type: "inbox", countId: "INBOX", Icon: InboxIcon },
-  { name: "Drafts", type: "draft", countId: "DRAFT", Icon: FileIcon },
-  { name: "Sent", type: "sent", countId: "SENT", Icon: SendIcon },
-  { name: "Archived", type: "archive", countId: "ARCHIVE", Icon: ArchiveIcon },
+  { name: "Inbox", type: "inbox", countId: "inbox", Icon: InboxIcon },
+  { name: "Drafts", type: "draft", countId: "draft", Icon: FileIcon },
+  { name: "Sent", type: "sent", countId: "sent", Icon: SendIcon },
+  {
+    name: "Archived",
+    type: "archive",
+    countId: "archive",
+    Icon: ArchiveIcon,
+  },
 ] as const;
 
 export type MailCategory = {
@@ -79,42 +81,35 @@ export type MailCategory = {
 export const MAIL_CATEGORIES: MailCategory[] = [
   {
     name: "Personal",
-    type: GmailLabel.PERSONAL,
+    type: "personal",
     Icon: UserIcon,
     showCount: true,
   },
   {
     name: "Social",
-    type: GmailLabel.SOCIAL,
+    type: "social",
     Icon: Users2Icon,
     showCount: true,
   },
   {
     name: "Updates",
-    type: GmailLabel.UPDATES,
+    type: "updates",
     Icon: BellIcon,
     showCount: true,
   },
   {
     name: "Forums",
-    type: GmailLabel.FORUMS,
+    type: "forums",
     Icon: MessagesSquareIcon,
     showCount: true,
   },
   {
     name: "Promotions",
-    type: GmailLabel.PROMOTIONS,
+    type: "promotions",
     Icon: MegaphoneIcon,
     showCount: true,
   },
 ];
-
-export const OUTLOOK_INBOX_CATEGORIES: MailCategory[] =
-  OUTLOOK_INBOX_SECTIONS.map((section) => ({
-    ...section,
-    Icon: section.type === "focused" ? SparklesIcon : InboxIcon,
-    showCount: false,
-  }));
 
 export function MailSidebar({
   activeType,
@@ -136,7 +131,6 @@ export function MailSidebar({
 }: MailSidebarProps) {
   const [isAddingLabel, setIsAddingLabel] = useState(false);
   const [newLabelName, setNewLabelName] = useState("");
-  const sidebarFolders = getMailSidebarFolders(folders);
 
   const submitNewLabel = (event: FormEvent) => {
     event.preventDefault();
@@ -159,7 +153,7 @@ export function MailSidebar({
         className="mb-2.5 flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground text-xs hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ArrowLeftIcon className="size-3.5 shrink-0" />
-        <span className="flex-1 truncate">Inbox Zero</span>
+        <span className="flex-1 truncate">Back to dashboard</span>
         <Kbd>{getShortcutHint("backToApp")}</Kbd>
       </Link>
 
@@ -210,11 +204,11 @@ export function MailSidebar({
           </>
         )}
 
-        {sidebarFolders.length > 0 && (
+        {folders.length > 0 && (
           <>
             <GroupHeading>Folders</GroupHeading>
             <nav className="flex flex-col gap-px">
-              {sidebarFolders.map((folder) => (
+              {folders.map((folder) => (
                 <NavRow
                   key={folder.id}
                   href={hrefFor({ kind: "folder", folderId: folder.id })}
@@ -258,9 +252,7 @@ export function MailSidebar({
                 <span
                   className="size-2.5 shrink-0 rounded-full bg-muted-foreground/40"
                   style={
-                    label.color?.backgroundColor
-                      ? { backgroundColor: label.color.backgroundColor }
-                      : undefined
+                    label.color ? { backgroundColor: label.color } : undefined
                   }
                 />
               }
@@ -373,8 +365,8 @@ function NavRow({
  * Drafts are never unread, so the only number worth showing there is the total.
  * A zero is noise, so it renders as nothing at all.
  */
-function displayCount(count: LabelCount | undefined): number | null {
+function displayCount(count: MailCount | undefined): number | null {
   if (!count) return null;
-  const value = count.id === "DRAFT" ? count.total : count.unread;
+  const value = count.id === "draft" ? count.total : count.unread;
   return value > 0 ? value : null;
 }

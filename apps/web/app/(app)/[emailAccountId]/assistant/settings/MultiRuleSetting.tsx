@@ -51,7 +51,7 @@ export function MultiRuleSetting() {
           <span>Multi-rule selection</span>
           <TooltipExplanation
             side="top"
-            text="Turning this off stops the AI from intentionally choosing multiple custom rules for one email. Inbox Zero can still apply more than one rule in a few special cases."
+            text="Désactiver cette option empêche l’IA de choisir volontairement plusieurs règles personnalisées pour un même message. Freescale peut encore appliquer plusieurs règles dans certains cas particuliers."
           />
         </div>
       }

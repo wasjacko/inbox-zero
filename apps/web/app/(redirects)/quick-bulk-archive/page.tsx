@@ -1,9 +1,5 @@
-import { redirectToEmailAccountPath } from "@/utils/account";
+import { BulkArchivePreview } from "@/components/preview/MainPreviewPages";
 
-export default async function QuickBulkArchivePage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  await redirectToEmailAccountPath("/quick-bulk-archive", await searchParams);
+export default function QuickBulkArchivePage() {
+  return <BulkArchivePreview />;
 }
