@@ -178,69 +178,62 @@ export function MobileTasksPreview() {
           const groupedTasks = visibleTasks.filter(
             (task) => task.group === group,
           );
-          if (!groupedTasks.length) return null;
           return (
             <section key={group}>
               <h2 className="mb-2 px-1 font-medium text-muted-foreground text-xs uppercase tracking-[0.12em]">
                 {group} · {groupedTasks.length}
               </h2>
               <div className="overflow-hidden rounded-2xl border bg-card">
-                {groupedTasks.map((task, index) => (
-                  <button
-                    className={cn(
-                      "flex min-h-[82px] w-full items-center gap-3 p-3 text-left active:bg-muted",
-                      index < groupedTasks.length - 1 && "border-b",
-                    )}
-                    data-mobile-defer
-                    key={task.id}
-                    onClick={() => setSelectedId(task.id)}
-                    type="button"
-                  >
-                    {task.done ? (
-                      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700">
-                        <CheckIcon className="size-3" />
+                {groupedTasks.length ? (
+                  groupedTasks.map((task, index) => (
+                    <button
+                      className={cn(
+                        "flex min-h-[82px] w-full items-center gap-3 p-3 text-left active:bg-muted",
+                        index < groupedTasks.length - 1 && "border-b",
+                      )}
+                      data-mobile-defer
+                      key={task.id}
+                      onClick={() => setSelectedId(task.id)}
+                      type="button"
+                    >
+                      {task.done ? (
+                        <span className="grid size-5 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+                          <CheckIcon className="size-3" />
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "size-2 shrink-0 rounded-full",
+                            task.urgent ? "bg-rose-500" : "bg-blue-500",
+                          )}
+                        />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="line-clamp-2 font-medium text-sm leading-5">
+                          {task.title}
+                        </span>
+                        <span className="mt-1 flex items-center gap-1.5 text-muted-foreground text-xs">
+                          <UserRoundIcon className="size-3" /> {task.client}
+                          <span aria-hidden="true">·</span> {task.due}
+                        </span>
                       </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          "size-2 shrink-0 rounded-full",
-                          task.urgent ? "bg-rose-500" : "bg-blue-500",
-                        )}
-                      />
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 font-medium text-sm leading-5">
-                        {task.title}
-                      </span>
-                      <span className="mt-1 flex items-center gap-1.5 text-muted-foreground text-xs">
-                        <UserRoundIcon className="size-3" /> {task.client}
-                        <span aria-hidden="true">·</span> {task.due}
-                      </span>
-                    </span>
-                    <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
-                  </button>
-                ))}
+                      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  ))
+                ) : (
+                  <p className="px-4 py-5 text-center text-muted-foreground text-sm">
+                    Aucune tâche dans cette section
+                  </p>
+                )}
               </div>
             </section>
           );
         })}
-        {tasksHydrated && visibleTasks.length === 0 ? (
+        {tasksHydrated && visibleTasks.length === 0 && query ? (
           <MobileEmpty
-            icon={query ? SearchIcon : CheckIcon}
-            title={
-              query
-                ? "Aucun résultat"
-                : activeCount === 0
-                  ? "Tout est fait"
-                  : "Rien ici"
-            }
-            detail={
-              query
-                ? "Essayez avec un autre mot."
-                : activeCount === 0
-                  ? "Créez votre première tâche avec le bouton +."
-                  : "Modifiez les filtres pour retrouver vos tâches."
-            }
+            icon={SearchIcon}
+            title="Aucun résultat"
+            detail="Essayez avec un autre mot."
           />
         ) : null}
       </div>
