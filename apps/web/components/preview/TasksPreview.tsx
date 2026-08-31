@@ -59,7 +59,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/utils";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
-import { MobileTasksPreview } from "@/components/mobile/MobileSimplifiedPages";
 
 export type TaskStatus = "scope" | "todo" | "progress" | "waiting" | "done";
 export type TaskPriority = "low" | "medium" | "high";
@@ -552,111 +551,104 @@ export function TasksPreview() {
   }
 
   return (
-    <>
-      <MobileTasksPreview />
-      <div className="hidden lg:block">
-        <PageWrapper>
-          <header className="mt-8 flex items-end justify-between gap-5">
-            <div>
-              <h1 className="font-semibold text-3xl tracking-tight">Tâches</h1>
-              <p className="mt-1 text-muted-foreground text-sm">
-                Organisez vos actions et gardez chaque projet en mouvement.
-              </p>
-            </div>
-            <Button
-              className="shrink-0 gap-2 rounded-[13px] border border-[#5989f0] bg-gradient-to-b from-[#2965ec] to-[#5c89f8] px-4 text-white shadow-[0_2px_10px_rgba(75,131,253,0.2)] transition-[background-image,filter] duration-200 hover:from-[#255ddd] hover:to-[#4d7ced] hover:brightness-[1.03]"
-              onClick={() => openCreate()}
-            >
-              <PlusIcon className="size-4" /> Nouvelle tâche
-            </Button>
-          </header>
+    <PageWrapper>
+      <header className="mt-4 flex flex-col gap-4 sm:mt-8 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
+        <div>
+          <h1 className="font-semibold text-3xl tracking-tight">Tâches</h1>
+          <p className="mt-1 text-muted-foreground text-sm">
+            Organisez vos actions et gardez chaque projet en mouvement.
+          </p>
+        </div>
+        <Button
+          className="w-full shrink-0 gap-2 rounded-[13px] border border-[#5989f0] bg-gradient-to-b from-[#2965ec] to-[#5c89f8] px-4 text-white shadow-[0_2px_10px_rgba(75,131,253,0.2)] transition-[background-image,filter] duration-200 hover:from-[#255ddd] hover:to-[#4d7ced] hover:brightness-[1.03] sm:w-auto"
+          onClick={() => openCreate()}
+        >
+          <PlusIcon className="size-4" /> Nouvelle tâche
+        </Button>
+      </header>
 
-          <Tabs defaultValue="table" searchParam="view" className="mt-6 gap-4">
-            <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-2.5 lg:flex-row lg:items-center lg:justify-between">
-              <TabsList className="shrink-0 bg-background shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-                <TabsTrigger value="table" className="gap-2">
-                  <ListIcon className="size-4" />
-                  Liste
-                </TabsTrigger>
-                <TabsTrigger value="kanban" className="gap-2">
-                  <Columns3Icon className="size-4" />
-                  Kanban
-                </TabsTrigger>
-              </TabsList>
-              <div className="flex flex-1 flex-wrap items-center gap-2 lg:justify-end">
-                <div className="relative min-w-48 flex-1 lg:max-w-72">
-                  <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Rechercher une tâche…"
-                    className="pl-9"
-                  />
-                </div>
-                <PriorityFilter values={priorities} onChange={setPriorities} />
-                <SortMenu value={sort} onChange={setSort} />
-              </div>
-            </div>
-
-            <TabsContent
-              value="table"
-              className={cn("mt-6 space-y-6", !hydrated && "invisible")}
-            >
-              {statuses.map((status) => (
-                <TaskGroup
-                  key={status.id}
-                  status={status}
-                  tasks={visibleTasks.filter(
-                    (task) => task.status === status.id,
-                  )}
-                  projectedTasks={projectedTasks.filter(
-                    (task) => task.status === status.id,
-                  )}
-                  highlightedTaskIds={highlightedTaskIds}
-                  pendingTaskMove={pendingTaskMove}
-                  recentlyMovedTaskId={recentlyMovedTaskId}
-                  onValidateProjection={validateProjectedTask}
-                  onMove={updateStatus}
-                  onRemove={removeTask}
-                />
-              ))}
-            </TabsContent>
-            <TabsContent
-              value="kanban"
-              className={cn("mt-6", !hydrated && "invisible")}
-            >
-              <TaskKanban
-                tasks={visibleTasks}
-                projectedTasks={projectedTasks}
-                highlightedTaskIds={highlightedTaskIds}
-                onValidateProjection={validateProjectedTask}
-                onAdd={openCreate}
-                onMove={updateStatus}
-                onRemove={removeTask}
+      <Tabs defaultValue="table" searchParam="view" className="mt-6 gap-4">
+        <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <TabsList className="shrink-0 bg-background shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+            <TabsTrigger value="table" className="gap-2">
+              <ListIcon className="size-4" />
+              Liste
+            </TabsTrigger>
+            <TabsTrigger value="kanban" className="gap-2">
+              <Columns3Icon className="size-4" />
+              Kanban
+            </TabsTrigger>
+          </TabsList>
+          <div className="flex flex-1 flex-wrap items-center gap-2 lg:justify-end">
+            <div className="relative min-w-48 flex-1 lg:max-w-72">
+              <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Rechercher une tâche…"
+                className="pl-9"
               />
-            </TabsContent>
-          </Tabs>
+            </div>
+            <PriorityFilter values={priorities} onChange={setPriorities} />
+            <SortMenu value={sort} onChange={setSort} />
+          </div>
+        </div>
 
-          <CreateTaskDialog
-            open={createOpen}
-            defaultStatus={defaultStatus}
-            onOpenChange={setCreateOpen}
-            onCreate={addTask}
+        <TabsContent
+          value="table"
+          className={cn("mt-6 space-y-6", !hydrated && "invisible")}
+        >
+          {statuses.map((status) => (
+            <TaskGroup
+              key={status.id}
+              status={status}
+              tasks={visibleTasks.filter((task) => task.status === status.id)}
+              projectedTasks={projectedTasks.filter(
+                (task) => task.status === status.id,
+              )}
+              highlightedTaskIds={highlightedTaskIds}
+              pendingTaskMove={pendingTaskMove}
+              recentlyMovedTaskId={recentlyMovedTaskId}
+              onValidateProjection={validateProjectedTask}
+              onMove={updateStatus}
+              onRemove={removeTask}
+            />
+          ))}
+        </TabsContent>
+        <TabsContent
+          value="kanban"
+          className={cn("mt-6", !hydrated && "invisible")}
+        >
+          <TaskKanban
+            tasks={visibleTasks}
+            projectedTasks={projectedTasks}
+            highlightedTaskIds={highlightedTaskIds}
+            onValidateProjection={validateProjectedTask}
+            onAdd={openCreate}
+            onMove={updateStatus}
+            onRemove={removeTask}
           />
-          <TasksMueTutorial
-            hasResults={projectedTasks.some((task) => task.revealed)}
-            onClose={() => {
-              setTaskTutorialStep(null);
-              window.dispatchEvent(
-                new CustomEvent("freescale:task-tutorial-step", { detail: 0 }),
-              );
-              router.replace("/tasks");
-            }}
-            step={taskTutorialStep}
-          />
-        </PageWrapper>
-      </div>
-    </>
+        </TabsContent>
+      </Tabs>
+
+      <CreateTaskDialog
+        open={createOpen}
+        defaultStatus={defaultStatus}
+        onOpenChange={setCreateOpen}
+        onCreate={addTask}
+      />
+      <TasksMueTutorial
+        hasResults={projectedTasks.some((task) => task.revealed)}
+        onClose={() => {
+          setTaskTutorialStep(null);
+          window.dispatchEvent(
+            new CustomEvent("freescale:task-tutorial-step", { detail: 0 }),
+          );
+          router.replace("/tasks");
+        }}
+        step={taskTutorialStep}
+      />
+    </PageWrapper>
   );
 }
 
