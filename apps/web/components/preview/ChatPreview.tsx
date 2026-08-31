@@ -66,7 +66,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip } from "@/components/Tooltip";
 import { cn } from "@/utils";
 import {
-  DEFAULT_PREVIEW_FREELANCER_NAME,
   getPreviewGreeting,
   PREVIEW_FREELANCER_NAME_EVENT,
   PREVIEW_FREELANCER_NAME_KEY,
@@ -74,6 +73,7 @@ import {
 import {
   getPreviewConnectedChannels,
   PREVIEW_CONNECTED_CHANNELS_EVENT,
+  PREVIEW_ONBOARDING_STATUS_KEY,
 } from "@/utils/preview-onboarding";
 
 const suggestions = [
@@ -84,18 +84,20 @@ const suggestions = [
 
 export function ChatPreview() {
   const [input, setInput] = useState("");
-  const [freelancerName, setFreelancerName] = useState(
-    DEFAULT_PREVIEW_FREELANCER_NAME,
-  );
+  const [freelancerName, setFreelancerName] = useState("");
   const [hasConnectedChannels, setHasConnectedChannels] = useState(false);
   const searchParams = useSearchParams();
   const activeView = searchParams.get("chatView") ?? "brief";
   const onboardingComplete = searchParams.get("onboarding") === "complete";
 
   useEffect(() => {
+    const onboardingStatus = window.localStorage.getItem(
+      PREVIEW_ONBOARDING_STATUS_KEY,
+    );
     setFreelancerName(
-      window.localStorage.getItem(PREVIEW_FREELANCER_NAME_KEY) ??
-        DEFAULT_PREVIEW_FREELANCER_NAME,
+      onboardingStatus === "skipped"
+        ? ""
+        : (window.localStorage.getItem(PREVIEW_FREELANCER_NAME_KEY) ?? ""),
     );
     const handleFreelancerName = (event: Event) =>
       setFreelancerName((event as CustomEvent<string>).detail);

@@ -2,7 +2,6 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  DEFAULT_PREVIEW_FREELANCER_NAME,
   getPreviewGreeting,
   PREVIEW_FREELANCER_NAME_EVENT,
   PREVIEW_FREELANCER_NAME_KEY,
@@ -27,8 +26,6 @@ describe("preview freelancer profile", () => {
 
   it("builds the home greeting from the freelancer name", () => {
     expect(getPreviewGreeting("Maya")).toBe("Bonjour Maya");
-    expect(getPreviewGreeting("   ")).toBe(
-      `Bonjour ${DEFAULT_PREVIEW_FREELANCER_NAME}`,
-    );
+    expect(getPreviewGreeting("   ")).toBe("Bonjour");
   });
 });

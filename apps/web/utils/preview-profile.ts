@@ -3,7 +3,8 @@ export const PREVIEW_FREELANCER_NAME_EVENT = "freescale:freelancer-name-change";
 export const DEFAULT_PREVIEW_FREELANCER_NAME = "Wassil";
 
 export function getPreviewGreeting(name: string) {
-  return `Bonjour ${name.trim() || DEFAULT_PREVIEW_FREELANCER_NAME}`;
+  const normalizedName = name.trim();
+  return normalizedName ? `Bonjour ${normalizedName}` : "Bonjour";
 }
 
 export function savePreviewFreelancerName(name: string) {

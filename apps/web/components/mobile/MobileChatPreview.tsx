@@ -159,7 +159,9 @@ export function MobileChatPreview({
             <InboxIcon className="size-6" />
           </span>
           <h1 className="mt-5 font-semibold text-3xl tracking-tight">
-            Bonjour {freelancerName}
+            {freelancerName.trim()
+              ? `Bonjour ${freelancerName.trim()}`
+              : "Bonjour"}
           </h1>
           <h2 className="mt-8 font-semibold text-lg">Aucun canal connecté</h2>
           <p className="mt-2 text-muted-foreground text-sm leading-6">
