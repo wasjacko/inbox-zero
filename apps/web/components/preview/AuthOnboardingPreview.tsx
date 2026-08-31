@@ -125,11 +125,9 @@ function useFreescaleAuthentication(mode: AuthMode) {
   };
 
   const continueWithEmail = async ({
-    name,
     email,
     password,
   }: {
-    name: string;
     email: string;
     password: string;
   }) => {
@@ -140,7 +138,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
       const result =
         mode === "signup"
           ? await signUp.email({
-              name: name.trim(),
+              name: email.trim().split("@")[0] || "Utilisateur",
               email: email.trim().toLowerCase(),
               password,
               callbackURL: "/onboarding",
@@ -156,7 +154,6 @@ function useFreescaleAuthentication(mode: AuthMode) {
 
       if (mode === "signup") {
         startPreviewOnboarding(window.localStorage);
-        savePreviewFreelancerName(name);
       }
 
       router.push(mode === "signup" ? "/onboarding" : "/chat");
@@ -200,16 +197,22 @@ function MobileAuthPreview() {
   const searchParams = useSearchParams();
   const mode: AuthMode =
     searchParams.get("mode") === "signup" ? "signup" : "login";
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { continueWithEmail, continueWithGoogle, error, loading } =
     useFreescaleAuthentication(mode);
 
   const handleEmailSubmit = (event: FormEvent) => {
     event.preventDefault();
-    continueWithEmail({ name, email, password }).catch(() => undefined);
+    if (mode === "signup" && password !== passwordConfirmation) {
+      setPasswordMismatch(true);
+      return;
+    }
+    setPasswordMismatch(false);
+    continueWithEmail({ email, password }).catch(() => undefined);
   };
 
   return (
@@ -265,21 +268,6 @@ function MobileAuthPreview() {
           </div>
 
           <form className="space-y-3.5" onSubmit={handleEmailSubmit}>
-            {mode === "signup" ? (
-              <label className="block">
-                <span className="mb-1.5 block font-medium text-xs">
-                  Votre prénom
-                </span>
-                <input
-                  autoComplete="given-name"
-                  className="h-12 w-full rounded-xl border bg-background px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
-                  onChange={(event) => setName(event.currentTarget.value)}
-                  placeholder="Votre prénom"
-                  required
-                  value={name}
-                />
-              </label>
-            ) : null}
             <label className="block">
               <span className="mb-1.5 block font-medium text-xs">
                 Adresse email
@@ -329,6 +317,34 @@ function MobileAuthPreview() {
                 </button>
               </span>
             </label>
+            {mode === "signup" ? (
+              <label className="block">
+                <span className="mb-1.5 block font-medium text-xs">
+                  Confirmer le mot de passe
+                </span>
+                <input
+                  aria-invalid={passwordMismatch}
+                  autoComplete="new-password"
+                  className="h-12 w-full rounded-xl border bg-background px-3.5 text-base outline-none focus:ring-2 focus:ring-ring"
+                  minLength={8}
+                  onChange={(event) => {
+                    setPasswordConfirmation(event.currentTarget.value);
+                    setPasswordMismatch(false);
+                  }}
+                  required
+                  type={showPassword ? "text" : "password"}
+                  value={passwordConfirmation}
+                />
+              </label>
+            ) : null}
+            {passwordMismatch ? (
+              <p
+                className="rounded-xl bg-red-50 px-3 py-2 text-red-700 text-sm"
+                role="alert"
+              >
+                Les deux mots de passe ne correspondent pas.
+              </p>
+            ) : null}
             {error ? (
               <p
                 className="rounded-xl bg-red-50 px-3 py-2 text-red-700 text-sm"
@@ -382,16 +398,22 @@ function DesktopAuthPreview() {
   const [mode, setMode] = useState<"signup" | "login">(
     searchParams.get("mode") === "signup" ? "signup" : "login",
   );
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { continueWithEmail, continueWithGoogle, error, loading, resetError } =
     useFreescaleAuthentication(mode);
 
   const handleEmailSubmit = (event: FormEvent) => {
     event.preventDefault();
-    continueWithEmail({ name, email, password }).catch(() => undefined);
+    if (mode === "signup" && password !== passwordConfirmation) {
+      setPasswordMismatch(true);
+      return;
+    }
+    setPasswordMismatch(false);
+    continueWithEmail({ email, password }).catch(() => undefined);
   };
 
   return (
@@ -432,23 +454,6 @@ function DesktopAuthPreview() {
       </div>
 
       <form className="space-y-3.5" onSubmit={handleEmailSubmit}>
-        {mode === "signup" ? (
-          <div>
-            <label className="block">
-              <span className="mb-1.5 block font-medium text-xs">
-                Votre prénom
-              </span>
-              <input
-                autoComplete="given-name"
-                className="h-11 w-full rounded-xl border bg-background px-3.5 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-                onChange={(event) => setName(event.currentTarget.value)}
-                placeholder="Votre prénom"
-                required
-                value={name}
-              />
-            </label>
-          </div>
-        ) : null}
         <label className="block">
           <span className="mb-1.5 block font-medium text-xs">
             Adresse email
@@ -495,6 +500,35 @@ function DesktopAuthPreview() {
             </button>
           </span>
         </label>
+        {mode === "signup" ? (
+          <label className="block">
+            <span className="mb-1.5 block font-medium text-xs">
+              Confirmer le mot de passe
+            </span>
+            <input
+              aria-invalid={passwordMismatch}
+              autoComplete="new-password"
+              className="h-11 w-full rounded-xl border bg-background px-3.5 text-sm outline-none transition-shadow placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+              minLength={8}
+              onChange={(event) => {
+                setPasswordConfirmation(event.currentTarget.value);
+                setPasswordMismatch(false);
+              }}
+              required
+              type={showPassword ? "text" : "password"}
+              value={passwordConfirmation}
+            />
+          </label>
+        ) : null}
+
+        {passwordMismatch ? (
+          <p
+            className="rounded-xl bg-red-50 px-3 py-2 text-red-700 text-sm dark:bg-red-950/30 dark:text-red-300"
+            role="alert"
+          >
+            Les deux mots de passe ne correspondent pas.
+          </p>
+        ) : null}
 
         {error ? (
           <p
@@ -530,6 +564,8 @@ function DesktopAuthPreview() {
             const nextMode = mode === "signup" ? "login" : "signup";
             setMode(nextMode);
             setPassword("");
+            setPasswordConfirmation("");
+            setPasswordMismatch(false);
             resetError();
             router.replace(
               nextMode === "signup" ? "/login?mode=signup" : "/login",
