@@ -1,5 +1,9 @@
 export const PREVIEW_ONBOARDING_STATUS_KEY =
   "freescale-preview-onboarding-status";
+export const PREVIEW_CONNECTED_CHANNELS_KEY =
+  "freescale-preview-connected-channels";
+export const PREVIEW_CONNECTED_CHANNELS_EVENT =
+  "freescale:connected-channels-change";
 
 export const PREVIEW_ONBOARDING_ACCESS_VALUES = [
   "completed",
@@ -23,4 +27,33 @@ export function grantPreviewOnboardingAccess(
 
 export function startPreviewOnboarding(storage: Pick<Storage, "setItem">) {
   storage.setItem(PREVIEW_ONBOARDING_STATUS_KEY, "pending");
+}
+
+export function getPreviewConnectedChannels(storage: Pick<Storage, "getItem">) {
+  const value = storage.getItem(PREVIEW_CONNECTED_CHANNELS_KEY);
+  if (!value) return [];
+
+  try {
+    const channels = JSON.parse(value);
+    return Array.isArray(channels)
+      ? channels.filter(
+          (channel): channel is string => typeof channel === "string",
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function savePreviewConnectedChannels(channels: string[]) {
+  const normalizedChannels = [...new Set(channels)];
+  window.localStorage.setItem(
+    PREVIEW_CONNECTED_CHANNELS_KEY,
+    JSON.stringify(normalizedChannels),
+  );
+  window.dispatchEvent(
+    new CustomEvent(PREVIEW_CONNECTED_CHANNELS_EVENT, {
+      detail: normalizedChannels,
+    }),
+  );
 }

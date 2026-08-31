@@ -71,6 +71,10 @@ import {
   PREVIEW_FREELANCER_NAME_EVENT,
   PREVIEW_FREELANCER_NAME_KEY,
 } from "@/utils/preview-profile";
+import {
+  getPreviewConnectedChannels,
+  PREVIEW_CONNECTED_CHANNELS_EVENT,
+} from "@/utils/preview-onboarding";
 
 const suggestions = [
   { label: "Aide-moi à gérer mes priorités aujourd’hui", icon: InboxIcon },
@@ -83,6 +87,7 @@ export function ChatPreview() {
   const [freelancerName, setFreelancerName] = useState(
     DEFAULT_PREVIEW_FREELANCER_NAME,
   );
+  const [hasConnectedChannels, setHasConnectedChannels] = useState(false);
   const searchParams = useSearchParams();
   const activeView = searchParams.get("chatView") ?? "brief";
   const onboardingComplete = searchParams.get("onboarding") === "complete";
@@ -105,9 +110,31 @@ export function ChatPreview() {
       );
   }, []);
 
+  useEffect(() => {
+    setHasConnectedChannels(
+      getPreviewConnectedChannels(window.localStorage).length > 0,
+    );
+    const handleConnectedChannels = (event: Event) =>
+      setHasConnectedChannels(
+        (event as CustomEvent<string[]>).detail.length > 0,
+      );
+    window.addEventListener(
+      PREVIEW_CONNECTED_CHANNELS_EVENT,
+      handleConnectedChannels,
+    );
+    return () =>
+      window.removeEventListener(
+        PREVIEW_CONNECTED_CHANNELS_EVENT,
+        handleConnectedChannels,
+      );
+  }, []);
+
   return (
     <>
-      <MobileChatPreview freelancerName={freelancerName} />
+      <MobileChatPreview
+        freelancerName={freelancerName}
+        hasConnectedChannels={hasConnectedChannels}
+      />
       <Tabs
         className="relative isolate hidden h-[calc(100svh-4rem)] min-h-0 w-full flex-none flex-col overflow-x-hidden overflow-y-auto bg-background lg:flex"
         defaultValue="brief"
@@ -182,6 +209,7 @@ export function ChatPreview() {
         >
           <CenteredBriefOverview
             freelancerName={freelancerName}
+            hasConnectedChannels={hasConnectedChannels}
             onboardingComplete={onboardingComplete}
           />
         </TabsContent>
@@ -502,9 +530,11 @@ const dailyBriefChanges = [
 
 function CenteredBriefOverview({
   freelancerName,
+  hasConnectedChannels,
   onboardingComplete,
 }: {
   freelancerName: string;
+  hasConnectedChannels: boolean;
   onboardingComplete: boolean;
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -534,6 +564,10 @@ function CenteredBriefOverview({
     const timer = window.setTimeout(() => setRefreshing(false), 2200);
     return () => window.clearTimeout(timer);
   }, [refreshing]);
+
+  if (!hasConnectedChannels) {
+    return <DisconnectedBriefState greeting={greeting} />;
+  }
 
   return (
     <div className="relative flex min-h-[calc(100svh-8rem)] w-full flex-none items-start justify-center bg-background px-4 pb-12 pt-20 sm:px-6 sm:pt-20">
@@ -899,6 +933,30 @@ function CenteredBriefOverview({
           </button>
         </div>
       </motion.section>
+    </div>
+  );
+}
+
+function DisconnectedBriefState({ greeting }: { greeting: string }) {
+  return (
+    <div className="flex min-h-[calc(100svh-8rem)] w-full items-center justify-center px-6 py-16">
+      <section className="w-full max-w-md text-center">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+          <InboxIcon className="size-6" />
+        </span>
+        <h1 className="mt-5 font-medium text-3xl tracking-tight">{greeting}</h1>
+        <h2 className="mt-8 font-semibold text-lg">Aucun canal connecté</h2>
+        <p className="mt-2 text-muted-foreground text-sm leading-6">
+          Connectez votre messagerie pour que Mue puisse préparer vos briefs et
+          faire ressortir les échanges importants.
+        </p>
+        <Button
+          asChild
+          className="mt-6 rounded-xl bg-blue-600 hover:bg-blue-700"
+        >
+          <Link href="/onboarding">Connecter un canal</Link>
+        </Button>
+      </section>
     </div>
   );
 }

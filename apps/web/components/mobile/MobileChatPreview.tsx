@@ -5,9 +5,11 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   Clock3Icon,
+  InboxIcon,
   SendHorizontalIcon,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
@@ -22,6 +24,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { toastSuccess } from "@/components/Toast";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
 
 type MobileBriefChannel = "Gmail" | "Outlook" | "WhatsApp";
@@ -123,8 +126,10 @@ const mobileBriefClients: MobileBriefClient[] = [
 
 export function MobileChatPreview({
   freelancerName,
+  hasConnectedChannels,
 }: {
   freelancerName: string;
+  hasConnectedChannels: boolean;
 }) {
   const searchParams = useSearchParams();
   const reducedMotion = useReducedMotion();
@@ -145,6 +150,32 @@ export function MobileChatPreview({
     }));
     setSelectedClientId(client.id);
   };
+
+  if (!hasConnectedChannels) {
+    return (
+      <div className="flex min-h-[calc(100dvh-var(--mobile-topbar-height)-var(--mobile-bottombar-height))] items-center justify-center bg-background px-6 pb-10 lg:hidden">
+        <section className="w-full max-w-sm text-center">
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+            <InboxIcon className="size-6" />
+          </span>
+          <h1 className="mt-5 font-semibold text-3xl tracking-tight">
+            Bonjour {freelancerName}
+          </h1>
+          <h2 className="mt-8 font-semibold text-lg">Aucun canal connecté</h2>
+          <p className="mt-2 text-muted-foreground text-sm leading-6">
+            Connectez votre messagerie pour recevoir vos premiers briefs et
+            retrouver vos échanges importants ici.
+          </p>
+          <Button
+            asChild
+            className="mt-6 min-h-11 rounded-xl bg-blue-600 px-5 hover:bg-blue-700"
+          >
+            <Link href="/onboarding">Connecter un canal</Link>
+          </Button>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100dvh-var(--mobile-topbar-height)-var(--mobile-bottombar-height))] bg-background lg:hidden">

@@ -24,6 +24,7 @@ import { cn } from "@/utils";
 import { signIn, signUp } from "@/utils/auth-client";
 import {
   grantPreviewOnboardingAccess,
+  savePreviewConnectedChannels,
   startPreviewOnboarding,
 } from "@/utils/preview-onboarding";
 import { savePreviewFreelancerName } from "@/utils/preview-profile";
@@ -733,6 +734,7 @@ function MobileOnboardingPreview() {
       return;
     }
     setPreparing(true);
+    savePreviewConnectedChannels(connectedChannels);
     window.localStorage.removeItem(mobileOnboardingStorageKey);
     grantPreviewOnboardingAccess(window.localStorage, "completed");
     window.setTimeout(() => {
@@ -741,6 +743,7 @@ function MobileOnboardingPreview() {
   };
 
   const skipOnboarding = () => {
+    savePreviewConnectedChannels([]);
     grantPreviewOnboardingAccess(window.localStorage, "skipped");
     router.push("/chat");
   };
@@ -950,6 +953,7 @@ function DesktopOnboardingPreview() {
       return;
     }
     setPreparing(true);
+    savePreviewConnectedChannels(connectedChannels);
     grantPreviewOnboardingAccess(window.localStorage, "completed");
     window.setTimeout(() => {
       router.push("/setup?onboarding=complete");
@@ -957,6 +961,7 @@ function DesktopOnboardingPreview() {
   };
 
   const skipOnboarding = () => {
+    savePreviewConnectedChannels([]);
     grantPreviewOnboardingAccess(window.localStorage, "skipped");
     router.push("/chat");
   };
