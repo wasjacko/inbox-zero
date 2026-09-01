@@ -25,6 +25,11 @@ import {
 } from "@/components/ui/sheet";
 import { toastSuccess } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
+import {
+  Avatar,
+  AvatarFallbackColor,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { cn } from "@/utils";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { toRealChannelConversations } from "@/utils/channels/real-conversations";
@@ -39,6 +44,8 @@ type MobileBriefClient = {
   unread: number;
   time: string;
   avatarPosition: string;
+  avatarUrl?: string;
+  initials?: string;
   messages: Array<{ mine?: boolean; body: string; time: string }>;
   suggestion: string;
   shortSuggestion: string;
@@ -168,13 +175,15 @@ export function MobileChatPreview({
       unread: conversation.unread ? 1 : 0,
       time: conversation.time,
       avatarPosition: "50% 50%",
+      avatarUrl: `https://unavatar.io/${encodeURIComponent(conversation.address)}`,
+      initials: conversation.initials,
       messages: conversation.messages,
       suggestion: `Répondre à ${conversation.name} au sujet de « ${conversation.subject} »`,
       shortSuggestion: `Répondre à ${conversation.name} au sujet de « ${conversation.subject} »`,
       warmSuggestion: `Bonjour ${conversation.name}, merci pour votre message. Je reviens vers vous rapidement.`,
     }));
   }, [provider, realThreads, userEmail]);
-  const clientsToDisplay = realClients;
+  const clientsToDisplay = realClients.slice(0, 3);
   const unreadCount = clientsToDisplay.reduce(
     (total, client) => total + client.unread,
     0,
@@ -325,15 +334,17 @@ export function MobileChatPreview({
                   type="button"
                 >
                   <span className="relative size-11 shrink-0">
-                    <span
+                    <Avatar
                       aria-label={`Photo de ${client.name}`}
-                      className="block size-11 rounded-full bg-[url('/images/avatars/freescale-contacts-grid.webp')] bg-no-repeat ring-1 ring-border"
-                      role="img"
-                      style={{
-                        backgroundPosition: client.avatarPosition,
-                        backgroundSize: "300% 300%",
-                      }}
-                    />
+                      className="size-11 ring-1 ring-border"
+                    >
+                      {client.avatarUrl ? (
+                        <AvatarImage alt="" src={client.avatarUrl} />
+                      ) : null}
+                      <AvatarFallbackColor
+                        content={client.initials ?? client.name.slice(0, 2)}
+                      />
+                    </Avatar>
                     {!sent ? (
                       <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 font-semibold text-[10px] text-white ring-2 ring-background">
                         {client.unread}
@@ -418,15 +429,17 @@ function MobileConversationSheet({
             >
               <ChevronLeftIcon className="size-5" />
             </button>
-            <span
+            <Avatar
               aria-label={`Photo de ${client.name}`}
-              className="block size-10 shrink-0 rounded-full bg-[url('/images/avatars/freescale-contacts-grid.webp')] bg-no-repeat ring-1 ring-border"
-              role="img"
-              style={{
-                backgroundPosition: client.avatarPosition,
-                backgroundSize: "300% 300%",
-              }}
-            />
+              className="size-10 ring-1 ring-border"
+            >
+              {client.avatarUrl ? (
+                <AvatarImage alt="" src={client.avatarUrl} />
+              ) : null}
+              <AvatarFallbackColor
+                content={client.initials ?? client.name.slice(0, 2)}
+              />
+            </Avatar>
             <div className="min-w-0 flex-1">
               <SheetTitle className="truncate text-sm">
                 {client.name}
