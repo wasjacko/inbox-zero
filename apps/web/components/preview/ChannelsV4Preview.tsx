@@ -584,7 +584,7 @@ export function ChannelsV4Preview() {
   );
 
   useEffect(() => {
-    if (!realThreads) return;
+    if (!realThreads || !Array.isArray(realThreads.threads)) return;
     setConversations(
       toRealChannelConversations({
         provider,
