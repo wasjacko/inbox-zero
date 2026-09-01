@@ -538,7 +538,14 @@ export function ChannelsV4Preview() {
     isLoading: threadsLoading,
     mutate: refreshThreads,
   } = useSWR<ThreadsListResponse>(
-    emailAccountId ? "/api/threads?type=inbox&limit=50&view=list" : null,
+    emailAccountId
+      ? "/api/threads?type=inbox&limit=20&view=list&includePlans=false"
+      : null,
+    {
+      dedupingInterval: 60_000,
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+    },
   );
   const requestedConversationId = searchParams.get("conversation");
   const taskTutorialRequested =
@@ -2323,9 +2330,13 @@ function ConversationList({
                       {conversation.starred ? (
                         <StarIcon className="size-3.5 shrink-0 fill-amber-400 text-amber-500" />
                       ) : null}
+                      <span className="pointer-events-none ml-auto hidden translate-x-1 items-center gap-1 rounded-full border bg-background px-2 py-0.5 font-medium text-[10px] text-muted-foreground opacity-0 shadow-sm transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 lg:inline-flex">
+                        <ChannelIcon channel={conversation.channel} />
+                        {channelName(conversation.channel)}
+                      </span>
                       <span
                         className={cn(
-                          "ml-auto inline-flex shrink-0 items-center gap-1 text-xs",
+                          "inline-flex shrink-0 items-center gap-1 text-xs",
                           conversation.unread
                             ? "font-semibold text-blue-600"
                             : "text-muted-foreground",

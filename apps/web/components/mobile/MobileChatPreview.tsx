@@ -150,7 +150,7 @@ export function MobileChatPreview({
   const { data: realThreads, isLoading: threadsLoading } =
     useSWR<ThreadsListResponse>(
       scanStarted && emailAccountId
-        ? "/api/threads?type=inbox&limit=20&view=list"
+        ? "/api/threads?type=inbox&limit=20&view=list&includePlans=false"
         : null,
     );
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);

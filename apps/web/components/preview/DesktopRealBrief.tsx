@@ -22,7 +22,7 @@ export function DesktopRealBrief({
   const [scanStarted, setScanStarted] = useState(false);
   const { data, error, isLoading, mutate } = useSWR<ThreadsListResponse>(
     scanStarted && emailAccountId
-      ? "/api/threads?type=inbox&limit=20&view=list"
+      ? "/api/threads?type=inbox&limit=20&view=list&includePlans=false"
       : null,
   );
   const conversations = useMemo(() => {

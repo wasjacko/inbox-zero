@@ -36,6 +36,7 @@ export const GET = withEmailProvider(
     const before = searchParams.get("before");
     const isUnread = searchParams.get("isUnread");
     const view = threadsView.parse(searchParams.get("view"));
+    const includePlans = searchParams.get("includePlans") !== "false";
 
     const query = threadsQuery.parse({
       limit,
@@ -57,6 +58,7 @@ export const GET = withEmailProvider(
         query,
         emailAccountId,
         emailProvider,
+        includePlans,
         messageFormat: view === "list" ? "metadata" : "full",
       });
       return NextResponse.json(
@@ -85,11 +87,13 @@ async function getThreads({
   query,
   emailAccountId,
   emailProvider,
+  includePlans,
   messageFormat,
 }: {
   query: ThreadsQuery;
   emailAccountId: string;
   emailProvider: EmailProvider;
+  includePlans: boolean;
   messageFormat: "full" | "metadata";
 }) {
   // Get threads using the provider
@@ -101,32 +105,34 @@ async function getThreads({
   });
 
   const threadIds = threads.map((t) => t.id);
-  const executedRules = await prisma.executedRule.findMany({
-    where: {
-      emailAccountId,
-      threadId: { in: threadIds },
-    },
-    select: {
-      id: true,
-      messageId: true,
-      threadId: true,
-      rule: true,
-      actionItems: {
-        include: {
-          messagingChannel: {
-            select: {
-              provider: true,
+  const executedRules = includePlans
+    ? await prisma.executedRule.findMany({
+        where: {
+          emailAccountId,
+          threadId: { in: threadIds },
+        },
+        select: {
+          id: true,
+          messageId: true,
+          threadId: true,
+          rule: true,
+          actionItems: {
+            include: {
+              messagingChannel: {
+                select: {
+                  provider: true,
+                },
+              },
             },
           },
+          status: true,
+          reason: true,
+          createdAt: true,
         },
-      },
-      status: true,
-      reason: true,
-      createdAt: true,
-    },
-    // Newest first so the per-rule aggregation below keeps the latest execution
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  });
+        // Newest first so the per-rule aggregation below keeps the latest execution
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      })
+    : [];
 
   const executedRulesByThreadId = new Map<
     string,
