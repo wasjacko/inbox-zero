@@ -582,6 +582,14 @@ export function ChannelsV4Preview() {
     { id: selectedId || null },
     { parseReplies: true },
   );
+  const connectedChannels = useMemo<Channel[]>(() => {
+    const detected = new Set<Channel>(
+      conversations.map((conversation) => conversation.channel),
+    );
+    if (provider === "google") detected.add("gmail");
+    if (provider === "microsoft") detected.add("outlook");
+    return channels.filter((channel) => detected.has(channel));
+  }, [conversations, provider]);
 
   useEffect(() => {
     if (!realThreads || !Array.isArray(realThreads.threads)) return;
@@ -982,6 +990,10 @@ export function ChannelsV4Preview() {
   return (
     <>
       <MobileChannelsPreview
+        availableChannels={connectedChannels.filter(
+          (channel): channel is "gmail" | "outlook" =>
+            channel === "gmail" || channel === "outlook",
+        )}
         conversations={mobileConversations}
         error={Boolean(threadsError)}
         loading={threadsLoading}
@@ -1124,6 +1136,7 @@ export function ChannelsV4Preview() {
                 allConversations={conversations}
                 checkedIds={checkedIds}
                 conversations={filtered}
+                connectedChannels={connectedChannels}
                 folder={folder}
                 labelFilter={labelFilter}
                 labels={labels}
@@ -1883,6 +1896,7 @@ function FilterRailButton({
 function ConversationList({
   allConversations,
   checkedIds,
+  connectedChannels,
   conversations,
   folder,
   labelFilter,
@@ -1902,6 +1916,7 @@ function ConversationList({
 }: {
   allConversations: InboxConversation[];
   checkedIds: string[];
+  connectedChannels: Channel[];
   conversations: InboxConversation[];
   folder: Folder;
   labelFilter: string;
@@ -2019,26 +2034,30 @@ function ConversationList({
                   Corbeille
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Canal</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                onValueChange={(value) =>
-                  onSourceChange(value as Channel | "all")
-                }
-                value={source}
-              >
-                <DropdownMenuRadioItem value="all">
-                  Tous les canaux
-                </DropdownMenuRadioItem>
-                {channels.map((channel) => (
-                  <DropdownMenuRadioItem key={channel} value={channel}>
-                    <span className="flex size-4 items-center justify-center">
-                      <ChannelIcon channel={channel} />
-                    </span>
-                    {channelName(channel)}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
+              {connectedChannels.length > 1 ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Canal</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    onValueChange={(value) =>
+                      onSourceChange(value as Channel | "all")
+                    }
+                    value={source}
+                  >
+                    <DropdownMenuRadioItem value="all">
+                      Tous les canaux
+                    </DropdownMenuRadioItem>
+                    {connectedChannels.map((channel) => (
+                      <DropdownMenuRadioItem key={channel} value={channel}>
+                        <span className="flex size-4 items-center justify-center">
+                          <ChannelIcon channel={channel} />
+                        </span>
+                        {channelName(channel)}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </>
+              ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Étiquette</DropdownMenuLabel>
               <DropdownMenuRadioGroup

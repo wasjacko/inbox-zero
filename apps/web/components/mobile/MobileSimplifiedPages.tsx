@@ -625,6 +625,7 @@ export type MobileChannelConversation = {
 };
 
 export function MobileChannelsPreview({
+  availableChannels = [],
   conversations = [],
   error = false,
   loading = false,
@@ -638,6 +639,7 @@ export function MobileChannelsPreview({
   onTrash,
   requestedConversationId,
 }: {
+  availableChannels?: Array<"gmail" | "outlook">;
   conversations?: MobileChannelConversation[];
   error?: boolean;
   loading?: boolean;
@@ -680,6 +682,12 @@ export function MobileChannelsPreview({
   const [newRecipient, setNewRecipient] = useState("");
   const [newMessage, setNewMessage] = useState("");
   const selected = conversations.find(({ id }) => id === selectedId) ?? null;
+  const channelFilters = useMemo(() => {
+    const labels = availableChannels.map((channel) =>
+      channel === "gmail" ? "Gmail" : "Outlook",
+    );
+    return labels.length > 1 ? ["Tous", ...labels] : labels;
+  }, [availableChannels]);
 
   useEffect(() => {
     if (
@@ -755,7 +763,7 @@ export function MobileChannelsPreview({
           </button>
         </div>
         <div className="scrollbar-none -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-4">
-          {["Tous", "Gmail", "Outlook", "WhatsApp"].map((item) => (
+          {channelFilters.map((item) => (
             <button
               className={cn(
                 "mobile-touch-target shrink-0 rounded-full border px-4 text-sm",
