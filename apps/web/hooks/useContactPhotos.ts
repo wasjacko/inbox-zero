@@ -16,6 +16,19 @@ export function useContactPhotos(addresses: string[]) {
     [addresses],
   );
   const cacheKey = emails.join(",");
+  const fallbackPhotos = useMemo(
+    () =>
+      Object.fromEntries(
+        emails.map((email) => {
+          const domain = email.split("@").at(1) ?? "gmail.com";
+          return [
+            email,
+            `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`,
+          ];
+        }),
+      ),
+    [emails],
+  );
 
   const { data } = useSWR<ContactPhotosResponse>(
     provider === "google" && emailAccountId && emails.length
@@ -41,7 +54,7 @@ export function useContactPhotos(addresses: string[]) {
   );
 
   return {
-    photos: data?.photos ?? {},
+    photos: { ...fallbackPhotos, ...data?.photos },
     requiresContactsPermission: data?.requiresContactsPermission ?? false,
   };
 }
