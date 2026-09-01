@@ -40,5 +40,8 @@ export function useContactPhotos(addresses: string[]) {
     },
   );
 
-  return data?.photos ?? {};
+  return {
+    photos: data?.photos ?? {},
+    requiresContactsPermission: data?.requiresContactsPermission ?? false,
+  };
 }

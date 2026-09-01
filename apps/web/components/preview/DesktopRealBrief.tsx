@@ -38,7 +38,7 @@ export function DesktopRealBrief({
     () => conversations.map(({ address }) => address),
     [conversations],
   );
-  const contactPhotos = useContactPhotos(contactAddresses);
+  const { photos: contactPhotos } = useContactPhotos(contactAddresses);
 
   if (!scanStarted) {
     return (

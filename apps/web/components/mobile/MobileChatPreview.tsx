@@ -166,7 +166,7 @@ export function MobileChatPreview({
       userEmail,
     }).map(({ address }) => address);
   }, [provider, realThreads, userEmail]);
-  const contactPhotos = useContactPhotos(contactAddresses);
+  const { photos: contactPhotos } = useContactPhotos(contactAddresses);
 
   const realClients = useMemo<MobileBriefClient[]>(() => {
     if (!realThreads) return [];

@@ -635,11 +635,13 @@ export function MobileChannelsPreview({
   onCompose,
   onCreateTask,
   onMarkRead,
+  onEnableContactPhotos,
   onOpenConversation,
   onReply,
   onRetry,
   onTrash,
   requestedConversationId,
+  requiresContactPhotosPermission = false,
 }: {
   availableChannels?: Array<"gmail" | "outlook">;
   conversations?: MobileChannelConversation[];
@@ -649,11 +651,13 @@ export function MobileChannelsPreview({
   onCompose?: (recipient: string, message: string) => Promise<boolean>;
   onCreateTask?: (id: string) => void;
   onMarkRead?: (id: string) => Promise<boolean>;
+  onEnableContactPhotos?: () => Promise<void>;
   onOpenConversation?: (id: string) => void;
   onReply?: (id: string, message: string) => Promise<boolean>;
   onRetry?: () => void;
   onTrash?: (id: string) => Promise<boolean>;
   requestedConversationId?: string | null;
+  requiresContactPhotosPermission?: boolean;
 } = {}) {
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     conversations.some(({ id }) => id === requestedConversationId)
@@ -739,6 +743,21 @@ export function MobileChannelsPreview({
 
   return (
     <MobilePage title="Canaux" subtitle="Vos échanges, au même endroit">
+      {requiresContactPhotosPermission ? (
+        <div className="mx-4 mb-3 flex items-center justify-between gap-3 rounded-xl border bg-muted/30 p-3">
+          <p className="text-xs leading-5">
+            Autorisez Google Contacts pour afficher les vraies photos de profil.
+          </p>
+          <Button
+            className="shrink-0"
+            onClick={onEnableContactPhotos}
+            size="sm"
+            variant="outline"
+          >
+            Activer
+          </Button>
+        </div>
+      ) : null}
       <div className="px-4">
         <div className="flex gap-2">
           <div className="relative min-w-0 flex-1">

@@ -339,7 +339,7 @@ export function ClientRelationsPreview() {
     () => realRelations.map(({ address }) => address),
     [realRelations],
   );
-  const contactPhotos = useContactPhotos(contactAddresses);
+  const { photos: contactPhotos } = useContactPhotos(contactAddresses);
   const mobileRelations = useMemo<MobileRelationContact[]>(
     () =>
       realRelations.map((relation) => ({

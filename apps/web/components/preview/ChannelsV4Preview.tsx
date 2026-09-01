@@ -125,6 +125,7 @@ import {
   sendEmailAction,
   trashThreadAction,
 } from "@/utils/actions/mail";
+import { getAccountLinkingUrl } from "@/utils/account-linking";
 
 type Channel = "gmail" | "outlook" | "whatsapp" | "slack" | "telegram";
 type AiMode = "manual" | "assist" | "suggest";
@@ -632,7 +633,21 @@ export function ChannelsV4Preview() {
     () => conversations.map(({ address }) => address),
     [conversations],
   );
-  const contactPhotos = useContactPhotos(contactAddresses);
+  const { photos: contactPhotos, requiresContactsPermission } =
+    useContactPhotos(contactAddresses);
+
+  const enableGoogleContactPhotos = async () => {
+    try {
+      const authUrl = await getAccountLinkingUrl("google", {
+        returnTo: "/channels-v4",
+      });
+      window.location.assign(authUrl);
+    } catch {
+      toastError({
+        description: "Impossible d’ouvrir l’autorisation Google Contacts.",
+      });
+    }
+  };
 
   useEffect(() => {
     if (taskTutorialRequested) setTaskTutorialStep((current) => current ?? 1);
@@ -1062,6 +1077,8 @@ export function ChannelsV4Preview() {
         onRetry={async () => {
           await refreshThreads();
         }}
+        onEnableContactPhotos={enableGoogleContactPhotos}
+        requiresContactPhotosPermission={requiresContactsPermission}
         onTrash={trashMobileConversation}
         requestedConversationId={requestedConversationId}
       />
@@ -1073,6 +1090,16 @@ export function ChannelsV4Preview() {
               description="Tous vos échanges clients, sans le bruit."
             />
             <div className="flex items-center gap-2">
+              {requiresContactsPermission && provider === "google" ? (
+                <Button
+                  className="hidden gap-2 sm:inline-flex"
+                  onClick={enableGoogleContactPhotos}
+                  size="sm"
+                  variant="outline"
+                >
+                  Activer les photos Google
+                </Button>
+              ) : null}
               <Button
                 className="hidden gap-2 sm:inline-flex"
                 onClick={() => setModeDialogOpen(true)}
