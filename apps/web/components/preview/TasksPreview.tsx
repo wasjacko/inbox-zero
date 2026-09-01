@@ -21,8 +21,10 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
+import type { GetFreescaleTasksResponse } from "@/app/api/user/tasks/route";
 import { PageWrapper } from "@/components/PageWrapper";
-import { toastSuccess } from "@/components/Toast";
+import { toastError, toastSuccess } from "@/components/Toast";
 import { WhatsAppIcon } from "@/components/BrandIcons";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { MueIcon } from "@/components/MueIcon";
@@ -59,6 +61,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/utils";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 
 export type TaskStatus = "scope" | "todo" | "progress" | "waiting" | "done";
 export type TaskPriority = "low" | "medium" | "high";
@@ -263,10 +267,36 @@ const avatarStyles: Record<string, string> = {
   CA: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300",
 };
 
+async function taskRequest(
+  emailAccountId: string,
+  method: "POST" | "PATCH" | "DELETE",
+  body: object,
+) {
+  const response = await fetch("/api/user/tasks", {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      [EMAIL_ACCOUNT_HEADER]: emailAccountId,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error("task_request_failed");
+  return response.json();
+}
+
 export function TasksPreview() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { saveTaskAutomation } = usePreviewSetupProgress();
+  const { emailAccountId } = useAccount();
+  const {
+    data: storedTasks,
+    error: tasksError,
+    isLoading: tasksLoading,
+    mutate: refreshTasks,
+  } = useSWR<GetFreescaleTasksResponse>(
+    emailAccountId ? "/api/user/tasks" : null,
+  );
   const taskTutorialRequested = searchParams.get("tutorial") === "mue-tasks";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [query, setQuery] = useState("");
@@ -336,29 +366,31 @@ export function TasksPreview() {
   }, [taskTutorialStep]);
 
   useEffect(() => {
-    if (taskTutorialRequested) {
-      window.localStorage.setItem(TASKS_STORAGE_KEY, "[]");
-      setTasks([]);
-      setHydrated(true);
-      return;
-    }
-
-    const saved = window.localStorage.getItem(TASKS_STORAGE_KEY);
-    if (saved) {
-      try {
-        const savedTasks = JSON.parse(saved) as Task[];
-        setTasks(savedTasks);
-      } catch {
-        window.localStorage.removeItem(TASKS_STORAGE_KEY);
-      }
-    }
+    if (!storedTasks) return;
+    setTasks(
+      storedTasks.tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        status: task.status as TaskStatus,
+        due: task.due,
+        priority: task.priority as TaskPriority,
+        source: task.source as TaskSource,
+        assignees: task.assignees,
+        context: task.context ?? undefined,
+        contact: task.contactName
+          ? {
+              name: task.contactName,
+              avatarPosition: task.contactAvatarPosition ?? "50% 50%",
+            }
+          : undefined,
+      })),
+    );
     setHydrated(true);
-  }, [taskTutorialRequested]);
+  }, [storedTasks]);
 
   useEffect(() => {
-    if (hydrated)
-      window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
-  }, [hydrated, tasks]);
+    if (tasksError || (!tasksLoading && !storedTasks)) setHydrated(true);
+  }, [storedTasks, tasksError, tasksLoading]);
 
   useEffect(() => {
     let highlightTimer: number | undefined;
@@ -387,6 +419,24 @@ export function TasksPreview() {
           }));
         return [...additions, ...current];
       });
+      Promise.all(
+        suggestions.map((task) =>
+          taskRequest(emailAccountId, "POST", {
+            title: task.title,
+            status: task.status,
+            due: dueDates[task.due] ?? TASKS_TODAY,
+            priority: "medium",
+            source: "ai",
+            assignees: [],
+          }),
+        ),
+      )
+        .then(() => refreshTasks())
+        .catch(() =>
+          toastError({
+            description: "Certaines tâches n’ont pas été enregistrées.",
+          }),
+        );
       const createdIds = new Set(suggestions.map((task) => task.id));
       setMueProjection((current) => {
         if (!current) return null;
@@ -440,7 +490,7 @@ export function TasksPreview() {
       );
       window.clearTimeout(highlightTimer);
     };
-  }, []);
+  }, [emailAccountId, refreshTasks]);
 
   useEffect(() => {
     if (searchParams.get("view") === "calendar") router.replace("/tasks");
@@ -504,13 +554,15 @@ export function TasksPreview() {
     setCreateOpen(true);
   }
 
-  function addTask(task: Omit<Task, "id" | "assignees">) {
-    setTasks((current) => [
-      ...current,
-      { ...task, id: `task-${Date.now()}`, assignees: [] },
-    ]);
-    setCreateOpen(false);
-    toastSuccess({ description: "La tâche a été ajoutée." });
+  async function addTask(task: Omit<Task, "id" | "assignees">) {
+    try {
+      await taskRequest(emailAccountId, "POST", { ...task, assignees: [] });
+      await refreshTasks();
+      setCreateOpen(false);
+      toastSuccess({ description: "La tâche a été ajoutée." });
+    } catch {
+      toastError({ description: "Impossible d’enregistrer cette tâche." });
+    }
   }
 
   function updateStatus(id: string, status: TaskStatus) {
@@ -533,12 +585,28 @@ export function TasksPreview() {
         () => setRecentlyMovedTaskId(null),
         1100,
       );
+      taskRequest(emailAccountId, "PATCH", { id, status }).catch(() => {
+        setTasks((current) =>
+          current.map((task) =>
+            task.id === id ? { ...task, status: currentTask.status } : task,
+          ),
+        );
+        toastError({
+          description: "Le changement de statut n’a pas été enregistré.",
+        });
+      });
     }, 620);
   }
 
-  function removeTask(id: string) {
-    setTasks((current) => current.filter((task) => task.id !== id));
-    toastSuccess({ description: "La tâche a été supprimée." });
+  async function removeTask(id: string) {
+    try {
+      await taskRequest(emailAccountId, "DELETE", { id });
+      setTasks((current) => current.filter((task) => task.id !== id));
+      await refreshTasks();
+      toastSuccess({ description: "La tâche a été supprimée." });
+    } catch {
+      toastError({ description: "Impossible de supprimer cette tâche." });
+    }
   }
 
   function validateProjectedTask(task: ProjectedMueTask) {
@@ -566,6 +634,15 @@ export function TasksPreview() {
           <PlusIcon className="size-4" /> Nouvelle tâche
         </Button>
       </header>
+
+      {tasksError ? (
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-sm">
+          <span>Les tâches n’ont pas pu être chargées.</span>
+          <Button onClick={() => refreshTasks()} size="sm" variant="outline">
+            Réessayer
+          </Button>
+        </div>
+      ) : null}
 
       <Tabs defaultValue="table" searchParam="view" className="mt-6 gap-4">
         <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-2.5 lg:flex-row lg:items-center lg:justify-between">

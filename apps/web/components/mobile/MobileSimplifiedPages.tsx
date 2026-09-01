@@ -26,10 +26,12 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
+import type { GetFreescaleTasksResponse } from "@/app/api/user/tasks/route";
 import { WhatsAppIcon } from "@/components/BrandIcons";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
-import { toastSuccess } from "@/components/Toast";
+import { toastError, toastSuccess } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -41,6 +43,8 @@ import {
 } from "@/components/mobile/MobilePrimitives";
 import { MobileArchivePreview } from "@/components/mobile/MobileArchivePreview";
 import { MobileSettingsExperience } from "@/components/mobile/MobileSettingsExperience";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 
 type MobileTaskGroup = "En retard" | "Aujourd’hui" | "À venir";
 
@@ -52,9 +56,38 @@ type MobileTask = {
   group: MobileTaskGroup;
   urgent: boolean;
   done: boolean;
+  dueDate: string;
 };
 
-const MOBILE_TASKS_STORAGE_KEY = "freescale-preview-mobile-tasks-v1";
+function getTaskDates() {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  const yesterday = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  yesterday.setDate(today.getDate() - 1);
+  return {
+    today: today.toISOString().slice(0, 10),
+    tomorrow: tomorrow.toISOString().slice(0, 10),
+    yesterday: yesterday.toISOString().slice(0, 10),
+  };
+}
+
+async function mobileTaskRequest(
+  emailAccountId: string,
+  method: "POST" | "PATCH",
+  body: object,
+) {
+  const response = await fetch("/api/user/tasks", {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      [EMAIL_ACCOUNT_HEADER]: emailAccountId,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error("mobile_task_request_failed");
+  return response.json();
+}
 
 type MobileTaskFilter =
   | "Toutes"
@@ -65,6 +98,15 @@ type MobileTaskFilter =
 type MobileTaskSort = "Priorité" | "Échéance" | "Nom";
 
 export function MobileTasksPreview() {
+  const { emailAccountId } = useAccount();
+  const {
+    data: storedTasks,
+    error: tasksError,
+    isLoading: tasksLoading,
+    mutate: refreshTasks,
+  } = useSWR<GetFreescaleTasksResponse>(
+    emailAccountId ? "/api/user/tasks" : null,
+  );
   const [tasks, setTasks] = useState<MobileTask[]>([]);
   const [tasksHydrated, setTasksHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -112,33 +154,56 @@ export function MobileTasksPreview() {
   }, [filter, query, sort, tasks]);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(MOBILE_TASKS_STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setTasks(parsed as MobileTask[]);
-      } catch {
-        window.localStorage.removeItem(MOBILE_TASKS_STORAGE_KEY);
-      }
-    }
+    if (!storedTasks) return;
+    const { today } = getTaskDates();
+    setTasks(
+      storedTasks.tasks.map((task) => {
+        const group: MobileTaskGroup = task.due
+          ? task.due < today
+            ? "En retard"
+            : task.due === today
+              ? "Aujourd’hui"
+              : "À venir"
+          : "À venir";
+        return {
+          id: task.id,
+          title: task.title,
+          client: task.contactName ?? "Sans contact",
+          due: group === "À venir" ? "À venir" : group,
+          dueDate: task.due,
+          group,
+          urgent: task.priority === "high",
+          done: task.status === "done",
+        };
+      }),
+    );
     setTasksHydrated(true);
-  }, []);
+  }, [storedTasks]);
 
   useEffect(() => {
-    if (!tasksHydrated) return;
-    window.localStorage.setItem(
-      MOBILE_TASKS_STORAGE_KEY,
-      JSON.stringify(tasks),
-    );
-  }, [tasks, tasksHydrated]);
+    if (tasksError || (!tasksLoading && !storedTasks)) setTasksHydrated(true);
+  }, [storedTasks, tasksError, tasksLoading]);
 
-  const updateSelected = (changes: Partial<MobileTask>) => {
+  const updateSelected = async (
+    changes: Partial<MobileTask>,
+    persistedChanges: object,
+  ) => {
     if (!selectedId) return;
     setTasks((current) =>
       current.map((task) =>
         task.id === selectedId ? { ...task, ...changes } : task,
       ),
     );
+    try {
+      await mobileTaskRequest(emailAccountId, "PATCH", {
+        id: selectedId,
+        ...persistedChanges,
+      });
+      await refreshTasks();
+    } catch {
+      toastError({ description: "La tâche n’a pas pu être enregistrée." });
+      await refreshTasks();
+    }
   };
 
   return (
@@ -320,22 +385,27 @@ export function MobileTasksPreview() {
           <Button
             className="w-full"
             disabled={!draftTitle.trim()}
-            onClick={() => {
-              const task: MobileTask = {
-                id: `task-${Date.now()}`,
-                title: draftTitle.trim(),
-                client: draftClient.trim() || "Sans contact",
-                due: draftGroup === "À venir" ? "Demain" : draftGroup,
-                group: draftGroup,
-                urgent: draftGroup === "En retard",
-                done: false,
-              };
-              setTasks((current) => [task, ...current]);
-              setDraftTitle("");
-              setDraftClient("");
-              setDraftGroup("Aujourd’hui");
-              setCreateOpen(false);
-              toastSuccess({ description: "Tâche créée." });
+            onClick={async () => {
+              const { today, tomorrow } = getTaskDates();
+              try {
+                await mobileTaskRequest(emailAccountId, "POST", {
+                  title: draftTitle.trim(),
+                  contactName: draftClient.trim() || null,
+                  due: draftGroup === "À venir" ? tomorrow : today,
+                  status: "todo",
+                  priority: "medium",
+                  source: "manual",
+                  assignees: [],
+                });
+                await refreshTasks();
+                setDraftTitle("");
+                setDraftClient("");
+                setDraftGroup("Aujourd’hui");
+                setCreateOpen(false);
+                toastSuccess({ description: "Tâche créée." });
+              } catch {
+                toastError({ description: "Impossible de créer cette tâche." });
+              }
             }}
           >
             Créer la tâche
@@ -406,9 +476,12 @@ export function MobileTasksPreview() {
         footer={
           <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[1fr_auto]">
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!selected) return;
-                updateSelected({ done: !selected.done });
+                await updateSelected(
+                  { done: !selected.done },
+                  { status: selected.done ? "todo" : "done" },
+                );
                 setSelectedId(null);
                 toastSuccess({
                   description: selected.done
@@ -478,16 +551,27 @@ export function MobileTasksPreview() {
                     selected?.group === group && "bg-muted",
                   )}
                   key={group}
-                  onClick={() => {
-                    updateSelected({
-                      group,
-                      due:
-                        group === "En retard"
-                          ? "En retard"
-                          : group === "À venir"
-                            ? "Demain"
-                            : "Aujourd’hui",
-                    });
+                  onClick={async () => {
+                    const { today, tomorrow, yesterday } = getTaskDates();
+                    const dueDate =
+                      group === "À venir"
+                        ? tomorrow
+                        : group === "En retard"
+                          ? yesterday
+                          : today;
+                    await updateSelected(
+                      {
+                        group,
+                        due:
+                          group === "En retard"
+                            ? "En retard"
+                            : group === "À venir"
+                              ? "Demain"
+                              : "Aujourd’hui",
+                        dueDate,
+                      },
+                      { due: dueDate },
+                    );
                     setActionsOpen(false);
                     toastSuccess({
                       description:

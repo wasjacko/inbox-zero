@@ -71,6 +71,8 @@ TODO.md
 tasks/ 
 !apps/web/app/(redirects)/tasks/
 !apps/web/app/(redirects)/tasks/**
+!apps/web/app/api/user/tasks/
+!apps/web/app/api/user/tasks/**
 
 # prisma
 apps/web/generated

@@ -206,6 +206,7 @@ model EmailAccount {
   scheduledActions ScheduledAction[]
   responseTimes    ResponseTime[]
   actions          Action[]
+  freescaleTasks   FreescaleTask[]
 
   members                Member[]
   invitations            Invitation[]
@@ -230,6 +231,32 @@ model EmailAccount {
   @@index([lastInboxHealthEmailAt])
   @@index([watchEmailsSubscriptionId])
   @@index([watchEmailsSubscriptionHistory(ops: JsonbPathOps)], type: Gin)
+}
+
+model FreescaleTask {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title     String
+  status    String    @default("todo")
+  due       DateTime?
+  priority  String    @default("medium")
+  source    String    @default("manual")
+  assignees String[]  @default([])
+  context   String?
+
+  // Optional: manual tasks remain independent from Gmail and contacts.
+  sourceThreadId        String?
+  contactName           String?
+  contactAvatarPosition String?
+
+  emailAccountId String
+  emailAccount   EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([emailAccountId, sourceThreadId])
+  @@index([emailAccountId, status])
+  @@index([emailAccountId, due])
 }
 
 // A saved filter shown as a tab above the mail list. `value` holds the label id for
@@ -634,13 +661,13 @@ model Action {
   messagingChannelEmailAccountId String?
   messagingChannel               MessagingChannel? @relation(fields: [messagingChannelId, messagingChannelEmailAccountId], references: [id, emailAccountId], onDelete: SetNull)
 
-  label             String? // labelName - labelId is the source of truth, and we use it when set
-  labelId           String? // Stable ID: Label ID (Gmail) or Category ID (Outlook)
-  subject           String?
-  content           String?
-  to                String?
-  cc                String?
-  bcc               String?
+  label               String? // labelName - labelId is the source of truth, and we use it when set
+  labelId             String? // Stable ID: Label ID (Gmail) or Category ID (Outlook)
+  subject             String?
+  content             String?
+  to                  String?
+  cc                  String?
+  bcc                 String?
   url                 String?
   folderName          String?
   folderId            String?
