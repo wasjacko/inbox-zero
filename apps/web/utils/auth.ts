@@ -23,7 +23,6 @@ import {
   isMicrosoftProvider,
 } from "@/utils/email/provider-types";
 import { captureException } from "@/utils/error";
-import { getContactsClient as getGoogleContactsClient } from "@/utils/gmail/client";
 import { SCOPES as GMAIL_SCOPES } from "@/utils/gmail/scopes";
 import {
   fetchGoogleOpenIdProfile,
@@ -527,29 +526,16 @@ export async function handleReferralOnSignUp({
 // TODO: move into email provider instead of checking the provider type
 async function getProfileData(providerId: string, accessToken: string) {
   if (isGoogleProvider(providerId)) {
-    if (useGoogleOauthEmulator) {
-      const profile = await fetchGoogleOpenIdProfile(accessToken);
-
-      return {
-        email: profile.email?.toLowerCase(),
-        name: profile.name,
-        image: profile.picture ?? null,
-      };
-    }
-
-    const contactsClient = getGoogleContactsClient({ accessToken });
-    const profileResponse = await contactsClient.people.get({
-      resourceName: "people/me",
-      personFields: "emailAddresses,names,photos",
-    });
+    // The OpenID userinfo endpoint is part of the sign-in contract and only
+    // needs the `openid email profile` scopes already granted at login. Using
+    // People API here made account creation fail when that optional API was not
+    // enabled in the Google Cloud project.
+    const profile = await fetchGoogleOpenIdProfile(accessToken);
 
     return {
-      email: profileResponse.data.emailAddresses
-        ?.find((e) => e.metadata?.primary)
-        ?.value?.toLowerCase(),
-      name: profileResponse.data.names?.find((n) => n.metadata?.primary)
-        ?.displayName,
-      image: profileResponse.data.photos?.find((p) => p.metadata?.primary)?.url,
+      email: profile.email.toLowerCase(),
+      name: profile.name,
+      image: profile.picture ?? null,
     };
   }
 

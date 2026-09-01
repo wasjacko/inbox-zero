@@ -332,6 +332,48 @@ describe("handleLinkAccount", () => {
     expect(prisma.emailAccount.findUnique).not.toHaveBeenCalled();
   });
 
+  it("uses OpenID userinfo instead of the optional Google People API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          email: "user@example.com",
+          email_verified: true,
+          name: "Test User",
+          picture: "https://example.com/avatar.png",
+          sub: "google-user-1",
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    prisma.emailAccount.findUnique.mockResolvedValue({
+      id: "email_account_1",
+      userId: "existing_user",
+      accountId: "existing_account",
+      account: { provider: "google" },
+    } as any);
+
+    try {
+      await expect(
+        handleLinkAccount({
+          id: "account_1",
+          userId: "new_user",
+          providerId: "google",
+          accessToken: "access_token",
+        } as any),
+      ).rejects.toMatchObject({ message: "email_already_linked" });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://openidconnect.googleapis.com/v1/userinfo",
+        expect.objectContaining({
+          headers: { Authorization: "Bearer access_token" },
+        }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("raises a Better Auth error code when the mailbox belongs to another user", async () => {
     vi.mocked(createOutlookClient).mockReturnValue({
       getUserProfile: vi.fn().mockResolvedValue({
