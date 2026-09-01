@@ -3,7 +3,6 @@ import type { EmailThread } from "@/utils/email/types";
 import type { ParsedMessage } from "@/utils/types";
 import { GmailLabel } from "@/utils/gmail/label";
 import * as gmailLabelModule from "@/utils/gmail/label";
-import * as gmailMessageModule from "@/utils/gmail/message";
 import * as gmailThreadModule from "@/utils/gmail/thread";
 import { GmailProvider } from "./google";
 
@@ -278,19 +277,16 @@ describe("GmailProvider.getThreadsWithQuery", () => {
   });
 
   it("uses Gmail metadata format for list requests", async () => {
-    vi.spyOn(gmailMessageModule, "getMessages").mockResolvedValue({
-      messages: [{ id: "message-1", threadId: "thread-1" }],
+    vi.spyOn(
+      gmailThreadModule,
+      "getThreadsWithNextPageToken",
+    ).mockResolvedValue({
+      threads: [{ id: "thread-1" }],
       nextPageToken: undefined,
     });
-    const getMessagesBatch = vi
-      .spyOn(gmailMessageModule, "getMessagesBatch")
-      .mockResolvedValue([
-        createParsedMessage({
-          id: "message-1",
-          internalDate: "1000",
-          threadId: "thread-1",
-        }),
-      ]);
+    const getThreadsBatch = vi
+      .spyOn(gmailThreadModule, "getThreadsBatch")
+      .mockResolvedValue([]);
     const provider = new GmailProvider({
       context: {
         _options: {
@@ -299,22 +295,14 @@ describe("GmailProvider.getThreadsWithQuery", () => {
       },
     } as any);
 
-    const result = await provider.getThreadsWithQuery({
-      messageFormat: "metadata",
-    });
+    await provider.getThreadsWithQuery({ messageFormat: "metadata" });
 
-    expect(getMessagesBatch).toHaveBeenCalledWith({
-      messageIds: ["message-1"],
-      accessToken: "access-token",
-      logger: expect.anything(),
-      format: "metadata",
-    });
-    expect(result.threads).toEqual([
-      expect.objectContaining({
-        id: "thread-1",
-        messages: [expect.anything()],
-      }),
-    ]);
+    expect(getThreadsBatch).toHaveBeenCalledWith(
+      ["thread-1"],
+      "access-token",
+      expect.anything(),
+      { format: "metadata" },
+    );
   });
 });
 

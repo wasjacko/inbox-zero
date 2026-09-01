@@ -1558,37 +1558,6 @@ export class GmailProvider implements EmailProvider {
         }
       }
 
-      if (options.messageFormat === "metadata") {
-        const { messages, nextPageToken } = await getMessages(this.client, {
-          query: getQuery(),
-          labelIds: getLabelIds(type) || [],
-          maxResults: options.maxResults || 50,
-          pageToken: options.pageToken || undefined,
-        });
-        const parsedMessages = await getMessagesBatch({
-          messageIds: messages.map(({ id }) => id),
-          accessToken: getAccessTokenFromClient(this.client),
-          logger: this.logger,
-          format: "metadata",
-        });
-        const latestMessageByThread = new Map<string, ParsedMessage>();
-        for (const message of parsedMessages) {
-          if (!latestMessageByThread.has(message.threadId)) {
-            latestMessageByThread.set(message.threadId, message);
-          }
-        }
-
-        return {
-          threads: [...latestMessageByThread.values()].map((message) => ({
-            id: message.threadId,
-            messages: [message],
-            snippet: decodeSnippet(message.snippet),
-            historyId: message.historyId || undefined,
-          })),
-          nextPageToken,
-        };
-      }
-
       const { threads: gmailThreads, nextPageToken } =
         await getThreadsWithNextPageToken({
           gmail: this.client,
@@ -1605,7 +1574,9 @@ export class GmailProvider implements EmailProvider {
         threadIds,
         getAccessTokenFromClient(this.client),
         this.logger,
-        undefined,
+        options.messageFormat === "metadata"
+          ? { format: "metadata" }
+          : undefined,
       );
 
       const emailThreads: EmailThread[] = threads
