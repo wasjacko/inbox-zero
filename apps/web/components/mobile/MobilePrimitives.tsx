@@ -2,7 +2,6 @@
 
 import type { ComponentProps, ReactNode, Ref } from "react";
 import { AlertCircleIcon, ChevronLeftIcon, XIcon } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -130,14 +129,14 @@ export function MobileBottomBarItem({
 
   if (href) {
     return (
-      <Link
+      <a
         aria-current={active ? "page" : undefined}
         className={itemClassName}
         href={href}
         onClick={onClick}
       >
         {content}
-      </Link>
+      </a>
     );
   }
 
