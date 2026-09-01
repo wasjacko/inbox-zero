@@ -23,6 +23,7 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import type { GetFreescaleTasksResponse } from "@/app/api/user/tasks/route";
@@ -847,17 +848,22 @@ export function MobileChannelsPreview({
             ) : null}
             <Avatar className="relative size-11 shrink-0 font-semibold text-xs">
               {thread.avatarUrl ? (
-                <AvatarImage
-                  alt={`Photo de profil de ${thread.name}`}
+                <Image
+                  alt={thread.name}
+                  className="size-full bg-background object-cover"
+                  height={44}
                   src={thread.avatarUrl}
+                  unoptimized
+                  width={44}
                 />
-              ) : null}
-              <AvatarFallback>
-                {thread.name
-                  .split(" ")
-                  .map((word) => word[0])
-                  .join("")}
-              </AvatarFallback>
+              ) : (
+                <AvatarFallback>
+                  {thread.name
+                    .split(" ")
+                    .map((word) => word[0])
+                    .join("")}
+                </AvatarFallback>
+              )}
               {thread.unread ? (
                 <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-blue-600 text-[10px] text-white ring-2 ring-background">
                   {thread.unread}

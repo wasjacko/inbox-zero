@@ -25,11 +25,7 @@ import {
 } from "@/components/ui/sheet";
 import { toastSuccess } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
-import {
-  Avatar,
-  AvatarFallbackColor,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallbackColor } from "@/components/ui/avatar";
 import { cn } from "@/utils";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { useContactPhotos } from "@/hooks/useContactPhotos";
@@ -350,11 +346,19 @@ export function MobileChatPreview({
                       className="size-11 ring-1 ring-border"
                     >
                       {client.avatarUrl ? (
-                        <AvatarImage alt="" src={client.avatarUrl} />
-                      ) : null}
-                      <AvatarFallbackColor
-                        content={client.initials ?? client.name.slice(0, 2)}
-                      />
+                        <Image
+                          alt={client.name}
+                          className="size-full bg-background object-cover"
+                          height={44}
+                          src={client.avatarUrl}
+                          unoptimized
+                          width={44}
+                        />
+                      ) : (
+                        <AvatarFallbackColor
+                          content={client.initials ?? client.name.slice(0, 2)}
+                        />
+                      )}
                     </Avatar>
                     {!sent ? (
                       <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 font-semibold text-[10px] text-white ring-2 ring-background">
@@ -445,11 +449,19 @@ function MobileConversationSheet({
               className="size-10 ring-1 ring-border"
             >
               {client.avatarUrl ? (
-                <AvatarImage alt="" src={client.avatarUrl} />
-              ) : null}
-              <AvatarFallbackColor
-                content={client.initials ?? client.name.slice(0, 2)}
-              />
+                <Image
+                  alt={client.name}
+                  className="size-full bg-background object-cover"
+                  height={40}
+                  src={client.avatarUrl}
+                  unoptimized
+                  width={40}
+                />
+              ) : (
+                <AvatarFallbackColor
+                  content={client.initials ?? client.name.slice(0, 2)}
+                />
+              )}
             </Avatar>
             <div className="min-w-0 flex-1">
               <SheetTitle className="truncate text-sm">
