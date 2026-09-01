@@ -3,17 +3,20 @@
 import {
   ArrowUpRightIcon,
   CalendarDaysIcon,
-  CheckCircle2Icon,
   CircleDollarSignIcon,
   ChevronDownIcon,
   RotateCcwIcon,
   MessageSquareIcon,
+  LoaderCircleIcon,
+  MailIcon,
   TimerResetIcon,
+  UsersRoundIcon,
   ZapIcon,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { Badge } from "@/components/Badge";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import useSWR from "swr";
+import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Button } from "@/components/ui/button";
@@ -26,7 +29,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/utils";
-import { MobileRelationsPreview } from "@/components/mobile/MobileSimplifiedPages";
+import {
+  MobileRelationsPreview,
+  type MobileRelationContact,
+} from "@/components/mobile/MobileSimplifiedPages";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import { toRealChannelConversations } from "@/utils/channels/real-conversations";
+import { toRealRelations } from "@/utils/relations/real-relations";
 
 const periodOptions = [
   "7 derniers jours",
@@ -302,14 +311,47 @@ const gainRelations: Array<{
 
 export function ClientRelationsPreview() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { isMobile, state } = useSidebar();
+  const { emailAccountId, provider, userEmail } = useAccount();
+  const {
+    data: realThreads,
+    error: relationsError,
+    isLoading: relationsLoading,
+    mutate: refreshRelations,
+  } = useSWR<ThreadsListResponse>(
+    emailAccountId ? "/api/threads?type=inbox&limit=50&view=list" : null,
+  );
+  const realRelations = useMemo(
+    () =>
+      toRealRelations(
+        toRealChannelConversations({
+          provider,
+          threads: realThreads?.threads ?? [],
+          userEmail,
+        }),
+      ),
+    [provider, realThreads, userEmail],
+  );
+  const mobileRelations = useMemo<MobileRelationContact[]>(
+    () =>
+      realRelations.map((relation) => ({
+        id: relation.latestThreadId,
+        name: relation.name,
+        initials: relation.initials,
+        address: relation.address,
+        channel: relation.channel === "outlook" ? "Outlook" : "Gmail",
+        subject: relation.latestSubject,
+        time: relation.time,
+        unreadCount: relation.unreadCount,
+        conversationCount: relation.conversationCount,
+      })),
+    [realRelations],
+  );
   const isMueOpen = !isMobile && state.includes("mue-panel");
-  const showCreatedTask = searchParams.get("onboarding") === "task-created";
   const [period, setPeriod] = useState<Period>("31 derniers jours");
   const [activeMetric, setActiveMetric] = useState<SavingsMetric>("total");
   const [showAllGainRelations, setShowAllGainRelations] = useState(false);
-  const hasRecordedActivity = searchParams.get("activity") === "demo";
+  const hasRecordedActivity = false;
   const savings = hasRecordedActivity
     ? savingsByPeriod[period]
     : {
@@ -325,7 +367,14 @@ export function ClientRelationsPreview() {
 
   return (
     <>
-      <MobileRelationsPreview />
+      <MobileRelationsPreview
+        contacts={mobileRelations}
+        error={Boolean(relationsError)}
+        loading={relationsLoading}
+        onRetry={async () => {
+          await refreshRelations();
+        }}
+      />
       <div className="hidden lg:block">
         <PageWrapper>
           <div
@@ -360,6 +409,7 @@ export function ClientRelationsPreview() {
               </DropdownMenu>
               <Button
                 aria-label="Actualiser les données"
+                onClick={() => refreshRelations()}
                 size="icon"
                 variant="outline"
               >
@@ -368,37 +418,106 @@ export function ClientRelationsPreview() {
             </div>
           </div>
 
-          {showCreatedTask ? (
-            <Card className="mt-5 overflow-hidden border-emerald-200/80 bg-emerald-50/55 shadow-none dark:border-emerald-900/70 dark:bg-emerald-950/20">
-              <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:px-5">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-sm">
-                  <CheckCircle2Icon className="size-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-sm">
-                      Votre première tâche créée avec Mue
-                    </p>
-                    <Badge className="border-0 bg-white/80 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200">
-                      Demain · 9 h
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-emerald-950/75 text-sm dark:text-emerald-100/75">
-                    Relire la version finale avec Sarah Lemoine
+          <section className="mt-7">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h2 className="font-semibold text-base">Contacts récents</h2>
+                <p className="mt-1 text-muted-foreground text-sm">
+                  Regroupés à partir de vos vrais échanges connectés.
+                </p>
+              </div>
+              <span className="text-muted-foreground text-xs">
+                {realRelations.length} contact
+                {realRelations.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="mt-4 overflow-hidden rounded-2xl border bg-background">
+              {relationsLoading ? (
+                <div className="flex items-center justify-center px-5 py-12 text-muted-foreground text-sm">
+                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                  Synchronisation des contacts…
+                </div>
+              ) : relationsError ? (
+                <div className="px-5 py-10 text-center">
+                  <p className="font-medium text-sm">Contacts indisponibles</p>
+                  <Button
+                    className="mt-3"
+                    onClick={() => refreshRelations()}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Réessayer
+                  </Button>
+                </div>
+              ) : realRelations.length ? (
+                realRelations.slice(0, 12).map((relation, index) => (
+                  <button
+                    className={cn(
+                      "grid w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/40 sm:grid-cols-[minmax(180px,1fr)_minmax(220px,1.4fr)_100px_90px] sm:items-center",
+                      index < Math.min(realRelations.length, 12) - 1 &&
+                        "border-b",
+                    )}
+                    key={relation.address}
+                    onClick={() =>
+                      router.push(
+                        `/channels-v4?conversation=${encodeURIComponent(relation.latestThreadId)}`,
+                      )
+                    }
+                    type="button"
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted font-semibold text-xs">
+                        {relation.initials}
+                      </span>
+                      <span className="min-w-0">
+                        <strong className="block truncate text-sm">
+                          {relation.name}
+                        </strong>
+                        <span className="block truncate text-muted-foreground text-xs">
+                          {relation.address}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm">
+                        {relation.latestSubject}
+                      </span>
+                      <span className="mt-0.5 block text-muted-foreground text-xs">
+                        {relation.time}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                      <MessageSquareIcon className="size-3.5" />
+                      {relation.conversationCount} échange
+                      {relation.conversationCount > 1 ? "s" : ""}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs",
+                        relation.unreadCount
+                          ? "font-medium text-blue-700"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      <MailIcon className="size-3.5" />
+                      {relation.unreadCount} non lu
+                      {relation.unreadCount > 1 ? "s" : ""}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-5 py-12 text-center">
+                  <UsersRoundIcon className="mx-auto size-6 text-muted-foreground" />
+                  <p className="mt-3 font-medium text-sm">
+                    Aucun contact synchronisé
+                  </p>
+                  <p className="mt-1 text-muted-foreground text-xs">
+                    Les contacts apparaîtront après vos premiers échanges.
                   </p>
                 </div>
-                <Button
-                  className="shrink-0 gap-2 border-emerald-300 bg-background text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-950/50"
-                  onClick={() => router.push("/channels-v4?conversation=sarah")}
-                  size="sm"
-                  variant="outline"
-                >
-                  <MessageSquareIcon className="size-4" />
-                  Voir le message source
-                </Button>
-              </div>
-            </Card>
-          ) : null}
+              )}
+            </div>
+          </section>
 
           <div
             className={cn(

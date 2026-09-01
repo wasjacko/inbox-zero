@@ -6,7 +6,6 @@ import {
   CalendarDaysIcon,
   CheckIcon,
   ChevronRightIcon,
-  CircleDollarSignIcon,
   Clock3Icon,
   FileTextIcon,
   FilterIcon,
@@ -22,10 +21,8 @@ import {
   type TagIcon,
   Trash2Icon,
   UserRoundIcon,
-  ZapIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import type { GetFreescaleTasksResponse } from "@/app/api/user/tasks/route";
@@ -1169,81 +1166,33 @@ export function MobileChannelsPreview({
 
 type MobileRelationsPeriod = "7 jours" | "30 jours" | "3 mois";
 
-const mobileRelationClients = [
-  {
-    id: "sarah",
-    name: "Sarah Lemoine",
-    initials: "SL",
-    status: "Réponse envoyée",
-    context: "Retours sur la page d’accueil",
-    channel: "WhatsApp",
-    time: "3 min gagnées",
-    tone: "bg-emerald-500",
-  },
-  {
-    id: "maya",
-    name: "Maya Chen",
-    initials: "MC",
-    status: "Relance préparée",
-    context: "Facture de juillet en attente",
-    channel: "Gmail",
-    time: "2 min gagnées",
-    tone: "bg-orange-500",
-  },
-  {
-    id: "jon",
-    name: "Jon Bell",
-    initials: "JB",
-    status: "Contexte retrouvé",
-    context: "Optimisations SEO terminées",
-    channel: "Outlook",
-    time: "2 min gagnées",
-    tone: "bg-blue-500",
-  },
-] as const;
-
-const relationActivityByPeriod: Record<
-  MobileRelationsPeriod,
-  {
-    time: string;
-    value: string;
-    actions: string;
-    replies: string;
-    bars: number[];
-  }
-> = {
-  "7 jours": {
-    time: "25 min",
-    value: "208 €",
-    actions: "31",
-    replies: "12",
-    bars: [18, 38, 27, 58, 44, 72, 64],
-  },
-  "30 jours": {
-    time: "1 h 43",
-    value: "858 €",
-    actions: "127",
-    replies: "46",
-    bars: [28, 46, 39, 71, 55, 84, 68],
-  },
-  "3 mois": {
-    time: "4 h 50",
-    value: "2 417 €",
-    actions: "362",
-    replies: "138",
-    bars: [36, 52, 48, 67, 73, 88, 81],
-  },
+export type MobileRelationContact = {
+  id: string;
+  name: string;
+  initials: string;
+  address: string;
+  channel: "Gmail" | "Outlook";
+  subject: string;
+  time: string;
+  unreadCount: number;
+  conversationCount: number;
 };
 
-export function MobileRelationsPreview() {
-  const searchParams = useSearchParams();
-  const active = searchParams.get("activity") === "demo";
+export function MobileRelationsPreview({
+  contacts = [],
+  error = false,
+  loading = false,
+  onRetry,
+}: {
+  contacts?: MobileRelationContact[];
+  error?: boolean;
+  loading?: boolean;
+  onRetry?: () => Promise<unknown> | unknown;
+} = {}) {
   const [period, setPeriod] = useState<MobileRelationsPeriod>("30 jours");
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected =
-    mobileRelationClients.find(({ id }) => id === selectedId) ?? null;
-  const activity = relationActivityByPeriod[period];
+  const selected = contacts.find(({ id }) => id === selectedId) ?? null;
 
   return (
     <MobilePage
@@ -1262,128 +1211,88 @@ export function MobileRelationsPreview() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 px-4 min-[360px]:grid-cols-2">
-        <MetricCard
-          icon={Clock3Icon}
-          label="Temps gagné"
-          value={active ? activity.time : "0 min"}
-        />
-        <MetricCard
-          icon={CircleDollarSignIcon}
-          label="Valeur libérée"
-          value={active ? activity.value : "0 €"}
-        />
-        <MetricCard
-          icon={CheckIcon}
-          label="Actions terminées"
-          value={active ? activity.actions : "0"}
-        />
-        <MetricCard
-          icon={MailIcon}
-          label="Réponses aidées"
-          value={active ? activity.replies : "0"}
-        />
+        <MetricCard icon={Clock3Icon} label="Temps gagné" value="0 min" />
+        <MetricCard icon={MailIcon} label="Valeur libérée" value="0 €" />
+        <MetricCard icon={CheckIcon} label="Actions terminées" value="0" />
+        <MetricCard icon={MailIcon} label="Réponses aidées" value="0" />
       </div>
 
-      {active ? (
-        <>
-          <section className="mt-7 px-4">
-            <div className="rounded-2xl border bg-card p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-semibold">Temps récupéré</h2>
-                  <p className="mt-1 text-muted-foreground text-xs">
-                    Progression sur {period.toLocaleLowerCase("fr")}
-                  </p>
-                </div>
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700 text-xs">
-                  {activity.time}
-                </span>
-              </div>
-              <div
-                aria-label={`Graphique du temps gagné sur ${period}`}
-                className="mt-6 flex h-28 items-end gap-2"
-                role="img"
-              >
-                {activity.bars.map((height, index) => (
-                  <span
-                    aria-hidden="true"
-                    className="min-w-0 flex-1 rounded-t-md bg-blue-100"
-                    key={`${period}-${index}`}
-                    style={{ height: `${height}%` }}
-                  >
-                    <span className="block h-full w-full rounded-t-md bg-blue-600/80" />
-                  </span>
-                ))}
-              </div>
-              <div className="mt-2 flex justify-between text-muted-foreground text-[10px]">
-                <span>Début</span>
-                <span>Aujourd’hui</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="mt-7 px-4 pb-24">
-            <div className="mb-3 flex items-end justify-between">
-              <div>
-                <h2 className="font-semibold">Relations aidées</h2>
-                <p className="mt-1 text-muted-foreground text-xs">
-                  Les dernières actions de Mue
-                </p>
-              </div>
-              <span className="text-muted-foreground text-xs">
-                {mobileRelationClients.length} clients
-              </span>
-            </div>
-            <div className="overflow-hidden rounded-2xl border bg-card">
-              {mobileRelationClients.map((client, index) => (
-                <button
-                  className={cn(
-                    "flex min-h-[88px] w-full items-center gap-3 p-3 text-left active:bg-muted",
-                    index < mobileRelationClients.length - 1 && "border-b",
-                  )}
-                  key={client.id}
-                  onClick={() => setSelectedId(client.id)}
-                  type="button"
-                >
-                  <span className="relative grid size-11 shrink-0 place-items-center rounded-full bg-muted font-medium text-xs">
-                    {client.initials}
-                    <span
-                      className={cn(
-                        "absolute bottom-0 right-0 size-3 rounded-full border-2 border-background",
-                        client.tone,
-                      )}
-                    />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <strong className="block truncate text-sm">
-                      {client.name}
-                    </strong>
-                    <span className="mt-0.5 block truncate text-muted-foreground text-xs">
-                      {client.status} · {client.time}
-                    </span>
-                  </span>
-                  <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          </section>
-        </>
-      ) : (
-        <section className="mt-7 px-4 pb-24">
-          <MobileEmpty
-            icon={ZapIcon}
-            title="Aucun gain pour l’instant"
-            detail="Les résultats apparaîtront après votre première action terminée."
-          />
-          <div className="mt-4 rounded-2xl bg-muted/60 p-4">
-            <p className="font-medium text-sm">Tout commence à zéro</p>
-            <p className="mt-1 text-muted-foreground text-xs leading-5">
-              Quand vous validerez une réponse, une relance ou une tâche avec
-              Mue, son impact apparaîtra ici.
+      <section className="mt-7 px-4">
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="font-semibold">Contacts récents</h2>
+            <p className="mt-1 text-muted-foreground text-xs">
+              Issus de vos échanges connectés
             </p>
           </div>
-        </section>
-      )}
+          <span className="text-muted-foreground text-xs">
+            {contacts.length} contact{contacts.length > 1 ? "s" : ""}
+          </span>
+        </div>
+        <div className="overflow-hidden rounded-2xl border bg-card">
+          {loading ? (
+            <p className="px-4 py-10 text-center text-muted-foreground text-sm">
+              Synchronisation des contacts…
+            </p>
+          ) : error ? (
+            <div className="px-4 py-8 text-center">
+              <p className="font-medium text-sm">Contacts indisponibles</p>
+              <Button
+                className="mt-3"
+                onClick={() => onRetry?.()}
+                size="sm"
+                variant="outline"
+              >
+                Réessayer
+              </Button>
+            </div>
+          ) : contacts.length ? (
+            contacts.map((contact, index) => (
+              <button
+                className={cn(
+                  "flex min-h-[88px] w-full items-center gap-3 p-3 text-left active:bg-muted",
+                  index < contacts.length - 1 && "border-b",
+                )}
+                key={contact.address}
+                onClick={() => setSelectedId(contact.id)}
+                type="button"
+              >
+                <span className="relative grid size-11 shrink-0 place-items-center rounded-full bg-muted font-medium text-xs">
+                  {contact.initials}
+                  {contact.unreadCount ? (
+                    <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-blue-600" />
+                  ) : null}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <strong className="block truncate text-sm">
+                    {contact.name}
+                  </strong>
+                  <span className="mt-0.5 block truncate text-muted-foreground text-xs">
+                    {contact.subject} · {contact.time}
+                  </span>
+                </span>
+                <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+              </button>
+            ))
+          ) : (
+            <MobileEmpty
+              detail="Ils apparaîtront après vos premiers échanges Gmail ou Outlook."
+              icon={UserRoundIcon}
+              title="Aucun contact synchronisé"
+            />
+          )}
+        </div>
+      </section>
+
+      <section className="px-4 pb-24 pt-4">
+        <div className="rounded-2xl bg-muted/60 p-4">
+          <p className="font-medium text-sm">Les gains commencent à zéro</p>
+          <p className="mt-1 text-muted-foreground text-xs leading-5">
+            Les contacts viennent de vos canaux. Les gains apparaîtront
+            seulement après une action réellement terminée avec Mue.
+          </p>
+        </div>
+      </section>
 
       <MobileSheet
         footer={
@@ -1420,7 +1329,15 @@ export function MobileRelationsPreview() {
       <MobileFullScreenDialog
         footer={
           <Button asChild className="w-full">
-            <Link href="/channels-v4">Voir les échanges</Link>
+            <Link
+              href={
+                selected
+                  ? `/channels-v4?conversation=${encodeURIComponent(selected.id)}`
+                  : "/channels-v4"
+              }
+            >
+              Voir l’échange
+            </Link>
           </Button>
         }
         onOpenChange={(open) => !open && setSelectedId(null)}
@@ -1438,25 +1355,29 @@ export function MobileRelationsPreview() {
                   {selected.name}
                 </h2>
                 <p className="mt-1 text-muted-foreground text-sm">
-                  {selected.channel}
+                  {selected.address} · {selected.channel}
                 </p>
               </div>
             </div>
             <div className="rounded-2xl border p-4">
-              <p className="font-medium text-sm">{selected.status}</p>
+              <p className="font-medium text-sm">Dernier échange</p>
               <p className="mt-1 text-muted-foreground text-sm leading-5">
-                {selected.context}
+                {selected.subject}
               </p>
-              <p className="mt-4 font-medium text-blue-700 text-sm">
+              <p className="mt-4 text-muted-foreground text-sm">
                 {selected.time}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
-              <MetricCard icon={MailIcon} label="Actions aidées" value="4" />
+              <MetricCard
+                icon={MailIcon}
+                label="Conversations"
+                value={String(selected.conversationCount)}
+              />
               <MetricCard
                 icon={Clock3Icon}
-                label="Temps récupéré"
-                value={`${selected.time.split(" ")[0]} min`}
+                label="Non lus"
+                value={String(selected.unreadCount)}
               />
             </div>
           </div>
