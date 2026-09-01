@@ -35,9 +35,11 @@ type NavItem = {
 export function SideNavMenu({
   items,
   activeHref,
+  nativeNavigation = false,
 }: {
   items: NavItem[];
   activeHref: string;
+  nativeNavigation?: boolean;
 }) {
   const { closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
@@ -46,51 +48,63 @@ export function SideNavMenu({
 
   return (
     <SidebarMenu>
-      {items.map((item) => (
-        <SidebarMenuItem key={item.name} className="font-semibold">
-          <SidebarMenuButton
-            asChild
-            isActive={item.active || activeHref === item.href}
-            className="h-9"
-            tooltip={item.name}
-            sidebarName="left-sidebar"
-          >
-            <Link
-              href={item.href}
-              onClick={() => {
-                const destinationAppPage = getAppPageFromNavItem({
-                  name: item.name,
-                  href: item.href,
-                });
+      {items.map((item) => {
+        const handleClick = () => {
+          const destinationAppPage = getAppPageFromNavItem({
+            name: item.name,
+            href: item.href,
+          });
 
-                posthog.capture(PRODUCT_ANALYTICS_EVENTS.navigationClicked, {
-                  ...getAppPageProperties(currentAppPage),
-                  destination_page: destinationAppPage,
-                  destination_page_label: destinationAppPage
-                    ? APP_PAGES[destinationAppPage].label
-                    : undefined,
-                  nav_item: item.name,
-                  nav_href_type: getNavHrefType(item.href),
-                });
-                closeMobileSidebar("left-sidebar");
-              }}
+          posthog.capture(PRODUCT_ANALYTICS_EVENTS.navigationClicked, {
+            ...getAppPageProperties(currentAppPage),
+            destination_page: destinationAppPage,
+            destination_page_label: destinationAppPage
+              ? APP_PAGES[destinationAppPage].label
+              : undefined,
+            nav_item: item.name,
+            nav_href_type: getNavHrefType(item.href),
+          });
+          closeMobileSidebar("left-sidebar");
+        };
+        const content = (
+          <>
+            <item.icon />
+            <span>{item.name}</span>
+            {item.new && (
+              <Badge variant="green" className="ml-auto text-[10px]">
+                New!
+              </Badge>
+            )}
+            {item.beta && (
+              <Badge variant="secondary" className="ml-auto text-[10px]">
+                Beta
+              </Badge>
+            )}
+          </>
+        );
+
+        return (
+          <SidebarMenuItem key={item.name} className="font-semibold">
+            <SidebarMenuButton
+              asChild
+              isActive={item.active || activeHref === item.href}
+              className="h-9"
+              tooltip={item.name}
+              sidebarName="left-sidebar"
             >
-              <item.icon />
-              <span>{item.name}</span>
-              {item.new && (
-                <Badge variant="green" className="ml-auto text-[10px]">
-                  New!
-                </Badge>
+              {nativeNavigation ? (
+                <a href={item.href} onClick={handleClick}>
+                  {content}
+                </a>
+              ) : (
+                <Link href={item.href} onClick={handleClick}>
+                  {content}
+                </Link>
               )}
-              {item.beta && (
-                <Badge variant="secondary" className="ml-auto text-[10px]">
-                  Beta
-                </Badge>
-              )}
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   );
 }

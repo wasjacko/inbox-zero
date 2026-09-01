@@ -155,12 +155,16 @@ export const useNavigation = (previewMode = false) => {
           ]),
       {
         name: "Tâches",
-        href: prefixPath(currentEmailAccountId, "/tasks"),
+        href: previewMode
+          ? "/tasks"
+          : prefixPath(currentEmailAccountId, "/tasks"),
         icon: ListTodoIcon,
       },
       {
         name: "Relations clients",
-        href: prefixPath(currentEmailAccountId, "/stats"),
+        href: previewMode
+          ? "/stats"
+          : prefixPath(currentEmailAccountId, "/stats"),
         icon: BarChartBigIcon,
       },
       ...(showMeetingRecorder
@@ -333,13 +337,18 @@ export function SideNav({
             <>
               <SidebarGroup>
                 <SidebarGroupLabel>Gérer</SidebarGroupLabel>
-                <SideNavMenu items={navigation.manageItems} activeHref={path} />
+                <SideNavMenu
+                  items={navigation.manageItems}
+                  activeHref={path}
+                  nativeNavigation={previewMode}
+                />
               </SidebarGroup>
               <SidebarGroup>
                 <SidebarGroupLabel>Nettoyage</SidebarGroupLabel>
                 <SideNavMenu
                   items={navigation.cleanupItems}
                   activeHref={path}
+                  nativeNavigation={previewMode}
                 />
               </SidebarGroup>
             </>
