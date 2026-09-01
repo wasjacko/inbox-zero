@@ -81,6 +81,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -539,7 +540,7 @@ export function ChannelsV4Preview() {
     mutate: refreshThreads,
   } = useSWR<ThreadsListResponse>(
     emailAccountId
-      ? "/api/threads?type=inbox&limit=20&view=list&includePlans=false"
+      ? "/api/threads?type=inbox&limit=8&view=list&includePlans=false"
       : null,
     {
       dedupingInterval: 60_000,
@@ -1082,13 +1083,9 @@ export function ChannelsV4Preview() {
 
           <Card className="mt-4 flex min-h-0 flex-1 overflow-hidden shadow-sm">
             {threadsLoading ? (
-              <div
-                className="flex flex-1 items-center justify-center text-muted-foreground text-sm"
-                role="status"
-              >
-                <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                Synchronisation avec Gmail…
-              </div>
+              <ChannelsLoadingState
+                channel={provider === "microsoft" ? "outlook" : "gmail"}
+              />
             ) : threadsError ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                 <p className="font-medium text-sm">
@@ -1401,6 +1398,44 @@ export function ChannelsV4Preview() {
         </PageWrapper>
       </div>
     </>
+  );
+}
+
+function ChannelsLoadingState({ channel }: { channel: Channel }) {
+  return (
+    <div className="flex min-w-0 flex-1" role="status">
+      <span className="sr-only">
+        Synchronisation avec {channelName(channel)}…
+      </span>
+      <aside className="hidden w-16 shrink-0 border-r bg-muted/15 lg:flex lg:flex-col lg:items-center lg:py-5">
+        <span className="flex size-10 items-center justify-center rounded-xl border bg-background shadow-sm">
+          <ChannelIcon channel={channel} size="md" />
+        </span>
+      </aside>
+      <section className="min-w-0 flex-1 px-4 py-4 lg:px-6">
+        <div className="mb-4 flex items-center gap-3 border-b pb-4">
+          <Skeleton className="h-9 w-64 max-w-[55%] rounded-lg" />
+          <Skeleton className="ml-auto h-8 w-24 rounded-lg" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }, (_, index) => (
+            <div
+              className="flex items-center gap-4 rounded-xl px-3 py-3.5"
+              key={index}
+            >
+              <Skeleton className="size-10 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-4 w-36 rounded" />
+                  <Skeleton className="ml-auto h-4 w-16 rounded" />
+                </div>
+                <Skeleton className="h-3.5 w-[72%] rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
