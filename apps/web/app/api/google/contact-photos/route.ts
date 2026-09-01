@@ -54,23 +54,46 @@ export const POST = withEmailAccount(
       refreshToken: emailAccount.account.refresh_token,
     });
 
+    const photos: Record<string, string> = {};
+    let requiresContactsPermission = false;
+
     try {
-      const photos = await findContactPhotos(client, normalizedEmails);
-      return NextResponse.json<ContactPhotosResponse>({
+      Object.assign(
         photos,
-        requiresContactsPermission: false,
-      });
+        await findSavedContactPhotos(client, normalizedEmails),
+      );
     } catch (error) {
-      request.logger.warn("Unable to load Google contact photos", { error });
-      return NextResponse.json<ContactPhotosResponse>({
-        photos: {},
-        requiresContactsPermission: true,
+      requiresContactsPermission = true;
+      request.logger.warn("Unable to load saved Google contact photos", {
+        error,
       });
     }
+
+    const missingEmails = new Set(
+      [...normalizedEmails].filter((email) => !photos[email]),
+    );
+    if (missingEmails.size > 0) {
+      try {
+        Object.assign(
+          photos,
+          await findOtherContactPhotos(client, missingEmails),
+        );
+      } catch (error) {
+        requiresContactsPermission = true;
+        request.logger.warn("Unable to load automatic Google contact photos", {
+          error,
+        });
+      }
+    }
+
+    return NextResponse.json<ContactPhotosResponse>({
+      photos,
+      requiresContactsPermission,
+    });
   },
 );
 
-async function findContactPhotos(
+async function findSavedContactPhotos(
   client: people_v1.People,
   wantedEmails: Set<string>,
 ) {
@@ -84,19 +107,10 @@ async function findContactPhotos(
       personFields: "emailAddresses,photos",
       pageSize: 1000,
       pageToken,
+      sources: ["READ_SOURCE_TYPE_CONTACT", "READ_SOURCE_TYPE_PROFILE"],
     });
 
-    for (const person of response.data.connections ?? []) {
-      const photo = person.photos?.find(
-        ({ default: isDefault }) => !isDefault,
-      )?.url;
-      if (!photo) continue;
-
-      for (const emailAddress of person.emailAddresses ?? []) {
-        const email = emailAddress.value?.trim().toLowerCase();
-        if (email && wantedEmails.has(email)) photos[email] = photo;
-      }
-    }
+    collectPhotos(response.data.connections, wantedEmails, photos);
 
     pageToken = response.data.nextPageToken ?? undefined;
     pageCount += 1;
@@ -107,4 +121,50 @@ async function findContactPhotos(
   );
 
   return photos;
+}
+
+async function findOtherContactPhotos(
+  client: people_v1.People,
+  wantedEmails: Set<string>,
+) {
+  const photos: Record<string, string> = {};
+  let pageToken: string | undefined;
+  let pageCount = 0;
+
+  do {
+    const response = await client.otherContacts.list({
+      readMask: "emailAddresses,photos",
+      pageSize: 1000,
+      pageToken,
+      sources: ["READ_SOURCE_TYPE_CONTACT", "READ_SOURCE_TYPE_PROFILE"],
+    });
+
+    collectPhotos(response.data.otherContacts, wantedEmails, photos);
+    pageToken = response.data.nextPageToken ?? undefined;
+    pageCount += 1;
+  } while (
+    pageToken &&
+    pageCount < 5 &&
+    Object.keys(photos).length < wantedEmails.size
+  );
+
+  return photos;
+}
+
+function collectPhotos(
+  people: people_v1.Schema$Person[] | null | undefined,
+  wantedEmails: Set<string>,
+  photos: Record<string, string>,
+) {
+  for (const person of people ?? []) {
+    const photo = person.photos?.find(
+      ({ default: isDefault }) => !isDefault,
+    )?.url;
+    if (!photo) continue;
+
+    for (const emailAddress of person.emailAddresses ?? []) {
+      const email = emailAddress.value?.trim().toLowerCase();
+      if (email && wantedEmails.has(email)) photos[email] = photo;
+    }
+  }
 }
