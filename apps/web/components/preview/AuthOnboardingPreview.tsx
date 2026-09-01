@@ -119,7 +119,8 @@ function useFreescaleAuthentication(mode: AuthMode) {
       if (mode === "signup") startPreviewOnboarding(window.localStorage);
       await signIn.social({
         provider: "google",
-        callbackURL: mode === "signup" ? "/onboarding" : "/chat",
+        callbackURL:
+          mode === "signup" ? "/welcome-redirect?intent=signup" : "/chat",
         errorCallbackURL: "/login?error=oauth",
       });
     } catch (authError) {
@@ -139,20 +140,42 @@ function useFreescaleAuthentication(mode: AuthMode) {
     setError(null);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const result =
         mode === "signup"
           ? await signUp.email({
-              name: email.trim().split("@")[0] || "Utilisateur",
-              email: email.trim().toLowerCase(),
+              name: normalizedEmail.split("@")[0] || "Utilisateur",
+              email: normalizedEmail,
               password,
               callbackURL: "/onboarding",
             })
           : await signIn.email({
-              email: email.trim().toLowerCase(),
+              email: normalizedEmail,
               password,
               callbackURL: "/chat",
               rememberMe: true,
             });
+
+      if (mode === "signup" && isUserAlreadyExistsError(result.error)) {
+        const signInResult = await signIn.email({
+          email: normalizedEmail,
+          password,
+          callbackURL: "/chat?notice=existing-account",
+          rememberMe: true,
+        });
+
+        if (signInResult.error) {
+          setError(
+            "Ce compte existe déjà. Connectez-vous avec son mot de passe habituel ou utilisez Google.",
+          );
+          setLoading(null);
+          return;
+        }
+
+        router.push("/chat?notice=existing-account");
+        router.refresh();
+        return;
+      }
 
       if (result.error) throw result.error;
 
@@ -195,6 +218,11 @@ function getFreescaleAuthError(error: unknown) {
   }
 
   return "La connexion n’a pas abouti. Vérifiez vos informations puis réessayez.";
+}
+
+function isUserAlreadyExistsError(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) return false;
+  return String(error.code).includes("USER_ALREADY_EXISTS");
 }
 
 function MobileAuthPreview() {

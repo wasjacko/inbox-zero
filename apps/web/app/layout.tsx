@@ -18,6 +18,7 @@ import { Toaster } from "@/components/Toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BRAND_NAME } from "@/utils/branding";
 import { appViewport } from "@/app/viewport-config";
+import { AuthNotice } from "@/components/AuthNotice";
 
 const aeonikFont = localFont({
   src: "../styles/aeonik-medium.woff",
@@ -94,6 +95,9 @@ export default async function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="light">
             <GlobalProviders>
               {children}
+              <Suspense>
+                <AuthNotice />
+              </Suspense>
               <Toaster closeButton richColors theme="light" visibleToasts={9} />
             </GlobalProviders>
           </ThemeProvider>

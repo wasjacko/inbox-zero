@@ -214,6 +214,7 @@ export const betterAuthConfig = betterAuth({
   baseURL: env.NEXT_PUBLIC_BASE_URL,
   trustedOrigins: [
     env.NEXT_PUBLIC_BASE_URL,
+    "https://www.freescale.site",
     "https://appleid.apple.com",
     ...(env.OAUTH_PROXY_URL ? [env.OAUTH_PROXY_URL] : []),
     ...(env.ADDITIONAL_TRUSTED_ORIGINS ?? []),

@@ -4,9 +4,11 @@ const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   findUser: vi.fn(),
   findPremium: vi.fn(),
-  redirectToEmailAccountPath: vi.fn((path: string) => {
-    throw new Error(`account-redirect:${path}`);
-  }),
+  redirectToEmailAccountPath: vi.fn(
+    (path: string, _searchParams?: Record<string, string>) => {
+      throw new Error(`account-redirect:${path}`);
+    },
+  ),
   redirect: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
@@ -37,8 +39,13 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/utils/account", () => ({
-  redirectToEmailAccountPath: (path: string) =>
-    mocks.redirectToEmailAccountPath(path),
+  redirectToEmailAccountPath: (
+    path: string,
+    searchParams?: Record<string, string>,
+  ) =>
+    searchParams
+      ? mocks.redirectToEmailAccountPath(path, searchParams)
+      : mocks.redirectToEmailAccountPath(path),
 }));
 
 vi.mock("@/env", () => ({
@@ -89,6 +96,7 @@ describe("WelcomeRedirectPage", () => {
       where: { id: "user-1" },
       select: {
         completedOnboardingAt: true,
+        createdAt: true,
         premiumId: true,
       },
     });
@@ -145,5 +153,24 @@ describe("WelcomeRedirectPage", () => {
 
     expect(mocks.findPremium).not.toHaveBeenCalled();
     expect(mocks.redirectToEmailAccountPath).not.toHaveBeenCalled();
+  });
+
+  it("notifies a returning user who chose Google from sign-up", async () => {
+    mocks.findUser.mockResolvedValue({
+      completedOnboardingAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdAt: new Date("2025-01-01T00:00:00.000Z"),
+      premiumId: "premium-1",
+    });
+
+    await expect(
+      WelcomeRedirectPage({
+        searchParams: Promise.resolve({ intent: "signup" }),
+      }),
+    ).rejects.toThrow("account-redirect:/automation");
+
+    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith(
+      "/automation",
+      { notice: "existing-account" },
+    );
   });
 });

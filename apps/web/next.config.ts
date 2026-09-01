@@ -199,6 +199,17 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        destination: "https://freescale.site/:path*",
+        has: [
+          {
+            type: "host",
+            value: "www.freescale.site",
+          },
+        ],
+        permanent: true,
+        source: "/:path*",
+      },
+      {
         destination: "/automation",
         has: [
           {

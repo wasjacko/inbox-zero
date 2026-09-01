@@ -52,6 +52,11 @@ const errorMessages: Record<string, { title: string; description: string }> = {
     title: "Permissions need to be refreshed",
     description: getRequiresReconsentDescription(),
   },
+  state_mismatch: {
+    title: "Connexion Google expirée",
+    description:
+      "La tentative de connexion n’est plus valide. Revenez sur la page de connexion et relancez Google une seule fois.",
+  },
 };
 
 function LoginErrorContent() {
