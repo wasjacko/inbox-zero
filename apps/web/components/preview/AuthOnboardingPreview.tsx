@@ -1363,7 +1363,7 @@ function BusinessProfileStep({
   ) => void;
 }) {
   const fieldClassName =
-    "mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#6f91ec] focus:ring-2 focus:ring-[#4771df]/10 dark:border-slate-700 dark:bg-slate-950";
+    "mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-base outline-none transition-colors placeholder:text-slate-400 focus:border-[#6f91ec] focus:ring-2 focus:ring-[#4771df]/10 sm:text-sm dark:border-slate-700 dark:bg-slate-950";
 
   return (
     <>
@@ -1491,7 +1491,7 @@ function WorkspaceStep({
         <span className="font-medium text-sm">Nom de l’espace</span>
         <input
           autoComplete="organization"
-          autoFocus
+          autoFocus={!mobile}
           className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-base outline-none transition-colors placeholder:text-slate-400 focus:border-[#6f91ec] focus:ring-2 focus:ring-[#4771df]/10 dark:border-slate-700 dark:bg-slate-950"
           maxLength={48}
           onChange={(event) => onChange(event.target.value)}
