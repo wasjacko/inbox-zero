@@ -44,6 +44,8 @@ export async function claimOAuthCode(
   code: string,
   requestFingerprint?: string,
 ): Promise<OAuthCodeClaim> {
+  if (!isOAuthCodeStoreConfigured()) return null;
+
   const existing = await redis.set<OAuthCodeProcessing | OAuthCodeResult>(
     getCodeKey(code),
     { requestFingerprint, status: "processing" },
@@ -98,6 +100,8 @@ export async function claimOAuthCodeAndWait(
 }
 
 export async function acquireOAuthCodeLock(code: string): Promise<boolean> {
+  if (!isOAuthCodeStoreConfigured()) return true;
+
   const result = await redis.set(getCodeKey(code), "processing", {
     ex: 60,
     nx: true, // Only set if key doesn't exist (atomic)
@@ -109,6 +113,8 @@ export async function acquireOAuthCodeLock(code: string): Promise<boolean> {
 export async function getOAuthCodeResult(
   code: string,
 ): Promise<OAuthCodeResult | null> {
+  if (!isOAuthCodeStoreConfigured()) return null;
+
   const value = await redis.get<string | OAuthCodeResult>(getCodeKey(code));
 
   if (!value || value === "processing") {
@@ -130,6 +136,8 @@ export async function setOAuthCodeResult(
     ttlSeconds?: number;
   },
 ): Promise<void> {
+  if (!isOAuthCodeStoreConfigured()) return;
+
   const result: OAuthCodeResult = {
     status: "success",
     params,
@@ -154,6 +162,8 @@ export async function setOAuthCodeResult(
  * Fails silently - cleanup errors should never mask the original error in catch blocks.
  */
 export async function clearOAuthCode(code: string): Promise<void> {
+  if (!isOAuthCodeStoreConfigured()) return;
+
   try {
     await redis.del(getCodeKey(code));
   } catch {

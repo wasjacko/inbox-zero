@@ -1,16 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { redis } from "@/utils/redis";
 import {
+  acquireOAuthCodeLock,
   claimOAuthCode,
   claimOAuthCodeAndWait,
+  getOAuthCodeResult,
   setOAuthCodeResult,
 } from "@/utils/redis/oauth-code";
 
+const mockedEnv = vi.hoisted(() => ({
+  UPSTASH_REDIS_TOKEN: "token" as string | undefined,
+  UPSTASH_REDIS_URL: "https://redis.example.com" as string | undefined,
+}));
+
 vi.mock("@/env", () => ({
-  env: {
-    UPSTASH_REDIS_TOKEN: "token",
-    UPSTASH_REDIS_URL: "https://redis.example.com",
-  },
+  env: mockedEnv,
 }));
 
 vi.mock("@/utils/redis", () => ({
@@ -23,6 +27,8 @@ vi.mock("@/utils/redis", () => ({
 describe("claimOAuthCode", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedEnv.UPSTASH_REDIS_TOKEN = "token";
+    mockedEnv.UPSTASH_REDIS_URL = "https://redis.example.com";
   });
 
   afterEach(() => {
@@ -76,6 +82,31 @@ describe("claimOAuthCode", () => {
     vi.mocked(redis.set).mockResolvedValue(completed);
 
     await expect(claimOAuthCode("oauth-code")).resolves.toBe(completed);
+  });
+});
+
+describe("without an OAuth code store", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedEnv.UPSTASH_REDIS_TOKEN = undefined;
+    mockedEnv.UPSTASH_REDIS_URL = undefined;
+  });
+
+  afterEach(() => {
+    mockedEnv.UPSTASH_REDIS_TOKEN = "token";
+    mockedEnv.UPSTASH_REDIS_URL = "https://redis.example.com";
+  });
+
+  it("continues OAuth callbacks without Redis-backed idempotency", async () => {
+    await expect(claimOAuthCode("oauth-code")).resolves.toBeNull();
+    await expect(acquireOAuthCodeLock("oauth-code")).resolves.toBe(true);
+    await expect(getOAuthCodeResult("oauth-code")).resolves.toBeNull();
+    await expect(
+      setOAuthCodeResult("oauth-code", { connected: "google" }),
+    ).resolves.toBeUndefined();
+
+    expect(redis.get).not.toHaveBeenCalled();
+    expect(redis.set).not.toHaveBeenCalled();
   });
 });
 
