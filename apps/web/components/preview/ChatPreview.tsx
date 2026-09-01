@@ -43,6 +43,7 @@ import { AutomationPreview } from "@/components/preview/AutomationPreview";
 import { MobileChatPreview } from "@/components/mobile/MobileChatPreview";
 import { ConnectChannelDialog } from "@/components/ConnectChannelDialog";
 import { WhatsAppIcon } from "@/components/BrandIcons";
+import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
 import {
@@ -70,11 +71,7 @@ import {
   PREVIEW_FREELANCER_NAME_EVENT,
   PREVIEW_FREELANCER_NAME_KEY,
 } from "@/utils/preview-profile";
-import {
-  getPreviewConnectedChannels,
-  PREVIEW_CONNECTED_CHANNELS_EVENT,
-  PREVIEW_ONBOARDING_STATUS_KEY,
-} from "@/utils/preview-onboarding";
+import { PREVIEW_ONBOARDING_STATUS_KEY } from "@/utils/preview-onboarding";
 
 const suggestions = [
   { label: "Aide-moi à gérer mes priorités aujourd’hui", icon: InboxIcon },
@@ -93,9 +90,10 @@ export function ChatPreview({
 }) {
   const [input, setInput] = useState("");
   const [freelancerName, setFreelancerName] = useState("");
-  const [hasConnectedChannels, setHasConnectedChannels] = useState(false);
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [activeView, setActiveView] = useState<ChatView>(initialView);
+  const connectedChannels = usePreviewConnectedChannels();
+  const hasConnectedChannels = (connectedChannels?.length ?? 0) > 0;
 
   const changeActiveView = (view: string) => {
     if (!isChatView(view)) return;
@@ -127,25 +125,6 @@ export function ChatPreview({
       window.removeEventListener(
         PREVIEW_FREELANCER_NAME_EVENT,
         handleFreelancerName,
-      );
-  }, []);
-
-  useEffect(() => {
-    setHasConnectedChannels(
-      getPreviewConnectedChannels(window.localStorage).length > 0,
-    );
-    const handleConnectedChannels = (event: Event) =>
-      setHasConnectedChannels(
-        (event as CustomEvent<string[]>).detail.length > 0,
-      );
-    window.addEventListener(
-      PREVIEW_CONNECTED_CHANNELS_EVENT,
-      handleConnectedChannels,
-    );
-    return () =>
-      window.removeEventListener(
-        PREVIEW_CONNECTED_CHANNELS_EVENT,
-        handleConnectedChannels,
       );
   }, []);
 
