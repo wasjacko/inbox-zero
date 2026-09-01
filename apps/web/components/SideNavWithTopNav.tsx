@@ -1098,6 +1098,7 @@ function PreviewMuePanel({ name }: { name: string }) {
   const contextCopy =
     mueContextCopy[currentContext] ?? mueContextCopy["cette page"];
   const selectedVerbMeta = mueVerbs.find(({ id }) => id === selectedVerb);
+  const connectedChannels = usePreviewConnectedChannels();
 
   useEffect(() => {
     if (!selectedVerb) return;
@@ -1683,22 +1684,27 @@ function PreviewMuePanel({ name }: { name: string }) {
                 {currentContext === "Tâches" ? (
                   <div className="mx-auto mt-5 max-w-xs rounded-xl border bg-muted/25 p-3 text-left">
                     <div className="flex items-center gap-2">
-                      <span className="flex size-7 items-center justify-center rounded-md border bg-background shadow-sm">
-                        <Gmail height={15} width={15} />
-                      </span>
-                      <span className="flex size-7 items-center justify-center rounded-md border bg-background shadow-sm">
-                        <Outlook height={15} width={15} />
-                      </span>
-                      <span className="flex size-7 items-center justify-center rounded-md border bg-background text-[#22c55e] shadow-sm">
-                        <WhatsAppIcon className="size-4" />
-                      </span>
+                      {connectedChannels?.map((channel) => (
+                        <span
+                          className="flex size-7 items-center justify-center rounded-md border bg-background shadow-sm"
+                          key={channel}
+                        >
+                          {channel === "gmail" ? (
+                            <Gmail height={15} width={15} />
+                          ) : (
+                            <Outlook height={15} width={15} />
+                          )}
+                        </span>
+                      ))}
                       <span className="ml-1 font-medium text-xs">
-                        3 canaux prêts
+                        {connectedChannels?.length === 1
+                          ? "1 canal prêt"
+                          : `${connectedChannels?.length ?? 0} canaux prêts`}
                       </span>
                     </div>
                     <p className="mt-2.5 text-muted-foreground text-xs leading-5">
-                      Je retrouve 15 nouveaux messages. Je peux les parcourir
-                      pour identifier vos premières tâches, sans rien créer
+                      Je peux parcourir les messages récents de vos canaux
+                      connectés pour identifier des tâches, sans rien créer
                       avant votre validation.
                     </p>
                   </div>
