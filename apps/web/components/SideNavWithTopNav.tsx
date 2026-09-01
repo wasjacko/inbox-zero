@@ -89,6 +89,9 @@ import {
   getPreviewConnectedChannels,
   savePreviewConnectedChannels,
 } from "@/utils/preview-onboarding";
+import { getAccountLinkingUrl } from "@/utils/account-linking";
+import { redirectToSafeUrl } from "@/utils/redirect";
+import { toastError } from "@/components/Toast";
 
 const CrispWithNoSSR = dynamic(() => import("@/components/CrispChat"));
 
@@ -2679,9 +2682,26 @@ function ConnectedChannels() {
     }
   };
 
-  const connectSelectedChannel = () => {
+  const connectSelectedChannel = async () => {
     if (!selected || isConnecting) return;
     setIsConnecting(true);
+
+    if (selected === "gmail" || selected === "outlook") {
+      const provider = selected === "gmail" ? "google" : "microsoft";
+
+      try {
+        const url = await getAccountLinkingUrl(provider);
+        redirectToSafeUrl(url, { allowExternal: true });
+      } catch (error) {
+        console.error(`Error initiating ${provider} account linking:`, error);
+        toastError({
+          title: `Impossible de connecter ${selectedChannel?.name ?? "ce canal"}`,
+          description: "Réessayez dans quelques instants.",
+        });
+        setIsConnecting(false);
+      }
+      return;
+    }
 
     window.setTimeout(() => {
       setConnected((current) => {
@@ -2848,8 +2868,10 @@ function ConnectedChannels() {
 
               <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-muted-foreground text-xs">
                 <LockKeyholeIcon className="mt-0.5 size-4 shrink-0" />
-                Cette démonstration simule la connexion. Aucun compte externe ni
-                message réel ne sera utilisé.
+                {selectedChannel.id === "gmail" ||
+                selectedChannel.id === "outlook"
+                  ? `Vous serez redirigé vers ${selectedChannel.name} pour autoriser la connexion de votre compte.`
+                  : "Cette intégration est encore en démonstration. Aucun compte externe ni message réel ne sera utilisé."}
               </div>
             </div>
 
