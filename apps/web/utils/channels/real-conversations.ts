@@ -14,6 +14,7 @@ export type RealChannelConversation = {
   name: string;
   initials: string;
   address: string;
+  avatarUrl: string;
   channel: Channel;
   subject: string;
   preview: string;
@@ -83,6 +84,7 @@ export function toRealChannelConversation({
     name,
     initials: getInitials(name),
     address,
+    avatarUrl: domainLogoUrl(address),
     channel: provider === "microsoft" ? "outlook" : "gmail",
     subject: latest?.subject || "Sans objet",
     preview: latest?.snippet || thread.snippet || "",
@@ -109,6 +111,11 @@ export function toRealChannelConversation({
           : undefined,
     })),
   };
+}
+
+function domainLogoUrl(email: string) {
+  const domain = email.split("@").at(1) ?? "gmail.com";
+  return `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`;
 }
 
 function findContactHeader(messages: MessageLike[], userEmail: string) {

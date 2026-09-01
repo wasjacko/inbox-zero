@@ -162,6 +162,7 @@ type InboxConversation = {
   name: string;
   initials: string;
   address: string;
+  avatarUrl?: string;
   channel: Channel;
   contactType?: ContactType;
   subject: string;
@@ -709,7 +710,9 @@ export function ChannelsV4Preview() {
         channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
         unread: conversation.unread ? 1 : 0,
         time: conversation.time,
-        avatarUrl: contactPhotos[conversation.address.toLowerCase()],
+        avatarUrl:
+          contactPhotos[conversation.address.toLowerCase()] ??
+          conversation.avatarUrl,
         messages: conversation.messages.map((message) => ({
           id: message.id,
           author: message.author,
@@ -4363,7 +4366,8 @@ function ChannelAvatar({
   small?: boolean;
 }) {
   const contactPhotos = useContext(ContactPhotosContext);
-  const photoUrl = contactPhotos[conversation.address.toLowerCase()];
+  const photoUrl =
+    contactPhotos[conversation.address.toLowerCase()] ?? conversation.avatarUrl;
 
   return (
     <div className="relative shrink-0 self-center">
