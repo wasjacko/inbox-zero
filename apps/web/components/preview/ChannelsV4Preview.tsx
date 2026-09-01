@@ -2428,7 +2428,25 @@ function ConversationList({
                       </span>
                     </div>
                     <p className="mt-1.5 truncate text-muted-foreground text-xs leading-5 sm:text-sm">
-                      {conversation.preview}
+                      {conversation.channel === "gmail" ||
+                      conversation.channel === "outlook" ? (
+                        <>
+                          <span
+                            className={cn(
+                              "mr-1.5 text-foreground",
+                              conversation.unread
+                                ? "font-semibold"
+                                : "font-medium",
+                            )}
+                          >
+                            {conversation.subject}
+                          </span>
+                          <span aria-hidden="true">— </span>
+                          <span>{conversation.preview}</span>
+                        </>
+                      ) : (
+                        conversation.preview
+                      )}
                     </p>
                     {conversation.attachment ? (
                       <span className="mt-2.5 inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-muted-foreground text-xs group-hover:bg-background/80">
@@ -2627,7 +2645,10 @@ function MessageReader({
             <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-muted-foreground text-xs">
               <ChannelIcon channel={conversation.channel} />
               <span className="truncate">
-                Réponse via {channelName(conversation.channel)}
+                {conversation.channel === "gmail" ||
+                conversation.channel === "outlook"
+                  ? conversation.address
+                  : `Réponse via ${channelName(conversation.channel)}`}
               </span>
             </div>
           </div>
@@ -2781,6 +2802,29 @@ function MessageReader({
         ref={scrollAreaRef}
       >
         <div className="mx-auto w-full max-w-[64rem] px-3 pb-10 pt-6 @md/reader:px-5 @2xl/reader:px-8 @2xl/reader:pt-8">
+          {conversation.channel === "gmail" ||
+          conversation.channel === "outlook" ? (
+            <div className="mb-5 border-b pb-5">
+              <div className="flex items-start gap-3">
+                <ChannelAvatar conversation={conversation} />
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-pretty font-semibold text-lg leading-6 @md/reader:text-xl">
+                    {conversation.subject}
+                  </h1>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 text-muted-foreground text-xs">
+                    <span className="font-medium text-foreground">
+                      {conversation.name}
+                    </span>
+                    <span>&lt;{conversation.address}&gt;</span>
+                    <span className="ml-auto">{conversation.time}</span>
+                  </div>
+                  <p className="mt-1 text-muted-foreground text-xs">
+                    À moi · via {channelName(conversation.channel)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {conversation.messages.map((message, index) => {
             const dateLabel = threadDateLabel(message.time);
             const previousDate =
@@ -2796,27 +2840,60 @@ function MessageReader({
                 ) : null}
                 <div
                   className={cn(
-                    "mb-8 flex items-end gap-2.5 @md/reader:mb-10",
+                    "mb-8 flex gap-2.5 @md/reader:mb-10",
+                    conversation.channel === "gmail" ||
+                      conversation.channel === "outlook"
+                      ? "items-start"
+                      : "items-end",
                     message.author === "me" && "justify-end",
                   )}
                 >
-                  {message.author === "contact" ? (
+                  {message.author === "contact" &&
+                  conversation.channel !== "gmail" &&
+                  conversation.channel !== "outlook" ? (
                     <ChannelAvatar conversation={conversation} />
                   ) : null}
                   <div
                     className={cn(
-                      "w-fit max-w-[88%] @lg/reader:max-w-[76%] @3xl/reader:max-w-[43rem]",
+                      conversation.channel === "gmail" ||
+                        conversation.channel === "outlook"
+                        ? "w-full max-w-none"
+                        : "w-fit max-w-[88%] @lg/reader:max-w-[76%] @3xl/reader:max-w-[43rem]",
                       message.author === "me" && "text-right",
                     )}
                   >
                     <div
                       className={cn(
-                        "rounded-[1.25rem] border px-4 py-3 text-left text-sm leading-6 @md/reader:px-5 @md/reader:py-4 @md/reader:text-[15px] @md/reader:leading-7",
-                        message.author === "me"
-                          ? "border-[#263f93] bg-[#263f93] text-white shadow-[0_5px_16px_-14px_rgba(38,63,147,.42)]"
-                          : "border-border/80 bg-background text-foreground shadow-[0_4px_18px_-16px_rgba(15,23,42,.18)]",
+                        "text-left text-sm leading-6 @md/reader:text-[15px] @md/reader:leading-7",
+                        conversation.channel === "gmail" ||
+                          conversation.channel === "outlook"
+                          ? "border-b border-border/70 bg-background px-4 py-5 @md/reader:px-6 @md/reader:py-6"
+                          : cn(
+                              "rounded-[1.25rem] border px-4 py-3 @md/reader:px-5 @md/reader:py-4",
+                              message.author === "me"
+                                ? "border-[#263f93] bg-[#263f93] text-white shadow-[0_5px_16px_-14px_rgba(38,63,147,.42)]"
+                                : "border-border/80 bg-background text-foreground shadow-[0_4px_18px_-16px_rgba(15,23,42,.18)]",
+                            ),
                       )}
                     >
+                      {conversation.channel === "gmail" ||
+                      conversation.channel === "outlook" ? (
+                        <div className="mb-4 flex items-center gap-2 border-b pb-3 text-xs">
+                          <span className="font-semibold">
+                            {message.author === "me"
+                              ? "Moi"
+                              : conversation.name}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {message.author === "me"
+                              ? `à ${conversation.address}`
+                              : "à moi"}
+                          </span>
+                          <span className="ml-auto text-muted-foreground">
+                            {threadTimeLabel(message.time)}
+                          </span>
+                        </div>
+                      ) : null}
                       {message.body}
                       {message.attachment ? (
                         <div
@@ -2832,15 +2909,18 @@ function MessageReader({
                         </div>
                       ) : null}
                     </div>
-                    <span
-                      className={cn(
-                        "mt-2 inline-block text-[10px] text-muted-foreground/60 @md/reader:text-xs",
-                        message.author === "contact" && "ml-3",
-                        message.author === "me" && "mr-3",
-                      )}
-                    >
-                      {threadTimeLabel(message.time)}
-                    </span>
+                    {conversation.channel !== "gmail" &&
+                    conversation.channel !== "outlook" ? (
+                      <span
+                        className={cn(
+                          "mt-2 inline-block text-[10px] text-muted-foreground/60 @md/reader:text-xs",
+                          message.author === "contact" && "ml-3",
+                          message.author === "me" && "mr-3",
+                        )}
+                      >
+                        {threadTimeLabel(message.time)}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
