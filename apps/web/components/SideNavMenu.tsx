@@ -49,7 +49,7 @@ export function SideNavMenu({
   return (
     <SidebarMenu>
       {items.map((item) => {
-        const handleClick = () => {
+        const handleClick = (closeSidebar = true) => {
           const destinationAppPage = getAppPageFromNavItem({
             name: item.name,
             href: item.href,
@@ -64,7 +64,7 @@ export function SideNavMenu({
             nav_item: item.name,
             nav_href_type: getNavHrefType(item.href),
           });
-          closeMobileSidebar("left-sidebar");
+          if (closeSidebar) closeMobileSidebar("left-sidebar");
         };
         const content = (
           <>
@@ -93,7 +93,14 @@ export function SideNavMenu({
               sidebarName="left-sidebar"
             >
               {nativeNavigation ? (
-                <a href={item.href} onClick={handleClick}>
+                <a
+                  href={item.href}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleClick(false);
+                    window.location.assign(item.href);
+                  }}
+                >
                   {content}
                 </a>
               ) : (
