@@ -40,6 +40,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
 import { AutomationPreview } from "@/components/preview/AutomationPreview";
+import { DesktopRealBrief } from "@/components/preview/DesktopRealBrief";
 import { MobileChatPreview } from "@/components/mobile/MobileChatPreview";
 import { ConnectChannelDialog } from "@/components/ConnectChannelDialog";
 import { WhatsAppIcon } from "@/components/BrandIcons";
@@ -209,12 +210,16 @@ export function ChatPreview({
           className="mt-0 flex w-full flex-none overflow-visible"
           value="brief"
         >
-          <CenteredBriefOverview
-            freelancerName={freelancerName}
-            hasConnectedChannels={hasConnectedChannels}
-            onboardingComplete={onboardingComplete}
-            onConnectChannel={() => setConnectDialogOpen(true)}
-          />
+          {hasConnectedChannels ? (
+            <DesktopRealBrief freelancerName={freelancerName} />
+          ) : (
+            <CenteredBriefOverview
+              freelancerName={freelancerName}
+              hasConnectedChannels={false}
+              onboardingComplete={onboardingComplete}
+              onConnectChannel={() => setConnectDialogOpen(true)}
+            />
+          )}
         </TabsContent>
         <TabsContent
           className="mt-0 flex min-h-0 flex-1 overflow-hidden"

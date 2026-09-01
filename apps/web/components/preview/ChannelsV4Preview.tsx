@@ -875,6 +875,28 @@ export function ChannelsV4Preview() {
     return true;
   };
 
+  const sendNewMessage = async (
+    recipient: string,
+    subject: string,
+    body: string,
+  ) => {
+    const result = await sendEmailAction(emailAccountId, {
+      freescaleActivity: "message",
+      to: recipient,
+      subject: subject || "Message depuis Freescale",
+      messageHtml: textToSafeHtml(body),
+    });
+    if (result?.serverError || !result?.data) {
+      toastError({ description: "Impossible d’envoyer ce message." });
+      return false;
+    }
+    await refreshThreads();
+    toastSuccess({
+      description: `Message envoyé via ${provider === "microsoft" ? "Outlook" : "Gmail"}.`,
+    });
+    return true;
+  };
+
   const archiveMobileConversation = async (conversationId: string) => {
     const result = await archiveThreadAction(emailAccountId, {
       threadId: conversationId,
@@ -1157,15 +1179,9 @@ export function ChannelsV4Preview() {
           </Card>
 
           <NewMessageDialog
+            availableChannels={connectedChannels}
             contacts={conversations}
-            onCreate={(conversation) => {
-              setConversations((current) => [conversation, ...current]);
-              setComposeOpen(false);
-              openConversation(conversation.id);
-              toastSuccess({
-                description: `Message envoyé via ${channelName(conversation.channel)}.`,
-              });
-            }}
+            onSend={sendNewMessage}
             onOpenChange={setComposeOpen}
             open={composeOpen}
           />
@@ -3099,13 +3115,19 @@ function buildMueSuggestion(
 }
 
 function NewMessageDialog({
+  availableChannels,
   contacts,
-  onCreate,
+  onSend,
   onOpenChange,
   open,
 }: {
+  availableChannels: Channel[];
   contacts: InboxConversation[];
-  onCreate: (conversation: InboxConversation) => void;
+  onSend: (
+    recipient: string,
+    subject: string,
+    message: string,
+  ) => Promise<boolean>;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
@@ -3114,6 +3136,14 @@ function NewMessageDialog({
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const firstChannel = availableChannels[0];
+    if (firstChannel && !availableChannels.includes(channel)) {
+      setChannel(firstChannel);
+    }
+  }, [availableChannels, channel]);
 
   const suggestedContacts = useMemo(() => {
     const query = recipient.trim().toLocaleLowerCase("fr");
@@ -3149,45 +3179,19 @@ function NewMessageDialog({
     setShowSuggestions(false);
   };
 
-  const submit = () => {
+  const submit = async () => {
     const cleanRecipient = recipient.trim();
     const cleanMessage = message.trim();
     if (!cleanRecipient || !cleanMessage) return;
-    const inferredName = cleanRecipient.includes("@")
-      ? (cleanRecipient.split("@")[0] ?? cleanRecipient)
-      : cleanRecipient.replace(/^\+?[\d\s()-]+$/, "Nouveau contact");
-    const cleanName = inferredName
-      .split(/[._-]/)
-      .filter(Boolean)
-      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-      .join(" ");
-
-    onCreate({
-      id: `conversation-${crypto.randomUUID()}`,
-      name: cleanName || "Nouveau contact",
-      initials: (cleanName || "Nouveau contact")
-        .split(" ")
-        .slice(0, 2)
-        .map((part) => part.charAt(0))
-        .join("")
-        .toUpperCase(),
-      address: cleanRecipient,
-      channel,
-      contactType: "client",
-      subject: subject.trim() || "Nouvelle conversation",
-      preview: cleanMessage,
-      time: "À l’instant",
-      unread: false,
-      messages: [
-        {
-          id: `message-${crypto.randomUUID()}`,
-          author: "me",
-          body: cleanMessage,
-          time: "Aujourd’hui · À l’instant",
-        },
-      ],
-    });
-    reset();
+    setSending(true);
+    try {
+      const sent = await onSend(cleanRecipient, subject.trim(), cleanMessage);
+      if (!sent) return;
+      reset();
+      onOpenChange(false);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -3213,35 +3217,37 @@ function NewMessageDialog({
           className="space-y-4"
           onSubmit={(event) => {
             event.preventDefault();
-            submit();
+            submit().catch(() => undefined);
           }}
         >
-          <div className="space-y-1.5">
-            <label
-              className="font-medium text-sm"
-              htmlFor="new-message-channel"
-            >
-              Canal
-            </label>
-            <Select
-              onValueChange={(value) => setChannel(value as Channel)}
-              value={channel}
-            >
-              <SelectTrigger id="new-message-channel">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {channels.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    <span className="flex items-center gap-2">
-                      <ChannelIcon channel={item} size="md" />
-                      {channelName(item)}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {availableChannels.length > 1 ? (
+            <div className="space-y-1.5">
+              <label
+                className="font-medium text-sm"
+                htmlFor="new-message-channel"
+              >
+                Canal
+              </label>
+              <Select
+                onValueChange={(value) => setChannel(value as Channel)}
+                value={channel}
+              >
+                <SelectTrigger id="new-message-channel">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableChannels.map((item) => (
+                    <SelectItem key={item} value={item}>
+                      <span className="flex items-center gap-2">
+                        <ChannelIcon channel={item} size="md" />
+                        {channelName(item)}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div className="relative space-y-1.5">
             <label
@@ -3348,10 +3354,10 @@ function NewMessageDialog({
             </Button>
             <Button
               className="gap-2 rounded-[11px] border border-[#5989f0] bg-gradient-to-b from-[#2965ec] to-[#5c89f8] text-white hover:from-[#255ddd] hover:to-[#4d7ced]"
-              disabled={!recipient.trim() || !message.trim()}
+              disabled={sending || !recipient.trim() || !message.trim()}
               type="submit"
             >
-              Envoyer via {channelName(channel)}
+              {sending ? "Envoi…" : `Envoyer via ${channelName(channel)}`}
               <SendHorizontalIcon className="size-4" />
             </Button>
           </DialogFooter>
