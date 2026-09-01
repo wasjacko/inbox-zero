@@ -12,6 +12,7 @@ import {
   FilterIcon,
   FolderArchiveIcon,
   HardDriveIcon,
+  ListTodoIcon,
   MailIcon,
   MoreHorizontalIcon,
   PlusIcon,
@@ -57,6 +58,7 @@ type MobileTask = {
   urgent: boolean;
   done: boolean;
   dueDate: string;
+  sourceThreadId?: string;
 };
 
 function getTaskDates() {
@@ -174,6 +176,7 @@ export function MobileTasksPreview() {
           group,
           urgent: task.priority === "high",
           done: task.status === "done",
+          sourceThreadId: task.sourceThreadId ?? undefined,
         };
       }),
     );
@@ -532,6 +535,15 @@ export function MobileTasksPreview() {
             >
               Déplacer vers… <ChevronRightIcon className="size-4" />
             </button>
+            {selected.sourceThreadId ? (
+              <Link
+                className="mobile-touch-target flex w-full items-center justify-between rounded-2xl border px-4 text-sm"
+                href={`/channels-v4?conversation=${encodeURIComponent(selected.sourceThreadId)}`}
+              >
+                Ouvrir l’e-mail source
+                <ChevronRightIcon className="size-4" />
+              </Link>
+            ) : null}
           </div>
         ) : null}
       </MobileFullScreenDialog>
@@ -621,6 +633,7 @@ export function MobileChannelsPreview({
   loading = false,
   onArchive,
   onCompose,
+  onCreateTask,
   onMarkRead,
   onOpenConversation,
   onReply,
@@ -633,6 +646,7 @@ export function MobileChannelsPreview({
   loading?: boolean;
   onArchive?: (id: string) => Promise<boolean>;
   onCompose?: (recipient: string, message: string) => Promise<boolean>;
+  onCreateTask?: (id: string) => void;
   onMarkRead?: (id: string) => Promise<boolean>;
   onOpenConversation?: (id: string) => void;
   onReply?: (id: string, message: string) => Promise<boolean>;
@@ -947,6 +961,15 @@ export function MobileChannelsPreview({
       <MobileFullScreenDialog
         footer={
           <div className="flex gap-2">
+            <Button
+              aria-label="Créer une tâche depuis cet e-mail"
+              disabled={!selected}
+              onClick={() => selected && onCreateTask?.(selected.id)}
+              size="icon"
+              variant="outline"
+            >
+              <ListTodoIcon className="size-4" />
+            </Button>
             <Input
               aria-label="Répondre au message"
               autoCapitalize="sentences"

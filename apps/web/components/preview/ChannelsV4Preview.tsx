@@ -103,6 +103,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/utils";
+import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { useThread } from "@/hooks/useThread";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
 import {
@@ -133,6 +134,7 @@ type Folder =
   | "trash";
 type LabelTone = "blue" | "green" | "orange" | "rose" | "slate";
 type ContactType = "client" | "provider" | "collaborator" | "supplier";
+type EmailTaskPriority = "low" | "medium" | "high";
 
 type InboxLabel = {
   id: string;
@@ -568,6 +570,11 @@ export function ChannelsV4Preview() {
   const [organizationIds, setOrganizationIds] = useState<string[]>([]);
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDue, setTaskDue] = useState("");
+  const [taskPriority, setTaskPriority] = useState<EmailTaskPriority>("medium");
+  const [taskCreating, setTaskCreating] = useState(false);
   const [taskTutorialStep, setTaskTutorialStep] = useState<number | null>(
     taskTutorialRequested ? 1 : null,
   );
@@ -682,6 +689,65 @@ export function ChannelsV4Preview() {
       ),
     );
     if (taskTutorialStep === 1 && id === "sarah") setTaskTutorialStep(2);
+  };
+
+  const openTaskFromEmail = () => {
+    if (!selected) return;
+    if (taskTutorialStep === 2) {
+      setTaskTutorialStep(3);
+      return;
+    }
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setTaskTitle(`Répondre à ${selected.name} — ${selected.subject}`);
+    setTaskDue(tomorrow.toISOString().slice(0, 10));
+    setTaskPriority(selected.unread ? "high" : "medium");
+    setTaskDialogOpen(true);
+  };
+
+  const createTaskFromEmail = async () => {
+    if (!selected || !taskTitle.trim() || taskCreating) return;
+    setTaskCreating(true);
+    try {
+      const response = await fetch("/api/user/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          [EMAIL_ACCOUNT_HEADER]: emailAccountId,
+        },
+        body: JSON.stringify({
+          title: taskTitle.trim(),
+          status: "todo",
+          due: taskDue || null,
+          priority: taskPriority,
+          source: "ai",
+          assignees: [],
+          context: `E-mail de ${selected.name} : ${selected.subject}`,
+          sourceThreadId: selected.id,
+          contactName: selected.name,
+        }),
+      });
+      if (response.status === 409) {
+        toastError({
+          title: "Tâche déjà créée",
+          description: "Cette conversation possède déjà une tâche associée.",
+        });
+        return;
+      }
+      if (!response.ok) throw new Error("task_creation_failed");
+      setTaskDialogOpen(false);
+      toastSuccess({
+        title: "Tâche créée",
+        description: "La tâche est maintenant disponible dans Tâches.",
+      });
+    } catch {
+      toastError({
+        title: "Tâche non créée",
+        description: "Vérifiez votre connexion puis réessayez.",
+      });
+    } finally {
+      setTaskCreating(false);
+    }
   };
 
   const finishTaskTutorial = () => {
@@ -908,6 +974,21 @@ export function ChannelsV4Preview() {
         loading={threadsLoading}
         onArchive={archiveMobileConversation}
         onCompose={sendMobileMessage}
+        onCreateTask={(conversationId) => {
+          if (selectedId !== conversationId) setSelectedId(conversationId);
+          const conversation = conversations.find(
+            ({ id }) => id === conversationId,
+          );
+          if (!conversation) return;
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          setTaskTitle(
+            `Répondre à ${conversation.name} — ${conversation.subject}`,
+          );
+          setTaskDue(tomorrow.toISOString().slice(0, 10));
+          setTaskPriority(conversation.unread ? "high" : "medium");
+          setTaskDialogOpen(true);
+        }}
         onMarkRead={markMobileConversationRead}
         onOpenConversation={openConversation}
         onReply={sendMobileReply}
@@ -975,14 +1056,7 @@ export function ChannelsV4Preview() {
             ) : selected ? (
               <MessageReader
                 conversation={selected}
-                onCreateTask={() => {
-                  if (taskTutorialStep === 2) setTaskTutorialStep(3);
-                  else
-                    toastSuccess({
-                      description:
-                        "Mue a préparé une tâche à partir du dernier message.",
-                    });
-                }}
+                onCreateTask={openTaskFromEmail}
                 onArchive={archiveSelected}
                 onBack={() => {
                   setSelectedId("");
@@ -1263,9 +1337,131 @@ export function ChannelsV4Preview() {
             }
             step={taskTutorialStep}
           />
+          <TaskFromEmailDialog
+            creating={taskCreating}
+            due={taskDue}
+            onConfirm={createTaskFromEmail}
+            onDueChange={setTaskDue}
+            onOpenChange={setTaskDialogOpen}
+            onPriorityChange={setTaskPriority}
+            onTitleChange={setTaskTitle}
+            open={taskDialogOpen}
+            priority={taskPriority}
+            title={taskTitle}
+          />
         </PageWrapper>
       </div>
     </>
+  );
+}
+
+function TaskFromEmailDialog({
+  creating,
+  due,
+  onConfirm,
+  onDueChange,
+  onOpenChange,
+  onPriorityChange,
+  onTitleChange,
+  open,
+  priority,
+  title,
+}: {
+  creating: boolean;
+  due: string;
+  onConfirm: () => void;
+  onDueChange: (value: string) => void;
+  onOpenChange: (open: boolean) => void;
+  onPriorityChange: (value: EmailTaskPriority) => void;
+  onTitleChange: (value: string) => void;
+  open: boolean;
+  priority: EmailTaskPriority;
+  title: string;
+}) {
+  return (
+    <Dialog onOpenChange={onOpenChange} open={open}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Créer une tâche depuis cet e-mail</DialogTitle>
+          <DialogDescription>
+            Vérifiez les informations avant de l’ajouter. Rien n’est créé sans
+            votre confirmation.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label className="font-medium text-sm" htmlFor="email-task-title">
+              Titre
+            </label>
+            <Input
+              autoComplete="off"
+              id="email-task-title"
+              onChange={(event) => onTitleChange(event.target.value)}
+              value={title}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="font-medium text-sm" htmlFor="email-task-due">
+                Échéance
+              </label>
+              <Input
+                id="email-task-due"
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(event) => onDueChange(event.target.value)}
+                type="date"
+                value={due}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="font-medium text-sm"
+                htmlFor="email-task-priority"
+              >
+                Priorité
+              </label>
+              <Select
+                onValueChange={(value) =>
+                  onPriorityChange(value as EmailTaskPriority)
+                }
+                value={priority}
+              >
+                <SelectTrigger id="email-task-priority">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Faible</SelectItem>
+                  <SelectItem value="medium">Normale</SelectItem>
+                  <SelectItem value="high">Haute</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="rounded-xl border bg-muted/35 px-3 py-2.5 text-muted-foreground text-xs leading-5">
+            Seuls le titre, le contact, le sujet et le lien interne vers la
+            conversation seront associés à la tâche. Le contenu complet du
+            message n’est pas copié.
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            disabled={creating}
+            onClick={() => onOpenChange(false)}
+            variant="outline"
+          >
+            Annuler
+          </Button>
+          <Button disabled={creating || !title.trim()} onClick={onConfirm}>
+            {creating ? (
+              <LoaderCircleIcon className="size-4 animate-spin" />
+            ) : (
+              <ListTodoIcon className="size-4" />
+            )}
+            Confirmer la création
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

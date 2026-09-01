@@ -77,6 +77,7 @@ export type Task = {
   source: TaskSource;
   assignees: string[];
   context?: string;
+  sourceThreadId?: string;
   contact?: {
     name: string;
     avatarPosition: string;
@@ -377,6 +378,7 @@ export function TasksPreview() {
         source: task.source as TaskSource,
         assignees: task.assignees,
         context: task.context ?? undefined,
+        sourceThreadId: task.sourceThreadId ?? undefined,
         contact: task.contactName
           ? {
               name: task.contactName,
@@ -1798,6 +1800,21 @@ function TaskMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
+        {task.sourceThreadId ? (
+          <>
+            <DropdownMenuItem
+              onClick={() =>
+                window.location.assign(
+                  `/channels-v4?conversation=${encodeURIComponent(task.sourceThreadId ?? "")}`,
+                )
+              }
+            >
+              <MessageSquareTextIcon className="size-4" />
+              Ouvrir l’e-mail source
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuLabel>Déplacer vers</DropdownMenuLabel>
         {statuses.map((status) => (
           <DropdownMenuItem

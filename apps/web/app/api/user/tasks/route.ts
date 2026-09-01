@@ -50,6 +50,22 @@ export const GET = withEmailAccount("user/tasks", async (request) =>
 
 export const POST = withEmailAccount("user/tasks", async (request) => {
   const input = createTaskSchema.parse(await request.json());
+  if (input.sourceThreadId) {
+    const existingTask = await prisma.freescaleTask.findUnique({
+      where: {
+        emailAccountId_sourceThreadId: {
+          emailAccountId: request.auth.emailAccountId,
+          sourceThreadId: input.sourceThreadId,
+        },
+      },
+      select: { id: true },
+    });
+    if (existingTask)
+      return NextResponse.json(
+        { error: "Task already exists", taskId: existingTask.id },
+        { status: 409 },
+      );
+  }
   const task = await prisma.freescaleTask.create({
     data: {
       ...input,
