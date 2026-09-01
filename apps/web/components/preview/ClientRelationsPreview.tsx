@@ -21,6 +21,7 @@ import type { GetFreescaleActivityResponse } from "@/app/api/user/activity/route
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ import {
   type MobileRelationContact,
 } from "@/components/mobile/MobileSimplifiedPages";
 import { useAccount } from "@/providers/EmailAccountProvider";
+import { useContactPhotos } from "@/hooks/useContactPhotos";
 import { toRealChannelConversations } from "@/utils/channels/real-conversations";
 import { toRealRelations } from "@/utils/relations/real-relations";
 
@@ -333,6 +335,11 @@ export function ClientRelationsPreview() {
       ),
     [provider, realThreads, userEmail],
   );
+  const contactAddresses = useMemo(
+    () => realRelations.map(({ address }) => address),
+    [realRelations],
+  );
+  const contactPhotos = useContactPhotos(contactAddresses);
   const mobileRelations = useMemo<MobileRelationContact[]>(
     () =>
       realRelations.map((relation) => ({
@@ -345,8 +352,9 @@ export function ClientRelationsPreview() {
         time: relation.time,
         unreadCount: relation.unreadCount,
         conversationCount: relation.conversationCount,
+        avatarUrl: contactPhotos[relation.address.toLowerCase()],
       })),
-    [realRelations],
+    [contactPhotos, realRelations],
   );
   const isMueOpen = !isMobile && state.includes("mue-panel");
   const [period, setPeriod] = useState<Period>("31 derniers jours");
@@ -500,9 +508,13 @@ export function ClientRelationsPreview() {
                     type="button"
                   >
                     <span className="flex min-w-0 items-center gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted font-semibold text-xs">
-                        {relation.initials}
-                      </span>
+                      <Avatar className="size-9 shrink-0 font-semibold text-xs">
+                        <AvatarImage
+                          alt={`Photo de profil de ${relation.name}`}
+                          src={contactPhotos[relation.address.toLowerCase()]}
+                        />
+                        <AvatarFallback>{relation.initials}</AvatarFallback>
+                      </Avatar>
                       <span className="min-w-0">
                         <strong className="block truncate text-sm">
                           {relation.name}

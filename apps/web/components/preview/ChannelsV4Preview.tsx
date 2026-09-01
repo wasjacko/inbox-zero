@@ -41,8 +41,10 @@ import {
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  createContext,
   type ReactNode,
   useEffect,
+  useContext,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -57,7 +59,7 @@ import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
 import { toastError, toastSuccess } from "@/components/Toast";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -106,6 +108,7 @@ import {
 import { cn } from "@/utils";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { useThread } from "@/hooks/useThread";
+import { useContactPhotos } from "@/hooks/useContactPhotos";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
 import {
   MobileChannelsPreview,
@@ -136,6 +139,8 @@ type Folder =
 type LabelTone = "blue" | "green" | "orange" | "rose" | "slate";
 type ContactType = "client" | "provider" | "collaborator" | "supplier";
 type EmailTaskPriority = "low" | "medium" | "high";
+
+const ContactPhotosContext = createContext<Record<string, string>>({});
 
 type InboxLabel = {
   id: string;
@@ -623,6 +628,12 @@ export function ChannelsV4Preview() {
     ]);
   }, [provider, selectedThread, userEmail]);
 
+  const contactAddresses = useMemo(
+    () => conversations.map(({ address }) => address),
+    [conversations],
+  );
+  const contactPhotos = useContactPhotos(contactAddresses);
+
   useEffect(() => {
     if (taskTutorialRequested) setTaskTutorialStep((current) => current ?? 1);
   }, [taskTutorialRequested]);
@@ -683,6 +694,7 @@ export function ChannelsV4Preview() {
         channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
         unread: conversation.unread ? 1 : 0,
         time: conversation.time,
+        avatarUrl: contactPhotos[conversation.address.toLowerCase()],
         messages: conversation.messages.map((message) => ({
           id: message.id,
           author: message.author,
@@ -690,7 +702,7 @@ export function ChannelsV4Preview() {
           time: message.time,
         })),
       })),
-    [conversations],
+    [contactPhotos, conversations],
   );
 
   const openConversation = (id: string) => {
@@ -1018,7 +1030,7 @@ export function ChannelsV4Preview() {
   };
 
   return (
-    <>
+    <ContactPhotosContext.Provider value={contactPhotos}>
       <MobileChannelsPreview
         availableChannels={connectedChannels.filter(
           (channel): channel is "gmail" | "outlook" =>
@@ -1397,7 +1409,7 @@ export function ChannelsV4Preview() {
           />
         </PageWrapper>
       </div>
-    </>
+    </ContactPhotosContext.Provider>
   );
 }
 
@@ -4313,6 +4325,9 @@ function ChannelAvatar({
   conversation: InboxConversation;
   small?: boolean;
 }) {
+  const contactPhotos = useContext(ContactPhotosContext);
+  const photoUrl = contactPhotos[conversation.address.toLowerCase()];
+
   return (
     <div className="relative shrink-0 self-center">
       <Avatar className={small ? "size-8" : "size-10"}>
@@ -4332,16 +4347,16 @@ function ChannelAvatar({
           >
             <LandmarkIcon className={small ? "size-4" : "size-5"} />
           </span>
+        ) : photoUrl ? (
+          <>
+            <AvatarImage
+              alt={`Photo de profil de ${conversation.name}`}
+              src={photoUrl}
+            />
+            <AvatarFallback>{conversation.initials}</AvatarFallback>
+          </>
         ) : (
-          <span
-            aria-label={`Photo de profil de ${conversation.name}`}
-            className="size-full bg-[url('/images/avatars/freescale-contacts-grid.webp')] bg-no-repeat"
-            role="img"
-            style={{
-              backgroundPosition: profilePosition(conversation.id),
-              backgroundSize: "300% 300%",
-            }}
-          />
+          <AvatarFallback>{conversation.initials}</AvatarFallback>
         )}
       </Avatar>
       {!small ? (
@@ -4414,18 +4429,4 @@ function channelName(channel: Channel) {
     slack: "Slack",
     telegram: "Telegram",
   }[channel];
-}
-function profilePosition(id: string) {
-  return (
-    {
-      sarah: "50% 100%",
-      maya: "50% 0%",
-      alex: "100% 0%",
-      thomas: "0% 0%",
-      jon: "100% 100%",
-      lina: "100% 50%",
-      capucine: "0% 50%",
-      nora: "50% 50%",
-    }[id] ?? "0% 100%"
-  );
 }

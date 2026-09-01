@@ -31,6 +31,7 @@ import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { toastError, toastSuccess } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/utils";
@@ -615,6 +616,7 @@ export type MobileChannelConversation = {
   channel: "Gmail" | "Outlook";
   unread: number;
   time: string;
+  avatarUrl?: string;
   tag?: string;
   messages: Array<{
     id: string;
@@ -824,17 +826,25 @@ export function MobileChannelsPreview({
                 ) : null}
               </span>
             ) : null}
-            <span className="relative grid size-11 shrink-0 place-items-center rounded-full bg-muted font-semibold text-xs">
-              {thread.name
-                .split(" ")
-                .map((word) => word[0])
-                .join("")}
+            <Avatar className="relative size-11 shrink-0 font-semibold text-xs">
+              {thread.avatarUrl ? (
+                <AvatarImage
+                  alt={`Photo de profil de ${thread.name}`}
+                  src={thread.avatarUrl}
+                />
+              ) : null}
+              <AvatarFallback>
+                {thread.name
+                  .split(" ")
+                  .map((word) => word[0])
+                  .join("")}
+              </AvatarFallback>
               {thread.unread ? (
                 <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-blue-600 text-[10px] text-white ring-2 ring-background">
                   {thread.unread}
                 </span>
               ) : null}
-            </span>
+            </Avatar>
             <span className="min-w-0 flex-1">
               <span className="flex items-center justify-between gap-2">
                 <strong className="truncate text-sm">{thread.name}</strong>
@@ -1184,6 +1194,7 @@ export type MobileRelationContact = {
   time: string;
   unreadCount: number;
   conversationCount: number;
+  avatarUrl?: string;
 };
 
 export type MobileRelationActivity = {
@@ -1286,12 +1297,16 @@ export function MobileRelationsPreview({
                 onClick={() => setSelectedId(contact.id)}
                 type="button"
               >
-                <span className="relative grid size-11 shrink-0 place-items-center rounded-full bg-muted font-medium text-xs">
-                  {contact.initials}
+                <Avatar className="relative size-11 shrink-0 font-medium text-xs">
+                  <AvatarImage
+                    alt={`Photo de profil de ${contact.name}`}
+                    src={contact.avatarUrl}
+                  />
+                  <AvatarFallback>{contact.initials}</AvatarFallback>
                   {contact.unreadCount ? (
                     <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-blue-600" />
                   ) : null}
-                </span>
+                </Avatar>
                 <span className="min-w-0 flex-1">
                   <strong className="block truncate text-sm">
                     {contact.name}
@@ -1384,9 +1399,13 @@ export function MobileRelationsPreview({
         {selected ? (
           <div className="space-y-6 px-5 py-6">
             <div className="flex items-center gap-4">
-              <span className="grid size-14 shrink-0 place-items-center rounded-full bg-muted font-semibold text-sm">
-                {selected.initials}
-              </span>
+              <Avatar className="size-14 shrink-0 font-semibold text-sm">
+                <AvatarImage
+                  alt={`Photo de profil de ${selected.name}`}
+                  src={selected.avatarUrl}
+                />
+                <AvatarFallback>{selected.initials}</AvatarFallback>
+              </Avatar>
               <div className="min-w-0">
                 <h2 className="truncate font-semibold text-xl">
                   {selected.name}

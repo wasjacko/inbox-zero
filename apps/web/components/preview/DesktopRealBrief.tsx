@@ -10,6 +10,7 @@ import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "@/providers/EmailAccountProvider";
+import { useContactPhotos } from "@/hooks/useContactPhotos";
 import { toRealChannelConversations } from "@/utils/channels/real-conversations";
 import { getPreviewGreeting } from "@/utils/preview-profile";
 
@@ -33,6 +34,11 @@ export function DesktopRealBrief({
       userEmail,
     }).slice(0, 3);
   }, [data, provider, userEmail]);
+  const contactAddresses = useMemo(
+    () => conversations.map(({ address }) => address),
+    [conversations],
+  );
+  const contactPhotos = useContactPhotos(contactAddresses);
 
   if (!scanStarted) {
     return (
@@ -88,8 +94,8 @@ export function DesktopRealBrief({
             >
               <Avatar className="size-11 shrink-0">
                 <AvatarImage
-                  alt=""
-                  src={`https://unavatar.io/${encodeURIComponent(conversation.address)}`}
+                  alt={`Photo de profil de ${conversation.name}`}
+                  src={contactPhotos[conversation.address.toLowerCase()]}
                 />
                 <AvatarFallback>{conversation.initials}</AvatarFallback>
               </Avatar>

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/avatar";
 import { cn } from "@/utils";
 import { useAccount } from "@/providers/EmailAccountProvider";
+import { useContactPhotos } from "@/hooks/useContactPhotos";
 import { toRealChannelConversations } from "@/utils/channels/real-conversations";
 
 type MobileBriefChannel = "Gmail" | "Outlook" | "WhatsApp";
@@ -157,6 +158,16 @@ export function MobileChatPreview({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sentIds, setSentIds] = useState<Set<string>>(() => new Set());
 
+  const contactAddresses = useMemo(() => {
+    if (!realThreads) return [];
+    return toRealChannelConversations({
+      provider,
+      threads: realThreads.threads,
+      userEmail,
+    }).map(({ address }) => address);
+  }, [provider, realThreads, userEmail]);
+  const contactPhotos = useContactPhotos(contactAddresses);
+
   const realClients = useMemo<MobileBriefClient[]>(() => {
     if (!realThreads) return [];
     return toRealChannelConversations({
@@ -175,14 +186,14 @@ export function MobileChatPreview({
       unread: conversation.unread ? 1 : 0,
       time: conversation.time,
       avatarPosition: "50% 50%",
-      avatarUrl: `https://unavatar.io/${encodeURIComponent(conversation.address)}`,
+      avatarUrl: contactPhotos[conversation.address.toLowerCase()],
       initials: conversation.initials,
       messages: conversation.messages,
       suggestion: `Répondre à ${conversation.name} au sujet de « ${conversation.subject} »`,
       shortSuggestion: `Répondre à ${conversation.name} au sujet de « ${conversation.subject} »`,
       warmSuggestion: `Bonjour ${conversation.name}, merci pour votre message. Je reviens vers vous rapidement.`,
     }));
-  }, [provider, realThreads, userEmail]);
+  }, [contactPhotos, provider, realThreads, userEmail]);
   const clientsToDisplay = realClients.slice(0, 3);
   const unreadCount = clientsToDisplay.reduce(
     (total, client) => total + client.unread,
