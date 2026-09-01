@@ -54,36 +54,29 @@ export const POST = withEmailAccount(
       refreshToken: emailAccount.account.refresh_token,
     });
 
-    const photos: Record<string, string> = {};
-    let requiresContactsPermission = false;
+    const [savedContacts, automaticContacts] = await Promise.allSettled([
+      findSavedContactPhotos(client, normalizedEmails),
+      findOtherContactPhotos(client, normalizedEmails),
+    ]);
+    const photos: Record<string, string> = {
+      ...(savedContacts.status === "fulfilled" ? savedContacts.value : {}),
+      ...(automaticContacts.status === "fulfilled"
+        ? automaticContacts.value
+        : {}),
+    };
+    const requiresContactsPermission =
+      savedContacts.status === "rejected" ||
+      automaticContacts.status === "rejected";
 
-    try {
-      Object.assign(
-        photos,
-        await findSavedContactPhotos(client, normalizedEmails),
-      );
-    } catch (error) {
-      requiresContactsPermission = true;
+    if (savedContacts.status === "rejected") {
       request.logger.warn("Unable to load saved Google contact photos", {
-        error,
+        error: savedContacts.reason,
       });
     }
-
-    const missingEmails = new Set(
-      [...normalizedEmails].filter((email) => !photos[email]),
-    );
-    if (missingEmails.size > 0) {
-      try {
-        Object.assign(
-          photos,
-          await findOtherContactPhotos(client, missingEmails),
-        );
-      } catch (error) {
-        requiresContactsPermission = true;
-        request.logger.warn("Unable to load automatic Google contact photos", {
-          error,
-        });
-      }
+    if (automaticContacts.status === "rejected") {
+      request.logger.warn("Unable to load automatic Google contact photos", {
+        error: automaticContacts.reason,
+      });
     }
 
     return NextResponse.json<ContactPhotosResponse>({
