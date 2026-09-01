@@ -41,6 +41,16 @@ describe("betterAuthConfig login providers", () => {
       "apple",
     ]);
   });
+
+  it("keeps Google sign-in limited to identity scopes", async () => {
+    const betterAuthConfig = await loadBetterAuthConfig(["google"]);
+
+    expect(betterAuthConfig.options.socialProviders.google.scope).toEqual([
+      "openid",
+      "email",
+      "profile",
+    ]);
+  });
 });
 
 async function loadBetterAuthConfig(enabledProviders: string[]) {

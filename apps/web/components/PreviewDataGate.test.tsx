@@ -3,20 +3,28 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PreviewDataGate } from "@/components/PreviewDataGate";
-import { savePreviewConnectedChannels } from "@/utils/preview-onboarding";
 
 const navigation = vi.hoisted(() => ({ pathname: "/channels-v4" }));
+const account = vi.hoisted(() => ({
+  emailAccount: undefined as { id: string } | undefined,
+  isLoading: false,
+}));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
+}));
+
+vi.mock("@/providers/EmailAccountProvider", () => ({
+  useAccount: () => account,
 }));
 
 describe("PreviewDataGate", () => {
   afterEach(cleanup);
 
   beforeEach(() => {
-    localStorage.clear();
     navigation.pathname = "/channels-v4";
+    account.emailAccount = undefined;
+    account.isLoading = false;
   });
 
   it("does not invent channel data when nothing is connected", async () => {
@@ -33,7 +41,7 @@ describe("PreviewDataGate", () => {
   });
 
   it("reveals data pages after a channel is connected", async () => {
-    savePreviewConnectedChannels(["gmail"]);
+    account.emailAccount = { id: "gmail-account" };
 
     render(
       <PreviewDataGate>

@@ -77,6 +77,13 @@ describe("betterAuthConfig", () => {
       (betterAuthConfig as any).options.account.accountLinking.trustedProviders,
     ).toEqual(["google", "apple"]);
   });
+
+  it("allows a verified Google identity to link to an existing password user", () => {
+    expect(
+      (betterAuthConfig as any).options.account.accountLinking
+        .requireLocalEmailVerified,
+    ).toBe(false);
+  });
 });
 
 describe("handleReferralOnSignUp", () => {

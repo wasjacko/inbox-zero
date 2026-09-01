@@ -48,13 +48,15 @@ import {
   useRef,
   useState,
 } from "react";
+import useSWR from "swr";
+import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { GithubIcon, WhatsAppIcon } from "@/components/BrandIcons";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
-import { toastSuccess } from "@/components/Toast";
+import { toastError, toastSuccess } from "@/components/Toast";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,8 +103,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/utils";
+import { useThread } from "@/hooks/useThread";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
-import { MobileChannelsPreview } from "@/components/mobile/MobileSimplifiedPages";
+import {
+  MobileChannelsPreview,
+  type MobileChannelConversation,
+} from "@/components/mobile/MobileSimplifiedPages";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import {
+  toRealChannelConversation,
+  toRealChannelConversations,
+} from "@/utils/channels/real-conversations";
+import {
+  archiveThreadAction,
+  markReadThreadAction,
+  sendEmailAction,
+  trashThreadAction,
+} from "@/utils/actions/mail";
 
 type Channel = "gmail" | "outlook" | "whatsapp" | "slack" | "telegram";
 type AiMode = "manual" | "assist" | "suggest";
@@ -512,11 +529,20 @@ const channels: Channel[] = [
 export function ChannelsV4Preview() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { emailAccountId, provider, userEmail } = useAccount();
+  const {
+    data: realThreads,
+    error: threadsError,
+    isLoading: threadsLoading,
+    mutate: refreshThreads,
+  } = useSWR<ThreadsListResponse>(
+    emailAccountId ? "/api/threads?type=inbox&limit=50&view=list" : null,
+  );
   const requestedConversationId = searchParams.get("conversation");
   const taskTutorialRequested =
     searchParams.get("tutorial") === "channel-tasks";
   const setup = usePreviewSetupProgress();
-  const [conversations, setConversations] = useState(initialConversations);
+  const [conversations, setConversations] = useState<InboxConversation[]>([]);
   const [labels, setLabels] = useState(initialLabels);
   const [folder, setFolder] = useState<Folder>("all");
   const [source, setSource] = useState<Channel | "all">("all");
@@ -545,6 +571,34 @@ export function ChannelsV4Preview() {
   const [taskTutorialStep, setTaskTutorialStep] = useState<number | null>(
     taskTutorialRequested ? 1 : null,
   );
+  const { data: selectedThread, mutate: refreshSelectedThread } = useThread(
+    { id: selectedId || null },
+    { parseReplies: true },
+  );
+
+  useEffect(() => {
+    if (!realThreads) return;
+    setConversations(
+      toRealChannelConversations({
+        provider,
+        threads: realThreads.threads,
+        userEmail,
+      }),
+    );
+  }, [provider, realThreads, userEmail]);
+
+  useEffect(() => {
+    if (!selectedThread?.thread) return;
+    const detailed = toRealChannelConversation({
+      provider,
+      thread: selectedThread.thread,
+      userEmail,
+    });
+    setConversations((current) => [
+      detailed,
+      ...current.filter((conversation) => conversation.id !== detailed.id),
+    ]);
+  }, [provider, selectedThread, userEmail]);
 
   useEffect(() => {
     if (taskTutorialRequested) setTaskTutorialStep((current) => current ?? 1);
@@ -596,6 +650,26 @@ export function ChannelsV4Preview() {
     conversations.find((conversation) => conversation.id === selectedId) ??
     null;
 
+  const mobileConversations = useMemo<MobileChannelConversation[]>(
+    () =>
+      conversations.map((conversation) => ({
+        id: conversation.id,
+        name: conversation.name,
+        subject: conversation.subject,
+        preview: conversation.preview,
+        channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
+        unread: conversation.unread ? 1 : 0,
+        time: conversation.time,
+        messages: conversation.messages.map((message) => ({
+          id: message.id,
+          author: message.author,
+          body: message.body,
+          time: message.time,
+        })),
+      })),
+    [conversations],
+  );
+
   const openConversation = (id: string) => {
     setSelectedId(id);
     setReply("");
@@ -639,38 +713,208 @@ export function ChannelsV4Preview() {
     setOrganizationOpen(true);
   };
 
-  const sendReply = () => {
+  const sendReply = async () => {
     const clean = reply.trim();
     if (!selected || !clean) return;
+    const lastMessage = selectedThread?.thread.messages.at(-1);
+
+    try {
+      const result = await sendEmailAction(emailAccountId, {
+        to: selected.address,
+        subject: selected.subject,
+        messageHtml: textToSafeHtml(clean),
+        replyToEmail: lastMessage?.headers["message-id"]
+          ? {
+              threadId: selected.id,
+              headerMessageId: lastMessage.headers["message-id"],
+              messageId: lastMessage.id,
+              references: lastMessage.headers.references,
+            }
+          : undefined,
+      });
+      if (result?.serverError || !result?.data) throw new Error("send_failed");
+
+      setReply("");
+      await Promise.all([refreshSelectedThread(), refreshThreads()]);
+      toastSuccess({
+        description: `Réponse envoyée via ${channelName(selected.channel)}.`,
+      });
+    } catch {
+      toastError({
+        title: "Réponse non envoyée",
+        description: "Vérifiez la connexion Gmail puis réessayez.",
+      });
+    }
+  };
+
+  const sendMobileReply = async (conversationId: string, body: string) => {
+    const conversation = conversations.find(({ id }) => id === conversationId);
+    if (!conversation || selectedId !== conversationId) return false;
+    const lastMessage = selectedThread?.thread.messages.at(-1);
+    const result = await sendEmailAction(emailAccountId, {
+      to: conversation.address,
+      subject: conversation.subject,
+      messageHtml: textToSafeHtml(body),
+      replyToEmail: lastMessage?.headers["message-id"]
+        ? {
+            threadId: conversation.id,
+            headerMessageId: lastMessage.headers["message-id"],
+            messageId: lastMessage.id,
+            references: lastMessage.headers.references,
+          }
+        : undefined,
+    });
+    if (result?.serverError || !result?.data) {
+      toastError({ description: "Impossible d’envoyer cette réponse." });
+      return false;
+    }
+    await Promise.all([refreshSelectedThread(), refreshThreads()]);
+    toastSuccess({ description: "Réponse envoyée via Gmail." });
+    return true;
+  };
+
+  const sendMobileMessage = async (recipient: string, body: string) => {
+    const result = await sendEmailAction(emailAccountId, {
+      to: recipient,
+      subject: "Message depuis Freescale",
+      messageHtml: textToSafeHtml(body),
+    });
+    if (result?.serverError || !result?.data) {
+      toastError({ description: "Impossible d’envoyer ce message." });
+      return false;
+    }
+    await refreshThreads();
+    toastSuccess({ description: "Message envoyé via Gmail." });
+    return true;
+  };
+
+  const archiveMobileConversation = async (conversationId: string) => {
+    const result = await archiveThreadAction(emailAccountId, {
+      threadId: conversationId,
+    });
+    if (result?.serverError) {
+      toastError({ description: "Impossible d’archiver cette conversation." });
+      return false;
+    }
+    setSelectedId("");
+    await refreshThreads();
+    toastSuccess({ description: "Conversation archivée dans Gmail." });
+    return true;
+  };
+
+  const trashMobileConversation = async (conversationId: string) => {
+    const result = await trashThreadAction(emailAccountId, {
+      threadId: conversationId,
+    });
+    if (result?.serverError) {
+      toastError({
+        description: "Impossible de supprimer cette conversation.",
+      });
+      return false;
+    }
+    setSelectedId("");
+    await refreshThreads();
+    toastSuccess({
+      description: "Conversation placée dans la corbeille Gmail.",
+    });
+    return true;
+  };
+
+  const markMobileConversationRead = async (conversationId: string) => {
+    const result = await markReadThreadAction(emailAccountId, {
+      threadId: conversationId,
+      read: true,
+    });
+    if (result?.serverError) {
+      toastError({
+        description: "Impossible de marquer cette conversation comme lue.",
+      });
+      return false;
+    }
     setConversations((current) =>
       current.map((conversation) =>
-        conversation.id === selected.id
-          ? {
-              ...conversation,
-              preview: clean,
-              time: "À l’instant",
-              messages: [
-                ...conversation.messages,
-                {
-                  id: crypto.randomUUID(),
-                  author: "me",
-                  body: clean,
-                  time: "À l’instant",
-                },
-              ],
-            }
+        conversation.id === conversationId
+          ? { ...conversation, unread: false }
           : conversation,
       ),
     );
-    setReply("");
+    await refreshThreads();
+    return true;
+  };
+
+  const archiveSelected = async () => {
+    if (!selected) return;
+    const result = await archiveThreadAction(emailAccountId, {
+      threadId: selected.id,
+    });
+    if (result?.serverError) {
+      toastError({ description: "Impossible d’archiver cette conversation." });
+      return;
+    }
+    setSelectedId("");
+    await refreshThreads();
+    toastSuccess({ description: "Conversation archivée dans Gmail." });
+  };
+
+  const trashSelected = async () => {
+    if (!selected) return;
+    const result = await trashThreadAction(emailAccountId, {
+      threadId: selected.id,
+    });
+    if (result?.serverError) {
+      toastError({
+        description: "Impossible de supprimer cette conversation.",
+      });
+      return;
+    }
+    setSelectedId("");
+    await refreshThreads();
     toastSuccess({
-      description: `Réponse envoyée via ${channelName(selected.channel)}.`,
+      description: "Conversation déplacée dans la corbeille Gmail.",
+    });
+  };
+
+  const toggleSelectedUnread = async () => {
+    if (!selected) return;
+    const read = selected.unread;
+    const result = await markReadThreadAction(emailAccountId, {
+      threadId: selected.id,
+      read,
+    });
+    if (result?.serverError) {
+      toastError({ description: "Impossible de modifier l’état de lecture." });
+      return;
+    }
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === selected.id
+          ? { ...conversation, unread: !read }
+          : conversation,
+      ),
+    );
+    await refreshThreads();
+    toastSuccess({
+      description: read
+        ? "Conversation marquée comme lue dans Gmail."
+        : "Conversation marquée comme non lue dans Gmail.",
     });
   };
 
   return (
     <>
       <MobileChannelsPreview
+        conversations={mobileConversations}
+        error={Boolean(threadsError)}
+        loading={threadsLoading}
+        onArchive={archiveMobileConversation}
+        onCompose={sendMobileMessage}
+        onMarkRead={markMobileConversationRead}
+        onOpenConversation={openConversation}
+        onReply={sendMobileReply}
+        onRetry={async () => {
+          await refreshThreads();
+        }}
+        onTrash={trashMobileConversation}
         requestedConversationId={requestedConversationId}
       />
       <div className="hidden lg:block">
@@ -702,7 +946,33 @@ export function ChannelsV4Preview() {
           </div>
 
           <Card className="mt-4 flex min-h-0 flex-1 overflow-hidden shadow-sm">
-            {selected ? (
+            {threadsLoading ? (
+              <div
+                className="flex flex-1 items-center justify-center text-muted-foreground text-sm"
+                role="status"
+              >
+                <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                Synchronisation avec Gmail…
+              </div>
+            ) : threadsError ? (
+              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                <p className="font-medium text-sm">
+                  Gmail n’a pas pu être synchronisé
+                </p>
+                <p className="mt-1 max-w-sm text-muted-foreground text-xs leading-5">
+                  Vérifiez que le canal possède toujours les autorisations
+                  Gmail, puis relancez la synchronisation.
+                </p>
+                <Button
+                  className="mt-4"
+                  onClick={() => refreshThreads()}
+                  size="sm"
+                  variant="outline"
+                >
+                  Réessayer
+                </Button>
+              </div>
+            ) : selected ? (
               <MessageReader
                 conversation={selected}
                 onCreateTask={() => {
@@ -713,17 +983,7 @@ export function ChannelsV4Preview() {
                         "Mue a préparé une tâche à partir du dernier message.",
                     });
                 }}
-                onArchive={() => {
-                  if (!selected) return;
-                  setConversations((current) =>
-                    current.map((conversation) =>
-                      conversation.id === selected.id
-                        ? { ...conversation, archived: true }
-                        : conversation,
-                    ),
-                  );
-                  toastSuccess({ description: "Conversation archivée." });
-                }}
+                onArchive={archiveSelected}
                 onBack={() => {
                   setSelectedId("");
                   setReply("");
@@ -757,19 +1017,7 @@ export function ChannelsV4Preview() {
                   });
                 }}
                 onSendReply={sendReply}
-                onTrash={() => {
-                  if (!selected) return;
-                  setConversations((current) =>
-                    current.map((conversation) =>
-                      conversation.id === selected.id
-                        ? { ...conversation, archived: false, trashed: true }
-                        : conversation,
-                    ),
-                  );
-                  toastSuccess({
-                    description: "Conversation déplacée dans Corbeille.",
-                  });
-                }}
+                onTrash={trashSelected}
                 onToggleStar={() => {
                   if (!selected) return;
                   setConversations((current) =>
@@ -780,21 +1028,7 @@ export function ChannelsV4Preview() {
                     ),
                   );
                 }}
-                onToggleUnread={() => {
-                  if (!selected) return;
-                  setConversations((current) =>
-                    current.map((conversation) =>
-                      conversation.id === selected.id
-                        ? { ...conversation, unread: !conversation.unread }
-                        : conversation,
-                    ),
-                  );
-                  toastSuccess({
-                    description: selected.unread
-                      ? "Conversation marquée comme lue."
-                      : "Conversation marquée comme non lue.",
-                  });
-                }}
+                onToggleUnread={toggleSelectedUnread}
                 reply={reply}
                 taskTutorialStep={taskTutorialStep}
               />
@@ -2599,6 +2833,16 @@ function threadDateLabel(time: string) {
 
 function threadTimeLabel(time: string) {
   return time.includes("·") ? (time.split("·").at(-1)?.trim() ?? time) : time;
+}
+
+function textToSafeHtml(text: string) {
+  const escaped = text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+  return `<p>${escaped.replaceAll("\n", "<br>")}</p>`;
 }
 
 function buildMueSuggestion(

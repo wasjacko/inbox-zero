@@ -4,7 +4,7 @@ import { InboxIcon, LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
+import { useAccount } from "@/providers/EmailAccountProvider";
 
 const routesAvailableWithoutConnections = [
   "/onboarding",
@@ -72,14 +72,14 @@ const emptyStateCopy = [
 
 export function PreviewDataGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const connectedChannels = usePreviewConnectedChannels();
+  const { emailAccount, isLoading } = useAccount();
   const routeIsAvailable = routesAvailableWithoutConnections.some((path) =>
     pathname.startsWith(path),
   );
 
   if (routeIsAvailable) return children;
 
-  if (connectedChannels === null) {
+  if (isLoading) {
     return (
       <div
         aria-label="Chargement des connexions"
@@ -89,7 +89,7 @@ export function PreviewDataGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (connectedChannels.length > 0) return children;
+  if (emailAccount) return children;
 
   const copy = emptyStateCopy.find(({ paths }) =>
     paths.some((path) => pathname === path || pathname.startsWith(`${path}/`)),

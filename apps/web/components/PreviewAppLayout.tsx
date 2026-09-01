@@ -2,7 +2,8 @@ import { Inter } from "next/font/google";
 import { PreviewOnboardingGate } from "@/components/PreviewOnboardingGate";
 import { PreviewDataGate } from "@/components/PreviewDataGate";
 import { SideNavWithTopNav } from "@/components/SideNavWithTopNav";
-import { EmailAccountPreviewProvider } from "@/providers/EmailAccountProvider";
+import { EmailAccountProvider } from "@/providers/EmailAccountProvider";
+import { SWRProvider } from "@/providers/SWRProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -14,14 +15,16 @@ const inter = Inter({
 
 export function PreviewAppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <EmailAccountPreviewProvider>
-      <PreviewOnboardingGate>
-        <div className={`${inter.variable} min-h-svh font-inter`}>
-          <SideNavWithTopNav defaultOpen previewMode>
-            <PreviewDataGate>{children}</PreviewDataGate>
-          </SideNavWithTopNav>
-        </div>
-      </PreviewOnboardingGate>
-    </EmailAccountPreviewProvider>
+    <EmailAccountProvider>
+      <SWRProvider>
+        <PreviewOnboardingGate>
+          <div className={`${inter.variable} min-h-svh font-inter`}>
+            <SideNavWithTopNav defaultOpen previewMode>
+              <PreviewDataGate>{children}</PreviewDataGate>
+            </SideNavWithTopNav>
+          </div>
+        </PreviewOnboardingGate>
+      </SWRProvider>
+    </EmailAccountProvider>
   );
 }

@@ -85,10 +85,6 @@ import {
   PREVIEW_WORKSPACE_NAME_KEY,
 } from "@/utils/preview-workspace";
 import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
-import {
-  getPreviewConnectedChannels,
-  savePreviewConnectedChannels,
-} from "@/utils/preview-onboarding";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { redirectToSafeUrl } from "@/utils/redirect";
 import { toastError } from "@/components/Toast";
@@ -2655,6 +2651,7 @@ function PreviewCommandCenter() {
 }
 
 function ConnectedChannels() {
+  const accountChannels = usePreviewConnectedChannels();
   const [connected, setConnected] = useState<ChannelId[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<ChannelId | null>(null);
@@ -2662,12 +2659,13 @@ function ConnectedChannels() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
+    if (!accountChannels) return;
     setConnected(
-      getPreviewConnectedChannels(localStorage).filter((id): id is ChannelId =>
+      accountChannels.filter((id): id is ChannelId =>
         channelIds.includes(id as ChannelId),
       ),
     );
-  }, []);
+  }, [accountChannels]);
 
   const visibleConnected = connected.slice(0, 4);
   const hiddenConnectedCount = connected.length - visibleConnected.length;
@@ -2703,17 +2701,12 @@ function ConnectedChannels() {
       return;
     }
 
-    window.setTimeout(() => {
-      setConnected((current) => {
-        const next = current.includes(selected)
-          ? current
-          : [...current, selected];
-        savePreviewConnectedChannels(next);
-        return next;
-      });
-      setIsConnecting(false);
-      setStep("success");
-    }, 650);
+    toastError({
+      title: `${selectedChannel?.name ?? "Ce canal"} n’est pas encore disponible`,
+      description:
+        "Seuls Gmail et Outlook peuvent être réellement connectés pour le moment.",
+    });
+    setIsConnecting(false);
   };
 
   return (
@@ -2871,7 +2864,7 @@ function ConnectedChannels() {
                 {selectedChannel.id === "gmail" ||
                 selectedChannel.id === "outlook"
                   ? `Vous serez redirigé vers ${selectedChannel.name} pour autoriser la connexion de votre compte.`
-                  : "Cette intégration est encore en démonstration. Aucun compte externe ni message réel ne sera utilisé."}
+                  : "Cette intégration sera disponible lorsqu’elle pourra synchroniser de vraies données."}
               </div>
             </div>
 

@@ -1,28 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  getPreviewConnectedChannels,
-  PREVIEW_CONNECTED_CHANNELS_EVENT,
-} from "@/utils/preview-onboarding";
+import { useAccount } from "@/providers/EmailAccountProvider";
 
 export function usePreviewConnectedChannels() {
-  const [connectedChannels, setConnectedChannels] = useState<string[] | null>(
-    null,
-  );
+  const { emailAccount, isLoading, provider } = useAccount();
 
-  useEffect(() => {
-    setConnectedChannels(getPreviewConnectedChannels(window.localStorage));
-
-    const handleChange = (event: Event) =>
-      setConnectedChannels((event as CustomEvent<string[]>).detail);
-    window.addEventListener(PREVIEW_CONNECTED_CHANNELS_EVENT, handleChange);
-    return () =>
-      window.removeEventListener(
-        PREVIEW_CONNECTED_CHANNELS_EVENT,
-        handleChange,
-      );
-  }, []);
-
-  return connectedChannels;
+  if (isLoading) return null;
+  if (!emailAccount) return [];
+  if (provider === "google") return ["gmail"];
+  if (provider === "microsoft") return ["outlook"];
+  return [];
 }

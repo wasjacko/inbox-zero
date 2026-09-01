@@ -81,7 +81,9 @@ const googleSocialProvider =
     ? {
         clientId: env.GOOGLE_CLIENT_ID,
         clientSecret: env.GOOGLE_CLIENT_SECRET,
-        scope: [...GMAIL_SCOPES],
+        // Signing in should only identify the user. Gmail permissions are
+        // requested later, when the user explicitly connects a Gmail channel.
+        scope: ["openid", "email", "profile"],
         accessType: "offline" as const,
         prompt: "select_account consent" as const,
         disableIdTokenSignIn: true,
@@ -284,6 +286,11 @@ export const betterAuthConfig = betterAuth({
       // Microsoft Entra email claims can be mutable/unverified, so Microsoft
       // must not implicitly link users by email during social sign-in.
       trustedProviders: ["google", "apple"],
+      // A verified identity from a trusted provider may safely attach to an
+      // existing password account with the same email address. Otherwise,
+      // password-created users without a separate email-verification step get
+      // stuck on `account_not_linked` when they first choose Google sign-in.
+      requireLocalEmailVerified: false,
     },
   },
   verification: {

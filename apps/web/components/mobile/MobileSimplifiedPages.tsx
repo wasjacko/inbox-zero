@@ -18,7 +18,7 @@ import {
   SearchIcon,
   SendHorizontalIcon,
   Settings2Icon,
-  TagIcon,
+  type TagIcon,
   Trash2Icon,
   UserRoundIcon,
   ZapIcon,
@@ -514,56 +514,50 @@ export function MobileTasksPreview() {
   );
 }
 
-const mobileThreads = [
-  {
-    id: "sarah",
-    name: "Sarah Lemoine",
-    subject: "Retours sur la page d’accueil",
-    preview: "Peut-on rendre l’en-tête plus apaisé ?",
-    channel: "WhatsApp",
-    unread: 3,
-    time: "12 min",
-    tag: "Relance",
-  },
-  {
-    id: "theo",
-    name: "Théo Manili",
-    subject: "Planning d’intégration",
-    preview: "Peux-tu me confirmer les prochaines étapes ?",
-    channel: "Gmail",
-    unread: 2,
-    time: "24 min",
-    tag: "Urgent",
-  },
-  {
-    id: "maya",
-    name: "Maya Chen",
-    subject: "Facture F-2048",
-    preview: "Je reviens vers toi dès que le règlement est programmé.",
-    channel: "Outlook",
-    unread: 0,
-    time: "Hier",
-    tag: "Finance",
-  },
-  {
-    id: "capucine",
-    name: "Capucine Roy",
-    subject: "Brief projet mis à jour",
-    preview: "Voici le brief mis à jour avec les retours de l’atelier.",
-    channel: "Gmail",
-    unread: 0,
-    time: "Mar",
-    tag: "Identité de marque",
-  },
-] as const;
+export type MobileChannelConversation = {
+  id: string;
+  name: string;
+  subject: string;
+  preview: string;
+  channel: "Gmail" | "Outlook";
+  unread: number;
+  time: string;
+  tag?: string;
+  messages: Array<{
+    id: string;
+    author: "me" | "contact";
+    body: string;
+    time: string;
+  }>;
+};
 
 export function MobileChannelsPreview({
+  conversations = [],
+  error = false,
+  loading = false,
+  onArchive,
+  onCompose,
+  onMarkRead,
+  onOpenConversation,
+  onReply,
+  onRetry,
+  onTrash,
   requestedConversationId,
 }: {
+  conversations?: MobileChannelConversation[];
+  error?: boolean;
+  loading?: boolean;
+  onArchive?: (id: string) => Promise<boolean>;
+  onCompose?: (recipient: string, message: string) => Promise<boolean>;
+  onMarkRead?: (id: string) => Promise<boolean>;
+  onOpenConversation?: (id: string) => void;
+  onReply?: (id: string, message: string) => Promise<boolean>;
+  onRetry?: () => void;
+  onTrash?: (id: string) => Promise<boolean>;
   requestedConversationId?: string | null;
 } = {}) {
   const [selectedId, setSelectedId] = useState<string | null>(() =>
-    mobileThreads.some(({ id }) => id === requestedConversationId)
+    conversations.some(({ id }) => id === requestedConversationId)
       ? (requestedConversationId ?? null)
       : null,
   );
@@ -581,26 +575,29 @@ export function MobileChannelsPreview({
   );
   const [threadTags, setThreadTags] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(
-      mobileThreads.map((thread) => [thread.id, [thread.tag]]),
+      conversations.map((thread) => [
+        thread.id,
+        thread.tag ? [thread.tag] : [],
+      ]),
     ),
   );
   const [draft, setDraft] = useState("");
   const [newRecipient, setNewRecipient] = useState("");
   const [newMessage, setNewMessage] = useState("");
-  const selected = mobileThreads.find(({ id }) => id === selectedId) ?? null;
+  const selected = conversations.find(({ id }) => id === selectedId) ?? null;
 
   useEffect(() => {
     if (
       requestedConversationId &&
-      mobileThreads.some(({ id }) => id === requestedConversationId)
+      conversations.some(({ id }) => id === requestedConversationId)
     ) {
       setSelectedId(requestedConversationId);
     }
-  }, [requestedConversationId]);
+  }, [conversations, requestedConversationId]);
 
   const visible = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return mobileThreads.filter((thread) => {
+    return conversations.filter((thread) => {
       const matchesSource = source === "Tous" || thread.channel === source;
       const matchesQuery =
         !normalizedQuery ||
@@ -608,11 +605,10 @@ export function MobileChannelsPreview({
           .toLowerCase()
           .includes(normalizedQuery);
       const matchesUnread = !activeFilters.has("Non lus") || thread.unread > 0;
-      const matchesPriority =
-        !activeFilters.has("Prioritaires") || thread.tag === "Urgent";
+      const matchesPriority = !activeFilters.has("Prioritaires");
       return matchesSource && matchesQuery && matchesUnread && matchesPriority;
     });
-  }, [activeFilters, query, source]);
+  }, [activeFilters, conversations, query, source]);
 
   const toggleThreadSelection = (id: string) => {
     setSelectedThreads((current) => {
@@ -628,10 +624,12 @@ export function MobileChannelsPreview({
     setSelectionMode(false);
   };
 
-  const sendQuickReply = () => {
+  const sendQuickReply = async () => {
     if (!draft.trim()) return;
+    if (!selected || !onReply) return;
+    const sent = await onReply(selected.id, draft.trim());
+    if (!sent) return;
     setDraft("");
-    toastSuccess({ description: "Réponse envoyée." });
   };
 
   return (
@@ -703,7 +701,10 @@ export function MobileChannelsPreview({
             key={thread.id}
             onClick={() => {
               if (selectionMode) toggleThreadSelection(thread.id);
-              else setSelectedId(thread.id);
+              else {
+                setSelectedId(thread.id);
+                onOpenConversation?.(thread.id);
+              }
             }}
             type="button"
           >
@@ -745,9 +746,11 @@ export function MobileChannelsPreview({
                 <ChannelLogo channel={thread.channel} />{" "}
                 <span className="truncate">{thread.preview}</span>
               </span>
-              <span className="mt-1.5 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px]">
-                {(threadTags[thread.id] ?? [thread.tag])[0]}
-              </span>
+              {(threadTags[thread.id]?.length ?? 0) > 0 ? (
+                <span className="mt-1.5 inline-flex rounded-full bg-muted px-2 py-0.5 text-[10px]">
+                  {threadTags[thread.id]?.[0]}
+                </span>
+              ) : null}
               {(threadTags[thread.id]?.length ?? 0) > 1 ? (
                 <span className="ml-1 text-muted-foreground text-[10px]">
                   +{(threadTags[thread.id]?.length ?? 1) - 1}
@@ -756,7 +759,25 @@ export function MobileChannelsPreview({
             </span>
           </button>
         ))}
-        {!visible.length ? (
+        {loading ? (
+          <div className="px-5 py-10 text-center text-muted-foreground text-sm">
+            Chargement de vos messages…
+          </div>
+        ) : null}
+        {error ? (
+          <div className="px-5 py-10 text-center">
+            <p className="font-medium text-sm">Messages indisponibles</p>
+            <Button
+              className="mt-3"
+              onClick={onRetry}
+              size="sm"
+              variant="outline"
+            >
+              Réessayer
+            </Button>
+          </div>
+        ) : null}
+        {!loading && !error && !visible.length ? (
           <div className="px-5 py-10 text-center">
             <SearchIcon className="mx-auto size-5 text-muted-foreground" />
             <p className="mt-3 font-medium text-sm">Aucun échange trouvé</p>
@@ -779,19 +800,18 @@ export function MobileChannelsPreview({
       ) : null}
 
       {selectionMode && selectedThreads.size ? (
-        <div className="fixed inset-x-3 bottom-[calc(var(--mobile-bottombar-height)+var(--mobile-safe-bottom)+.75rem)] z-30 grid grid-cols-3 rounded-2xl border bg-background p-2 shadow-xl lg:hidden max-[239px]:grid-cols-1">
+        <div className="fixed inset-x-3 bottom-[calc(var(--mobile-bottombar-height)+var(--mobile-safe-bottom)+.75rem)] z-30 grid grid-cols-2 rounded-2xl border bg-background p-2 shadow-xl lg:hidden max-[239px]:grid-cols-1">
           {[
             [FolderArchiveIcon, "Archiver"],
             [MailIcon, "Marquer lu"],
-            [TagIcon, "Tags"],
           ].map(([Icon, label]) => (
             <button
               className="mobile-touch-target flex flex-col items-center justify-center gap-1 rounded-xl text-xs active:bg-muted"
               key={label as string}
-              onClick={() => {
-                toastSuccess({
-                  description: `${selectedThreads.size} conversation${selectedThreads.size > 1 ? "s" : ""} mise${selectedThreads.size > 1 ? "s" : ""} à jour.`,
-                });
+              onClick={async () => {
+                const action = label === "Archiver" ? onArchive : onMarkRead;
+                if (!action) return;
+                await Promise.all([...selectedThreads].map((id) => action(id)));
                 closeSelection();
               }}
               type="button"
@@ -892,12 +912,20 @@ export function MobileChannelsPreview({
               </button>
             </div>
             <div className="flex-1 space-y-3 px-4 py-6">
-              <div className="max-w-[84%] rounded-2xl rounded-bl-md bg-background p-3 text-sm shadow-sm">
-                Bonjour, {selected.preview}
-              </div>
-              <div className="ml-auto max-w-[84%] rounded-2xl rounded-br-md bg-slate-900 p-3 text-sm text-white">
-                Bien reçu, je vérifie et je reviens vers vous.
-              </div>
+              {selected.messages.map((message) => (
+                <div
+                  className={cn(
+                    "max-w-[84%] rounded-2xl p-3 text-sm shadow-sm",
+                    message.author === "me"
+                      ? "ml-auto rounded-br-md bg-slate-900 text-white"
+                      : "rounded-bl-md bg-background",
+                  )}
+                  key={message.id}
+                >
+                  <p className="whitespace-pre-wrap">{message.body}</p>
+                  <p className="mt-1 text-[10px] opacity-60">{message.time}</p>
+                </div>
+              ))}
             </div>
           </div>
         ) : null}
@@ -947,8 +975,23 @@ export function MobileChannelsPreview({
             </div>
           </div>
           <div className="overflow-hidden rounded-2xl border">
-            <MobileOption icon={FolderArchiveIcon} label="Archiver" />
-            <MobileOption icon={Trash2Icon} label="Supprimer" destructive />
+            <MobileOption
+              icon={FolderArchiveIcon}
+              label="Archiver"
+              onClick={async () => {
+                if (!selected || !onArchive) return;
+                if (await onArchive(selected.id)) setSelectedId(null);
+              }}
+            />
+            <MobileOption
+              destructive
+              icon={Trash2Icon}
+              label="Supprimer"
+              onClick={async () => {
+                if (!selected || !onTrash) return;
+                if (await onTrash(selected.id)) setSelectedId(null);
+              }}
+            />
           </div>
         </div>
       </MobileSheet>
@@ -957,11 +1000,16 @@ export function MobileChannelsPreview({
           <Button
             className="w-full"
             disabled={!newRecipient.trim() || !newMessage.trim()}
-            onClick={() => {
+            onClick={async () => {
+              if (!onCompose) return;
+              const sent = await onCompose(
+                newRecipient.trim(),
+                newMessage.trim(),
+              );
+              if (!sent) return;
               setComposeOpen(false);
               setNewRecipient("");
               setNewMessage("");
-              toastSuccess({ description: "Message envoyé." });
             }}
           >
             <SendHorizontalIcon className="size-4" /> Envoyer
@@ -2040,11 +2088,13 @@ function MetricCard({
 function MobileOption({
   icon: Icon,
   label,
+  onClick,
   value,
   destructive = false,
 }: {
   icon: typeof TagIcon;
   label: string;
+  onClick?: () => void | Promise<void>;
   value?: string;
   destructive?: boolean;
 }) {
@@ -2054,6 +2104,7 @@ function MobileOption({
         "mobile-touch-target flex min-h-[58px] w-full items-center gap-3 border-b px-3 text-left text-sm last:border-b-0",
         destructive && "text-destructive",
       )}
+      onClick={onClick}
       type="button"
     >
       <Icon className="size-4" />
