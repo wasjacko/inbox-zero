@@ -9,7 +9,6 @@ import {
   SendHorizontalIcon,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import { WhatsAppIcon } from "@/components/BrandIcons";
@@ -127,10 +126,12 @@ export function MobileChatPreview({
   freelancerName,
   hasConnectedChannels,
   onboardingComplete,
+  onConnectChannel,
 }: {
   freelancerName: string;
   hasConnectedChannels: boolean;
   onboardingComplete: boolean;
+  onConnectChannel: () => void;
 }) {
   const reducedMotion = useReducedMotion();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -168,10 +169,10 @@ export function MobileChatPreview({
             retrouver vos échanges importants ici.
           </p>
           <Button
-            asChild
             className="mt-6 min-h-11 rounded-xl bg-blue-600 px-5 hover:bg-blue-700"
+            onClick={onConnectChannel}
           >
-            <Link href="/onboarding">Connecter un canal</Link>
+            Connecter un canal
           </Button>
         </section>
       </div>

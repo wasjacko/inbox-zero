@@ -41,6 +41,7 @@ import {
 import { Response } from "@/components/ai-elements/response";
 import { AutomationPreview } from "@/components/preview/AutomationPreview";
 import { MobileChatPreview } from "@/components/mobile/MobileChatPreview";
+import { ConnectChannelDialog } from "@/components/ConnectChannelDialog";
 import { WhatsAppIcon } from "@/components/BrandIcons";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
@@ -93,6 +94,7 @@ export function ChatPreview({
   const [input, setInput] = useState("");
   const [freelancerName, setFreelancerName] = useState("");
   const [hasConnectedChannels, setHasConnectedChannels] = useState(false);
+  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [activeView, setActiveView] = useState<ChatView>(initialView);
 
   const changeActiveView = (view: string) => {
@@ -153,6 +155,7 @@ export function ChatPreview({
         freelancerName={freelancerName}
         hasConnectedChannels={hasConnectedChannels}
         onboardingComplete={onboardingComplete}
+        onConnectChannel={() => setConnectDialogOpen(true)}
       />
       <Tabs
         className="relative isolate hidden h-[calc(100svh-4rem)] min-h-0 w-full flex-none flex-col overflow-x-hidden overflow-y-auto bg-background lg:flex"
@@ -231,6 +234,7 @@ export function ChatPreview({
             freelancerName={freelancerName}
             hasConnectedChannels={hasConnectedChannels}
             onboardingComplete={onboardingComplete}
+            onConnectChannel={() => setConnectDialogOpen(true)}
           />
         </TabsContent>
         <TabsContent
@@ -252,6 +256,10 @@ export function ChatPreview({
           <AutomationPreview embedded />
         </TabsContent>
       </Tabs>
+      <ConnectChannelDialog
+        onOpenChange={setConnectDialogOpen}
+        open={connectDialogOpen}
+      />
     </>
   );
 }
@@ -556,10 +564,12 @@ function CenteredBriefOverview({
   freelancerName,
   hasConnectedChannels,
   onboardingComplete,
+  onConnectChannel,
 }: {
   freelancerName: string;
   hasConnectedChannels: boolean;
   onboardingComplete: boolean;
+  onConnectChannel: () => void;
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [readConversationIds, setReadConversationIds] = useState<Set<string>>(
@@ -590,7 +600,12 @@ function CenteredBriefOverview({
   }, [refreshing]);
 
   if (!hasConnectedChannels) {
-    return <DisconnectedBriefState greeting={greeting} />;
+    return (
+      <DisconnectedBriefState
+        greeting={greeting}
+        onConnectChannel={onConnectChannel}
+      />
+    );
   }
 
   return (
@@ -961,7 +976,13 @@ function CenteredBriefOverview({
   );
 }
 
-function DisconnectedBriefState({ greeting }: { greeting: string }) {
+function DisconnectedBriefState({
+  greeting,
+  onConnectChannel,
+}: {
+  greeting: string;
+  onConnectChannel: () => void;
+}) {
   return (
     <div className="flex min-h-[calc(100svh-8rem)] w-full items-center justify-center px-6 py-16">
       <section className="w-full max-w-md text-center">
@@ -975,10 +996,10 @@ function DisconnectedBriefState({ greeting }: { greeting: string }) {
           faire ressortir les échanges importants.
         </p>
         <Button
-          asChild
           className="mt-6 rounded-xl bg-blue-600 hover:bg-blue-700"
+          onClick={onConnectChannel}
         >
-          <Link href="/onboarding">Connecter un canal</Link>
+          Connecter un canal
         </Button>
       </section>
     </div>
