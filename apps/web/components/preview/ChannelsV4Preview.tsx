@@ -4366,8 +4366,13 @@ function ChannelAvatar({
   small?: boolean;
 }) {
   const contactPhotos = useContext(ContactPhotosContext);
+  const senderDomain = conversation.address.split("@").at(1);
   const photoUrl =
-    contactPhotos[conversation.address.toLowerCase()] ?? conversation.avatarUrl;
+    contactPhotos[conversation.address.toLowerCase()] ??
+    conversation.avatarUrl ??
+    (senderDomain
+      ? `https://icons.duckduckgo.com/ip3/${encodeURIComponent(senderDomain)}.ico`
+      : undefined);
 
   return (
     <div className="relative shrink-0 self-center">
