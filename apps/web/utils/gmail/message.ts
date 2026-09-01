@@ -110,11 +110,13 @@ export async function getMessagesBatch({
   accessToken,
   retryCount = 0,
   logger,
+  format,
 }: {
   messageIds: string[];
   accessToken: string;
   retryCount?: number;
   logger: Logger;
+  format?: "metadata";
 }): Promise<ParsedMessage[]> {
   if (messageIds.length > 100) throw new Error("Too many messages. Max 100");
 
@@ -125,7 +127,28 @@ export async function getMessagesBatch({
     parse: (message) => parseMessage(message),
     retryCount,
     logger,
+    queryString:
+      format === "metadata" ? getMessageMetadataQueryString() : undefined,
   });
+}
+
+function getMessageMetadataQueryString() {
+  const searchParams = new URLSearchParams({ format: "metadata" });
+  for (const header of [
+    "From",
+    "To",
+    "Cc",
+    "Bcc",
+    "Subject",
+    "Date",
+    "Message-ID",
+    "In-Reply-To",
+    "References",
+    "Reply-To",
+  ]) {
+    searchParams.append("metadataHeaders", header);
+  }
+  return searchParams.toString();
 }
 
 async function findPreviousEmailsWithSender(
