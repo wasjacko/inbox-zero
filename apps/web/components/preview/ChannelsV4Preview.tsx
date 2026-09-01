@@ -536,6 +536,37 @@ const channels: Channel[] = [
   "telegram",
 ];
 
+const THREADS_CACHE_PREFIX = "freescale-channel-threads-v1:";
+
+function readCachedThreads(emailAccountId: string) {
+  if (!emailAccountId || typeof window === "undefined") return;
+  try {
+    const cached = JSON.parse(
+      window.sessionStorage.getItem(
+        `${THREADS_CACHE_PREFIX}${emailAccountId}`,
+      ) ?? "null",
+    ) as { data?: ThreadsListResponse; savedAt?: number } | null;
+    if (!cached?.data || !cached.savedAt) return;
+    if (Date.now() - cached.savedAt > 15 * 60_000) return;
+    return cached.data;
+  } catch {
+    return;
+  }
+}
+
+function cacheThreads(emailAccountId: string, data: ThreadsListResponse) {
+  if (!emailAccountId || typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      `${THREADS_CACHE_PREFIX}${emailAccountId}`,
+      JSON.stringify({ data, savedAt: Date.now() }),
+    );
+  } catch {
+    // Browsers can disable session storage; the live request remains the source
+    // of truth in that case.
+  }
+}
+
 export function ChannelsV4Preview() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -553,6 +584,9 @@ export function ChannelsV4Preview() {
       dedupingInterval: 60_000,
       keepPreviousData: true,
       revalidateOnFocus: false,
+      onSuccess(data) {
+        cacheThreads(emailAccountId, data);
+      },
     },
   );
   const requestedConversationId = searchParams.get("conversation");
@@ -605,6 +639,11 @@ export function ChannelsV4Preview() {
     if (provider === "microsoft") detected.add("outlook");
     return channels.filter((channel) => detected.has(channel));
   }, [conversations, provider]);
+
+  useEffect(() => {
+    const cached = readCachedThreads(emailAccountId);
+    if (cached) refreshThreads(cached, { revalidate: false });
+  }, [emailAccountId, refreshThreads]);
 
   useEffect(() => {
     if (!realThreads || !Array.isArray(realThreads.threads)) return;

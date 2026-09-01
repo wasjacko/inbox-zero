@@ -26,6 +26,30 @@ describe("getMessagesBatch", () => {
     vi.clearAllMocks();
   });
 
+  it("requests only lightweight Gmail metadata for inbox lists", async () => {
+    vi.mocked(getBatch).mockResolvedValueOnce([]);
+
+    await getMessagesBatch({
+      messageIds: ["id1"],
+      accessToken: "token",
+      logger,
+      format: "metadata",
+    });
+
+    expect(getBatch).toHaveBeenCalledWith(
+      ["id1"],
+      "/gmail/v1/users/me/messages",
+      "token",
+      expect.stringContaining("format=metadata"),
+    );
+    expect(getBatch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.stringContaining("metadataHeaders=Subject"),
+    );
+  });
+
   it("should retry on retryable 403 error (rate limit)", async () => {
     const messageIds = ["id1"];
     const accessToken = "token";

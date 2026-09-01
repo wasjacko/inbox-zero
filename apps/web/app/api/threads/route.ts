@@ -63,6 +63,15 @@ export const GET = withEmailProvider(
       });
       return NextResponse.json(
         view === "list" ? toListThreads(threads) : threads,
+        {
+          headers:
+            view === "list"
+              ? {
+                  "Cache-Control":
+                    "private, max-age=30, stale-while-revalidate=300",
+                }
+              : undefined,
+        },
       );
     } catch (error) {
       request.logger.error("Error fetching threads", {
