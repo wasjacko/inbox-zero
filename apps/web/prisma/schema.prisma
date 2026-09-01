@@ -207,6 +207,7 @@ model EmailAccount {
   responseTimes    ResponseTime[]
   actions          Action[]
   freescaleTasks   FreescaleTask[]
+  freescaleActivities FreescaleActivity[]
 
   members                Member[]
   invitations            Invitation[]
@@ -257,6 +258,28 @@ model FreescaleTask {
   @@unique([emailAccountId, sourceThreadId])
   @@index([emailAccountId, status])
   @@index([emailAccountId, due])
+}
+
+model FreescaleActivity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  type           FreescaleActivityType
+  threadId       String?
+  contactAddress String?
+
+  emailAccountId String
+  emailAccount   EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+
+  @@index([emailAccountId, createdAt])
+  @@index([emailAccountId, type, createdAt])
+}
+
+enum FreescaleActivityType {
+  REPLY_SENT
+  FOLLOW_UP_SENT
+  MESSAGE_SENT
+  TASK_COMPLETED
 }
 
 // A saved filter shown as a tab above the mail list. `value` holds the label id for

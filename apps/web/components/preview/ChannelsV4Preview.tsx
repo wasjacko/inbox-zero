@@ -783,9 +783,15 @@ export function ChannelsV4Preview() {
     const clean = reply.trim();
     if (!selected || !clean) return;
     const lastMessage = selectedThread?.thread.messages.at(-1);
+    const freescaleActivity = lastMessage?.headers.from
+      ?.toLowerCase()
+      .includes(userEmail.toLowerCase())
+      ? "followup"
+      : "reply";
 
     try {
       const result = await sendEmailAction(emailAccountId, {
+        freescaleActivity,
         to: selected.address,
         subject: selected.subject,
         messageHtml: textToSafeHtml(clean),
@@ -817,7 +823,13 @@ export function ChannelsV4Preview() {
     const conversation = conversations.find(({ id }) => id === conversationId);
     if (!conversation || selectedId !== conversationId) return false;
     const lastMessage = selectedThread?.thread.messages.at(-1);
+    const freescaleActivity = lastMessage?.headers.from
+      ?.toLowerCase()
+      .includes(userEmail.toLowerCase())
+      ? "followup"
+      : "reply";
     const result = await sendEmailAction(emailAccountId, {
+      freescaleActivity,
       to: conversation.address,
       subject: conversation.subject,
       messageHtml: textToSafeHtml(body),
@@ -841,6 +853,7 @@ export function ChannelsV4Preview() {
 
   const sendMobileMessage = async (recipient: string, body: string) => {
     const result = await sendEmailAction(emailAccountId, {
+      freescaleActivity: "message",
       to: recipient,
       subject: "Message depuis Freescale",
       messageHtml: textToSafeHtml(body),

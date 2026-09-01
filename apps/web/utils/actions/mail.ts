@@ -311,18 +311,42 @@ export const updateLabelsAction = actionClient
     ]);
   });
 
+const trackedSendEmailBody = sendEmailBody.extend({
+  freescaleActivity: z.enum(["reply", "followup", "message"]).optional(),
+});
+
 export const sendEmailAction = actionClient
   .metadata({ name: "sendEmail" })
-  .inputSchema(sendEmailBody)
+  .inputSchema(trackedSendEmailBody)
   .action(
     async ({ ctx: { emailAccountId, provider, logger }, parsedInput }) => {
+      const { freescaleActivity, ...emailInput } = parsedInput;
       const emailProvider = await createEmailProvider({
         emailAccountId,
         provider,
         logger,
       });
 
-      const result = await emailProvider.sendEmailWithHtml(parsedInput);
+      const result = await emailProvider.sendEmailWithHtml(emailInput);
+
+      if (freescaleActivity) {
+        try {
+          await prisma.freescaleActivity.create({
+            data: {
+              emailAccountId,
+              type: {
+                reply: "REPLY_SENT",
+                followup: "FOLLOW_UP_SENT",
+                message: "MESSAGE_SENT",
+              }[freescaleActivity],
+              threadId: result.threadId ?? emailInput.replyToEmail?.threadId,
+              contactAddress: emailInput.to.trim().toLowerCase(),
+            },
+          });
+        } catch (error) {
+          logger.error("Failed to record Freescale email activity", { error });
+        }
+      }
 
       return {
         success: true,

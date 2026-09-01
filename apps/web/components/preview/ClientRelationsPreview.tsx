@@ -3,8 +3,8 @@
 import {
   ArrowUpRightIcon,
   CalendarDaysIcon,
-  CircleDollarSignIcon,
   ChevronDownIcon,
+  CircleDollarSignIcon,
   RotateCcwIcon,
   MessageSquareIcon,
   LoaderCircleIcon,
@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import type { ThreadsListResponse } from "@/app/api/threads/route";
+import type { GetFreescaleActivityResponse } from "@/app/api/user/activity/route";
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ type RelationQueue = "reply" | "followup" | "waiting";
 type SavingsMetric = "total" | "replies" | "followups";
 type ContactKind = "Client" | "Prestataire" | "Collaborateur" | "Fournisseur";
 
-const savingsByPeriod: Record<
+const _savingsByPeriod: Record<
   Period,
   {
     total: string;
@@ -185,7 +186,7 @@ const _relationPriorities: RelationItem[] = [
   },
 ];
 
-const actionCategories = {
+const _actionCategories = {
   reply: {
     label: (count: number) =>
       `${count} réponse${count > 1 ? "s" : ""} préparée${count > 1 ? "s" : ""} dans les échanges`,
@@ -212,9 +213,9 @@ const actionCategories = {
   },
 } as const;
 
-type GainCategory = keyof typeof actionCategories;
+type GainCategory = keyof typeof _actionCategories;
 
-const gainRelations: Array<{
+const _gainRelations: Array<{
   name: string;
   avatarPosition: string;
   total: string;
@@ -350,30 +351,61 @@ export function ClientRelationsPreview() {
   const isMueOpen = !isMobile && state.includes("mue-panel");
   const [period, setPeriod] = useState<Period>("31 derniers jours");
   const [activeMetric, setActiveMetric] = useState<SavingsMetric>("total");
-  const [showAllGainRelations, setShowAllGainRelations] = useState(false);
-  const hasRecordedActivity = false;
-  const savings = hasRecordedActivity
-    ? savingsByPeriod[period]
-    : {
-        total: "0 min",
-        trend: "Aucune action terminée",
-        workdays: "le compteur démarre à la première validation",
-        value: "0 €",
-        actions: "0",
-      };
-  const visibleGainRelations = showAllGainRelations
-    ? gainRelations
-    : gainRelations.slice(0, 4);
+  const activityPeriod = {
+    "7 derniers jours": "7d",
+    "31 derniers jours": "31d",
+    "3 derniers mois": "90d",
+  }[period] as "7d" | "31d" | "90d";
+  const {
+    data: activity,
+    isLoading: activityLoading,
+    mutate: refreshActivity,
+  } = useSWR<GetFreescaleActivityResponse>(
+    emailAccountId ? `/api/user/activity?period=${activityPeriod}` : null,
+  );
+  const activitySummary = activity?.summary ?? {
+    actions: 0,
+    followups: 0,
+    messages: 0,
+    replies: 0,
+    tasks: 0,
+  };
+  const hasRecordedActivity = activitySummary.actions > 0;
+  const savings = {
+    total: "0 min",
+    trend: hasRecordedActivity
+      ? `${activitySummary.actions} action${activitySummary.actions > 1 ? "s" : ""} enregistrée${activitySummary.actions > 1 ? "s" : ""}`
+      : "Aucune action terminée",
+    value: "0 €",
+    actions: String(activitySummary.actions),
+  };
 
   return (
     <>
       <MobileRelationsPreview
+        activity={activitySummary}
         contacts={mobileRelations}
         error={Boolean(relationsError)}
-        loading={relationsLoading}
+        loading={relationsLoading || activityLoading}
+        onPeriodChange={(mobilePeriod) =>
+          setPeriod(
+            mobilePeriod === "7 jours"
+              ? "7 derniers jours"
+              : mobilePeriod === "3 mois"
+                ? "3 derniers mois"
+                : "31 derniers jours",
+          )
+        }
         onRetry={async () => {
-          await refreshRelations();
+          await Promise.all([refreshRelations(), refreshActivity()]);
         }}
+        period={
+          period === "7 derniers jours"
+            ? "7 jours"
+            : period === "3 derniers mois"
+              ? "3 mois"
+              : "30 jours"
+        }
       />
       <div className="hidden lg:block">
         <PageWrapper>
@@ -409,7 +441,9 @@ export function ClientRelationsPreview() {
               </DropdownMenu>
               <Button
                 aria-label="Actualiser les données"
-                onClick={() => refreshRelations()}
+                onClick={() =>
+                  Promise.all([refreshRelations(), refreshActivity()])
+                }
                 size="icon"
                 variant="outline"
               >
@@ -572,15 +606,12 @@ export function ClientRelationsPreview() {
                   </div>
                   <div className="border-blue-100/80 px-5 py-3 text-xs sm:border-l dark:border-blue-950">
                     {hasRecordedActivity ? (
-                      <>
-                        <span className="font-medium capitalize">
-                          {savings.workdays}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {" "}
-                          de temps récupéré
-                        </span>
-                      </>
+                      <span className="font-medium">
+                        {activitySummary.replies} réponse
+                        {activitySummary.replies > 1 ? "s" : ""} ·{" "}
+                        {activitySummary.followups} relance
+                        {activitySummary.followups > 1 ? "s" : ""}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground">
                         Le compteur démarre à la première validation
@@ -623,29 +654,32 @@ export function ClientRelationsPreview() {
             <section className="mt-7">
               <div>
                 <h2 className="font-semibold text-base">
-                  D’où vient ce temps gagné ?
+                  Activité enregistrée
                 </h2>
                 <p className="mt-1 text-muted-foreground text-sm">
-                  Une estimation réalisée action par action, puis additionnée.
+                  Uniquement les actions réellement effectuées dans Freescale.
                 </p>
               </div>
 
-              <div className="mt-4 grid gap-2">
-                {visibleGainRelations.map((relation) => (
-                  <GainRelationCard key={relation.name} relation={relation} />
+              <div className="mt-4 grid overflow-hidden rounded-2xl border bg-background sm:grid-cols-4">
+                {[
+                  ["Réponses envoyées", activitySummary.replies],
+                  ["Relances envoyées", activitySummary.followups],
+                  ["Nouveaux messages", activitySummary.messages],
+                  ["Tâches terminées", activitySummary.tasks],
+                ].map(([label, value]) => (
+                  <div
+                    className="border-border/70 border-b p-5 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
+                    key={label}
+                  >
+                    <p className="font-semibold text-2xl tabular-nums">
+                      {value}
+                    </p>
+                    <p className="mt-1 text-muted-foreground text-xs">
+                      {label}
+                    </p>
+                  </div>
                 ))}
-              </div>
-
-              <div className="mt-4 flex justify-center">
-                <button
-                  className="rounded-lg px-4 py-2 font-medium text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground"
-                  onClick={() => setShowAllGainRelations((current) => !current)}
-                  type="button"
-                >
-                  {showAllGainRelations
-                    ? "Voir moins"
-                    : `Voir ${gainRelations.length - 4} relations de plus`}
-                </button>
               </div>
             </section>
           ) : (
@@ -702,10 +736,10 @@ export function ClientRelationsPreview() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle className="text-base">
-                    Temps économisé semaine après semaine
+                    Actions enregistrées dans le temps
                   </CardTitle>
                   <p className="mt-1 text-muted-foreground text-sm">
-                    Visualisez où Freescale réduit votre charge non facturable.
+                    Réponses, relances et autres validations réelles.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -732,7 +766,7 @@ export function ClientRelationsPreview() {
             </CardHeader>
             <CardContent>
               <SavingsActivityChart
-                empty={!hasRecordedActivity}
+                data={activity?.series}
                 metric={activeMetric}
               />
             </CardContent>
@@ -800,135 +834,32 @@ function ValueCard({
   );
 }
 
-function RelationAvatar({
-  item,
-  small = false,
-}: {
-  item: { name: string; avatarPosition: string };
-  small?: boolean;
-}) {
-  return (
-    <span
-      aria-label={`Photo de profil de ${item.name}`}
-      className={cn(
-        "shrink-0 rounded-full bg-[url('/images/avatars/freescale-contacts-grid.webp')] bg-no-repeat",
-        small ? "size-8" : "size-10",
-      )}
-      role="img"
-      style={{
-        backgroundPosition: item.avatarPosition,
-        backgroundSize: "300% 300%",
-      }}
-    />
-  );
-}
-
-function GainRelationCard({
-  relation,
-}: {
-  relation: (typeof gainRelations)[number];
-}) {
-  const [isExpanded, setIsExpanded] = useState(
-    relation.name === "Sarah Lemoine",
-  );
-  const contentId = `gain-details-${relation.name
-    .toLocaleLowerCase("fr")
-    .replaceAll(" ", "-")}`;
-
-  return (
-    <article className="overflow-hidden rounded-xl border border-border/80 bg-background">
-      <button
-        aria-controls={contentId}
-        aria-expanded={isExpanded}
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/35"
-        onClick={() => setIsExpanded((current) => !current)}
-        type="button"
-      >
-        <RelationAvatar item={relation} small />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-sm">{relation.name}</p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="font-medium text-emerald-700 text-sm tabular-nums dark:text-emerald-300">
-            {relation.total}
-          </p>
-          <p className="mt-0.5 text-muted-foreground text-[10px]">
-            de temps gagné
-          </p>
-        </div>
-        <ChevronDownIcon
-          aria-hidden="true"
-          className={cn(
-            "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
-            isExpanded && "rotate-180",
-          )}
-        />
-      </button>
-
-      <div
-        aria-hidden={!isExpanded}
-        className={cn(
-          "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
-          isExpanded
-            ? "grid-rows-[1fr] opacity-100"
-            : "grid-rows-[0fr] opacity-0",
-        )}
-        id={contentId}
-      >
-        <div className="overflow-hidden">
-          <ul className="border-t px-4 py-1.5">
-            {relation.actions.map((action) => (
-              <li
-                className="flex items-center gap-3 border-border/60 border-b py-2.5 last:border-b-0"
-                key={action.category}
-              >
-                <span
-                  aria-hidden="true"
-                  className="size-1.5 shrink-0 rounded-full bg-muted-foreground/45"
-                />
-                <span className="min-w-0 flex-1 text-foreground/80 text-sm">
-                  {actionCategories[action.category].label(action.count)}
-                </span>
-                <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
-                  +{action.time}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 function SavingsActivityChart({
-  empty,
+  data = [],
   metric,
 }: {
-  empty: boolean;
+  data?: Array<{
+    label: string;
+    total: number;
+    replies: number;
+    followups: number;
+  }>;
   metric: SavingsMetric;
 }) {
-  const data = empty
-    ? [
-        { week: "Aujourd’hui", total: 0, replies: 0, followups: 0 },
-        { week: "", total: 0, replies: 0, followups: 0 },
-        { week: "", total: 0, replies: 0, followups: 0 },
-        { week: "", total: 0, replies: 0, followups: 0 },
-        { week: "", total: 0, replies: 0, followups: 0 },
-        { week: "", total: 0, replies: 0, followups: 0 },
-      ]
-    : [
-        { week: "7 juil.", total: 12, replies: 4, followups: 2 },
-        { week: "14 juil.", total: 15, replies: 5, followups: 2 },
-        { week: "21 juil.", total: 14, replies: 4, followups: 2 },
-        { week: "28 juil.", total: 19, replies: 6, followups: 3 },
-        { week: "4 août", total: 21, replies: 7, followups: 4 },
-        { week: "11 août", total: 22, replies: 7, followups: 4 },
-      ];
+  const empty = !data.some((item) => item.total > 0);
+  const chartData = data.length
+    ? data
+    : Array.from({ length: 6 }, (_, index) => ({
+        label: index === 0 ? "Aujourd’hui" : "",
+        total: 0,
+        replies: 0,
+        followups: 0,
+      }));
+  const maximum = Math.max(1, ...chartData.map((item) => item[metric]));
   const config = {
-    total: { color: "from-blue-400 to-blue-100", maximum: 24 },
-    replies: { color: "from-emerald-500 to-emerald-100", maximum: 8 },
-    followups: { color: "from-orange-400 to-orange-100", maximum: 5 },
+    total: { color: "from-blue-400 to-blue-100" },
+    replies: { color: "from-emerald-500 to-emerald-100" },
+    followups: { color: "from-orange-400 to-orange-100" },
   }[metric];
   return (
     <div className="relative h-56 pl-9 sm:h-64 sm:pl-11">
@@ -945,15 +876,11 @@ function SavingsActivityChart({
         </div>
       ) : null}
       <div className="absolute inset-y-0 left-0 flex w-8 flex-col justify-between pb-7 text-right text-muted-foreground text-xs">
-        {[
-          config.maximum,
-          config.maximum * 0.75,
-          config.maximum * 0.5,
-          config.maximum * 0.25,
-          0,
-        ].map((tick) => (
-          <span key={tick}>{Math.round(tick)} min</span>
-        ))}
+        {[maximum, maximum * 0.75, maximum * 0.5, maximum * 0.25, 0].map(
+          (tick) => (
+            <span key={tick}>{Math.round(tick)}</span>
+          ),
+        )}
       </div>
       <div className="relative h-full pb-7">
         <div className="absolute inset-x-0 bottom-7 top-0 flex flex-col justify-between">
@@ -962,25 +889,25 @@ function SavingsActivityChart({
           ))}
         </div>
         <div className="absolute inset-x-3 bottom-7 top-0 flex items-end justify-between gap-3 sm:inset-x-6 sm:gap-6">
-          {data.map((item, index) => (
+          {chartData.map((item, index) => (
             <div
               className="flex h-full flex-1 items-end"
-              key={`${item.week}-${index}`}
+              key={`${item.label}-${index}`}
             >
               <div
                 className={cn(
                   "w-full rounded-t bg-gradient-to-b transition-[height] duration-300",
                   config.color,
                 )}
-                style={{ height: `${(item[metric] / config.maximum) * 100}%` }}
+                style={{ height: `${(item[metric] / maximum) * 100}%` }}
               />
             </div>
           ))}
         </div>
         <div className="absolute inset-x-1 bottom-0 flex justify-between text-muted-foreground text-[10px] sm:inset-x-4 sm:text-xs">
-          {data.map((item, index) => (
-            <span className="flex-1 text-center" key={`${item.week}-${index}`}>
-              {item.week}
+          {chartData.map((item, index) => (
+            <span className="flex-1 text-center" key={`${item.label}-${index}`}>
+              {item.label}
             </span>
           ))}
         </div>

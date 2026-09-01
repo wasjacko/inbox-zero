@@ -1178,18 +1178,31 @@ export type MobileRelationContact = {
   conversationCount: number;
 };
 
+export type MobileRelationActivity = {
+  actions: number;
+  followups: number;
+  messages: number;
+  replies: number;
+  tasks: number;
+};
+
 export function MobileRelationsPreview({
+  activity = { actions: 0, followups: 0, messages: 0, replies: 0, tasks: 0 },
   contacts = [],
   error = false,
   loading = false,
+  onPeriodChange,
   onRetry,
+  period = "30 jours",
 }: {
+  activity?: MobileRelationActivity;
   contacts?: MobileRelationContact[];
   error?: boolean;
   loading?: boolean;
+  onPeriodChange?: (period: MobileRelationsPeriod) => void;
   onRetry?: () => Promise<unknown> | unknown;
+  period?: MobileRelationsPeriod;
 } = {}) {
-  const [period, setPeriod] = useState<MobileRelationsPeriod>("30 jours");
   const [periodOpen, setPeriodOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = contacts.find(({ id }) => id === selectedId) ?? null;
@@ -1213,8 +1226,16 @@ export function MobileRelationsPreview({
       <div className="grid grid-cols-1 gap-3 px-4 min-[360px]:grid-cols-2">
         <MetricCard icon={Clock3Icon} label="Temps gagné" value="0 min" />
         <MetricCard icon={MailIcon} label="Valeur libérée" value="0 €" />
-        <MetricCard icon={CheckIcon} label="Actions terminées" value="0" />
-        <MetricCard icon={MailIcon} label="Réponses aidées" value="0" />
+        <MetricCard
+          icon={CheckIcon}
+          label="Actions enregistrées"
+          value={String(activity.actions)}
+        />
+        <MetricCard
+          icon={MailIcon}
+          label="Réponses envoyées"
+          value={String(activity.replies)}
+        />
       </div>
 
       <section className="mt-7 px-4">
@@ -1286,10 +1307,15 @@ export function MobileRelationsPreview({
 
       <section className="px-4 pb-24 pt-4">
         <div className="rounded-2xl bg-muted/60 p-4">
-          <p className="font-medium text-sm">Les gains commencent à zéro</p>
+          <p className="font-medium text-sm">Activité réellement enregistrée</p>
           <p className="mt-1 text-muted-foreground text-xs leading-5">
-            Les contacts viennent de vos canaux. Les gains apparaîtront
-            seulement après une action réellement terminée avec Mue.
+            {activity.followups} relance{activity.followups > 1 ? "s" : ""} ·{" "}
+            {activity.messages} nouveau{activity.messages > 1 ? "x" : ""}{" "}
+            message
+            {activity.messages > 1 ? "s" : ""} · {activity.tasks} tâche
+            {activity.tasks > 1 ? "s" : ""} terminée
+            {activity.tasks > 1 ? "s" : ""}. Le temps gagné reste à zéro tant
+            qu’aucune estimation fiable n’est configurée.
           </p>
         </div>
       </section>
@@ -1313,7 +1339,10 @@ export function MobileRelationsPreview({
                   period === option && "bg-muted",
                 )}
                 key={option}
-                onClick={() => setPeriod(option)}
+                onClick={() => {
+                  onPeriodChange?.(option);
+                  setPeriodOpen(false);
+                }}
                 type="button"
               >
                 {option}

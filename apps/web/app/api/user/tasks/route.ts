@@ -81,20 +81,34 @@ export const PATCH = withEmailAccount("user/tasks", async (request) => {
   const { id, due, ...input } = updateTaskSchema.parse(await request.json());
   const existing = await prisma.freescaleTask.findFirst({
     where: { id, emailAccountId: request.auth.emailAccountId },
-    select: { id: true },
+    select: { id: true, sourceThreadId: true, status: true },
   });
   if (!existing)
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
 
-  const task = await prisma.freescaleTask.update({
-    where: { id },
-    data: {
-      ...input,
-      ...(due !== undefined
-        ? { due: due ? new Date(`${due}T12:00:00.000Z`) : null }
-        : {}),
-    },
-    select: taskSelect,
+  const task = await prisma.$transaction(async (transaction) => {
+    const updatedTask = await transaction.freescaleTask.update({
+      where: { id },
+      data: {
+        ...input,
+        ...(due !== undefined
+          ? { due: due ? new Date(`${due}T12:00:00.000Z`) : null }
+          : {}),
+      },
+      select: taskSelect,
+    });
+
+    if (input.status === "done" && existing.status !== "done") {
+      await transaction.freescaleActivity.create({
+        data: {
+          emailAccountId: request.auth.emailAccountId,
+          type: "TASK_COMPLETED",
+          threadId: existing.sourceThreadId,
+        },
+      });
+    }
+
+    return updatedTask;
   });
   return NextResponse.json({ task: serializeTask(task) });
 });
