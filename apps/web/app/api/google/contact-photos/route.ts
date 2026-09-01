@@ -191,5 +191,5 @@ function collectPhotos(
 
 function domainLogoUrl(email: string) {
   const domain = email.split("@").at(1) ?? "gmail.com";
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
+  return `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`;
 }

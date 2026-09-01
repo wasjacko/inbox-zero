@@ -23,7 +23,7 @@ export function useContactPhotos(addresses: string[]) {
           const domain = email.split("@").at(1) ?? "gmail.com";
           return [
             email,
-            `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`,
+            `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`,
           ];
         }),
       ),
