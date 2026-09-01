@@ -11,6 +11,8 @@ import {
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
+import useSWR from "swr";
+import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { WhatsAppIcon } from "@/components/BrandIcons";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
@@ -24,6 +26,8 @@ import {
 import { toastSuccess } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import { toRealChannelConversations } from "@/utils/channels/real-conversations";
 
 type MobileBriefChannel = "Gmail" | "Outlook" | "WhatsApp";
 
@@ -134,13 +138,44 @@ export function MobileChatPreview({
   onConnectChannel: () => void;
 }) {
   const reducedMotion = useReducedMotion();
+  const { emailAccountId, provider, userEmail } = useAccount();
+  const [scanStarted, setScanStarted] = useState(false);
+  const { data: realThreads, isLoading: threadsLoading } =
+    useSWR<ThreadsListResponse>(
+      scanStarted && emailAccountId
+        ? "/api/threads?type=inbox&limit=20&view=list"
+        : null,
+    );
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sentIds, setSentIds] = useState<Set<string>>(() => new Set());
 
+  const realClients = useMemo<MobileBriefClient[]>(() => {
+    if (!realThreads) return [];
+    return toRealChannelConversations({
+      provider,
+      threads: realThreads.threads,
+      userEmail,
+    }).map((conversation) => ({
+      id: conversation.id,
+      name: conversation.name,
+      headline: conversation.unread
+        ? `Réponse à préparer : ${conversation.subject}`
+        : conversation.subject,
+      channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
+      unread: conversation.unread ? 1 : 0,
+      time: conversation.time,
+      avatarPosition: "50% 50%",
+      messages: conversation.messages,
+      suggestion: `Répondre à ${conversation.name} au sujet de « ${conversation.subject} »`,
+      shortSuggestion: `Répondre à ${conversation.name} au sujet de « ${conversation.subject} »`,
+      warmSuggestion: `Bonjour ${conversation.name}, merci pour votre message. Je reviens vers vous rapidement.`,
+    }));
+  }, [provider, realThreads, userEmail]);
+  const clientsToDisplay = realClients;
   const selectedClient = useMemo(
-    () => mobileBriefClients.find(({ id }) => id === selectedClientId) ?? null,
-    [selectedClientId],
+    () => clientsToDisplay.find(({ id }) => id === selectedClientId) ?? null,
+    [clientsToDisplay, selectedClientId],
   );
 
   const openClient = (client: MobileBriefClient) => {
@@ -174,6 +209,57 @@ export function MobileChatPreview({
           >
             Connecter un canal
           </Button>
+        </section>
+      </div>
+    );
+  }
+
+  if (!scanStarted) {
+    return (
+      <div className="flex min-h-[calc(100dvh-var(--mobile-topbar-height)-var(--mobile-bottombar-height))] items-center justify-center bg-background px-6 pb-10 lg:hidden">
+        <section className="w-full max-w-sm text-center">
+          <InboxIcon className="mx-auto size-8 text-blue-600" />
+          <h1 className="mt-5 font-semibold text-3xl tracking-tight">
+            Bonjour
+          </h1>
+          <h2 className="mt-8 font-semibold text-lg">
+            {provider === "microsoft" ? "Outlook" : "Gmail"} connecté
+          </h2>
+          <p className="mt-2 text-muted-foreground text-sm leading-6">
+            Mue va analyser vos échanges autorisés et préparer un brief à
+            valider. Rien ne sera envoyé sans votre accord.
+          </p>
+          <Button
+            className="mt-6 min-h-11 rounded-xl bg-blue-600 px-5 hover:bg-blue-700"
+            onClick={() => setScanStarted(true)}
+          >
+            Analyser mes emails
+          </Button>
+        </section>
+      </div>
+    );
+  }
+
+  if (threadsLoading) {
+    return (
+      <div
+        className="flex min-h-[calc(100dvh-var(--mobile-topbar-height)-var(--mobile-bottombar-height))] items-center justify-center bg-background px-6 pb-10 lg:hidden"
+        role="status"
+      >
+        <p className="font-medium">Analyse de vos emails…</p>
+      </div>
+    );
+  }
+
+  if (!clientsToDisplay.length) {
+    return (
+      <div className="flex min-h-[calc(100dvh-var(--mobile-topbar-height)-var(--mobile-bottombar-height))] items-center justify-center bg-background px-6 pb-10 lg:hidden">
+        <section className="text-center">
+          <InboxIcon className="mx-auto size-8 text-muted-foreground" />
+          <h1 className="mt-4 font-semibold text-xl">Aucun échange récent</h1>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Votre compte est connecté, mais aucun fil n’est disponible.
+          </p>
         </section>
       </div>
     );
@@ -215,7 +301,7 @@ export function MobileChatPreview({
             </span>
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card">
-            {mobileBriefClients.map((client, index) => {
+            {clientsToDisplay.map((client, index) => {
               const sent = sentIds.has(client.id);
               return (
                 <button

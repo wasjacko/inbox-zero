@@ -21,6 +21,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MueIcon } from "@/components/MueIcon";
+import { Gmail } from "@/components/new-landing/icons/Gmail";
+import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { MobileSystemStatus } from "@/components/mobile/MobileSystemStatus";
 import {
   MobileBottomBar,
@@ -37,6 +39,7 @@ import {
 } from "@/utils/preview-workspace";
 import { cn } from "@/utils";
 import { signOut } from "@/utils/auth-client";
+import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
 
 const pageTitles = [
   { path: "/chat", title: "Accueil IA" },
@@ -110,6 +113,7 @@ export function MobileAppNavigation() {
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [mueOpen, setMueOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const connectedChannels = usePreviewConnectedChannels();
   const [workspaceName, setWorkspaceName] = useState(
     DEFAULT_PREVIEW_WORKSPACE_NAME,
   );
@@ -308,6 +312,30 @@ export function MobileAppNavigation() {
               <p className="truncate font-semibold">{workspaceName}</p>
               <p className="text-muted-foreground text-xs">Espace actuel</p>
             </div>
+          </div>
+          <div className="rounded-2xl border bg-card p-4">
+            <p className="font-medium text-sm">Canaux connectés</p>
+            {connectedChannels?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {connectedChannels.map((channel) => (
+                  <span
+                    className="inline-flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm"
+                    key={channel}
+                  >
+                    {channel === "gmail" ? (
+                      <Gmail height={18} width={18} />
+                    ) : (
+                      <Outlook height={18} width={18} />
+                    )}
+                    {channel === "gmail" ? "Gmail" : "Outlook"}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-muted-foreground text-xs">
+                Aucun canal connecté
+              </p>
+            )}
           </div>
           <div className="overflow-hidden rounded-2xl border bg-card">
             <MobileNavigationRow
