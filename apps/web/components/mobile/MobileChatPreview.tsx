@@ -159,9 +159,11 @@ export function MobileChatPreview({
     }).map((conversation) => ({
       id: conversation.id,
       name: conversation.name,
-      headline: conversation.unread
-        ? `Réponse à préparer : ${conversation.subject}`
-        : conversation.subject,
+      headline:
+        conversation.unread &&
+        conversation.messages.at(-1)?.author === "contact"
+          ? `Réponse à préparer : ${conversation.subject}`
+          : conversation.subject,
       channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
       unread: conversation.unread ? 1 : 0,
       time: conversation.time,
@@ -173,6 +175,13 @@ export function MobileChatPreview({
     }));
   }, [provider, realThreads, userEmail]);
   const clientsToDisplay = realClients;
+  const unreadCount = clientsToDisplay.reduce(
+    (total, client) => total + client.unread,
+    0,
+  );
+  const replyCount = clientsToDisplay.filter((client) =>
+    client.headline.startsWith("Réponse à préparer"),
+  ).length;
   const selectedClient = useMemo(
     () => clientsToDisplay.find(({ id }) => id === selectedClientId) ?? null,
     [clientsToDisplay, selectedClientId],
@@ -285,9 +294,11 @@ export function MobileChatPreview({
           </h1>
           <p className="mt-2 max-w-sm text-muted-foreground text-sm leading-5">
             <strong className="font-semibold text-foreground">
-              18 messages non lus
+              {unreadCount} message{unreadCount === 1 ? "" : "s"} non lu
+              {unreadCount === 1 ? "" : "s"}
             </strong>
-            , dont 3 demandent votre réponse.
+            , dont {replyCount} demande{replyCount === 1 ? "" : "nt"} votre
+            réponse.
           </p>
         </header>
 
