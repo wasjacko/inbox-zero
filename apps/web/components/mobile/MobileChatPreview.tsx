@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import { WhatsAppIcon } from "@/components/BrandIcons";
@@ -127,13 +126,13 @@ const mobileBriefClients: MobileBriefClient[] = [
 export function MobileChatPreview({
   freelancerName,
   hasConnectedChannels,
+  onboardingComplete,
 }: {
   freelancerName: string;
   hasConnectedChannels: boolean;
+  onboardingComplete: boolean;
 }) {
-  const searchParams = useSearchParams();
   const reducedMotion = useReducedMotion();
-  const onboardingComplete = searchParams.get("onboarding") === "complete";
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sentIds, setSentIds] = useState<Set<string>>(() => new Set());

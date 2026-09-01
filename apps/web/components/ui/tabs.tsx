@@ -10,13 +10,14 @@ import { cn } from "@/utils";
 interface Context {
   defaultValue: string;
   hrefFor: (value: string) => LinkProps["href"];
+  onValueChange?: (value: string) => void;
   searchParam: string;
   selected: string;
 }
 // biome-ignore lint/suspicious/noExplicitAny: existing loose external shape
 const TabsContext = React.createContext<Context>(null as any);
 
-export function Tabs(props: {
+type TabsProps = {
   children: React.ReactNode;
   className?: string;
   /**
@@ -28,7 +29,39 @@ export function Tabs(props: {
    * @default "tab"
    */
   searchParam?: string;
-}) {
+  value?: string;
+  onValueChange?: (value: string) => void;
+};
+
+export function Tabs(props: TabsProps) {
+  if (props.value !== undefined) {
+    return <ControlledTabs {...props} value={props.value} />;
+  }
+
+  return <SearchParamTabs {...props} />;
+}
+
+function ControlledTabs(props: TabsProps & { value: string }) {
+  const { children, className, searchParam = "tab", ...other } = props;
+  const hrefFor = React.useCallback<Context["hrefFor"]>(() => "#", []);
+
+  return (
+    <TabsContext.Provider
+      value={{
+        ...other,
+        defaultValue: props.defaultValue,
+        hrefFor,
+        onValueChange: props.onValueChange,
+        searchParam,
+        selected: props.value,
+      }}
+    >
+      <div className={className}>{children}</div>
+    </TabsContext.Provider>
+  );
+}
+
+function SearchParamTabs(props: TabsProps) {
   const { children, className, searchParam = "tab", ...other } = props;
   const searchParams = useSearchParams();
 
@@ -90,6 +123,21 @@ export const TabsTrigger = (props: {
   value: string;
 }) => {
   const context = useContext();
+
+  if (context.onValueChange) {
+    return (
+      <button
+        {...props}
+        className={cn(
+          "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+          props.className,
+        )}
+        data-state={context.selected === props.value ? "active" : "inactive"}
+        onClick={() => context.onValueChange?.(props.value)}
+        type="button"
+      />
+    );
+  }
 
   return (
     <Link

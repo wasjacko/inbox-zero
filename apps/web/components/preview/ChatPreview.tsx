@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type ChangeEvent,
@@ -82,13 +81,30 @@ const suggestions = [
   { label: "Suggère les prochaines actions", icon: SparklesIcon },
 ];
 
-export function ChatPreview() {
+type ChatView = "brief" | "ask" | "history" | "assistant";
+
+export function ChatPreview({
+  initialView = "brief",
+  onboardingComplete = false,
+}: {
+  initialView?: ChatView;
+  onboardingComplete?: boolean;
+}) {
   const [input, setInput] = useState("");
   const [freelancerName, setFreelancerName] = useState("");
   const [hasConnectedChannels, setHasConnectedChannels] = useState(false);
-  const searchParams = useSearchParams();
-  const activeView = searchParams.get("chatView") ?? "brief";
-  const onboardingComplete = searchParams.get("onboarding") === "complete";
+  const [activeView, setActiveView] = useState<ChatView>(initialView);
+
+  const changeActiveView = (view: string) => {
+    if (!isChatView(view)) return;
+    setActiveView(view);
+
+    const params = new URLSearchParams(window.location.search);
+    if (view === "brief") params.delete("chatView");
+    else params.set("chatView", view);
+    const query = params.toString();
+    window.history.replaceState(null, "", `/chat${query ? `?${query}` : ""}`);
+  };
 
   useEffect(() => {
     const onboardingStatus = window.localStorage.getItem(
@@ -136,11 +152,13 @@ export function ChatPreview() {
       <MobileChatPreview
         freelancerName={freelancerName}
         hasConnectedChannels={hasConnectedChannels}
+        onboardingComplete={onboardingComplete}
       />
       <Tabs
         className="relative isolate hidden h-[calc(100svh-4rem)] min-h-0 w-full flex-none flex-col overflow-x-hidden overflow-y-auto bg-background lg:flex"
         defaultValue="brief"
-        searchParam="chatView"
+        onValueChange={changeActiveView}
+        value={activeView}
       >
         {activeView === "ask" && (
           <div
@@ -236,6 +254,10 @@ export function ChatPreview() {
       </Tabs>
     </>
   );
+}
+
+function isChatView(value: string): value is ChatView {
+  return ["brief", "ask", "history", "assistant"].includes(value);
 }
 
 const scanPhases = [
