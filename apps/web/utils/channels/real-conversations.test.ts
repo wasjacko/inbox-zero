@@ -38,6 +38,7 @@ describe("toRealChannelConversations", () => {
       unread: true,
       starred: true,
     });
+    expect(conversation).not.toHaveProperty("contactType");
     expect(conversation?.messages[0]).toMatchObject({
       id: "received",
       author: "contact",

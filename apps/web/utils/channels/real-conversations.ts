@@ -15,7 +15,6 @@ export type RealChannelConversation = {
   initials: string;
   address: string;
   channel: Channel;
-  contactType: "client";
   subject: string;
   preview: string;
   time: string;
@@ -85,7 +84,6 @@ export function toRealChannelConversation({
     initials: getInitials(name),
     address,
     channel: provider === "microsoft" ? "outlook" : "gmail",
-    contactType: "client",
     subject: latest?.subject || "Sans objet",
     preview: latest?.snippet || thread.snippet || "",
     time: formatMessageTime(latest),

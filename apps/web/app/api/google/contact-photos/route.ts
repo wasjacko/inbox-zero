@@ -37,6 +37,7 @@ export const POST = withEmailAccount(
             access_token: true,
             refresh_token: true,
             provider: true,
+            scope: true,
           },
         },
       },
@@ -53,18 +54,44 @@ export const POST = withEmailAccount(
       accessToken: emailAccount.account.access_token,
       refreshToken: emailAccount.account.refresh_token,
     });
+    const fallbackPhotos = Object.fromEntries(
+      [...normalizedEmails].map((email) => [email, domainLogoUrl(email)]),
+    );
+    const grantedScopes = new Set(
+      (emailAccount.account.scope ?? "").split(/[\s,]+/).filter(Boolean),
+    );
+    const canReadSavedContacts = grantedScopes.has(
+      "https://www.googleapis.com/auth/contacts.readonly",
+    );
+    const canReadAutomaticContacts = grantedScopes.has(
+      "https://www.googleapis.com/auth/contacts.other.readonly",
+    );
+
+    if (!(canReadSavedContacts || canReadAutomaticContacts)) {
+      return NextResponse.json<ContactPhotosResponse>({
+        photos: fallbackPhotos,
+        requiresContactsPermission: true,
+      });
+    }
 
     const [savedContacts, automaticContacts] = await Promise.allSettled([
-      findSavedContactPhotos(client, normalizedEmails),
-      findOtherContactPhotos(client, normalizedEmails),
+      canReadSavedContacts
+        ? findSavedContactPhotos(client, normalizedEmails)
+        : Promise.resolve({}),
+      canReadAutomaticContacts
+        ? findOtherContactPhotos(client, normalizedEmails)
+        : Promise.resolve({}),
     ]);
     const photos: Record<string, string> = {
+      ...fallbackPhotos,
       ...(savedContacts.status === "fulfilled" ? savedContacts.value : {}),
       ...(automaticContacts.status === "fulfilled"
         ? automaticContacts.value
         : {}),
     };
     const requiresContactsPermission =
+      !canReadSavedContacts ||
+      !canReadAutomaticContacts ||
       savedContacts.status === "rejected" ||
       automaticContacts.status === "rejected";
 
@@ -160,4 +187,9 @@ function collectPhotos(
       if (email && wantedEmails.has(email)) photos[email] = photo;
     }
   }
+}
+
+function domainLogoUrl(email: string) {
+  const domain = email.split("@").at(1) ?? "gmail.com";
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;
 }

@@ -163,7 +163,7 @@ type InboxConversation = {
   initials: string;
   address: string;
   channel: Channel;
-  contactType: ContactType;
+  contactType?: ContactType;
   subject: string;
   preview: string;
   time: string;
@@ -2397,10 +2397,12 @@ function ConversationList({
                       >
                         {conversation.name}
                       </span>
-                      <ContactTypePill
-                        compact
-                        type={conversation.contactType}
-                      />
+                      {conversation.contactType ? (
+                        <ContactTypePill
+                          compact
+                          type={conversation.contactType}
+                        />
+                      ) : null}
                       {conversation.starred ? (
                         <StarIcon className="size-3.5 shrink-0 fill-amber-400 text-amber-500" />
                       ) : null}
@@ -2615,7 +2617,9 @@ function MessageReader({
               <h2 className="truncate font-semibold text-sm @md/reader:text-[15px]">
                 {conversation.name}
               </h2>
-              <ContactTypePill compact type={conversation.contactType} />
+              {conversation.contactType ? (
+                <ContactTypePill compact type={conversation.contactType} />
+              ) : null}
             </div>
             <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-muted-foreground text-xs">
               <ChannelIcon channel={conversation.channel} />
@@ -3102,7 +3106,13 @@ function MessageReader({
           </div>
           <div className="mt-5 space-y-4">
             <CustomerDetail label="Type de contact">
-              <ContactTypePill type={conversation.contactType} />
+              {conversation.contactType ? (
+                <ContactTypePill type={conversation.contactType} />
+              ) : (
+                <span className="text-muted-foreground text-sm">
+                  Non renseigné
+                </span>
+              )}
             </CustomerDetail>
             <CustomerDetail label="Canal principal">
               <span className="inline-flex items-center gap-2 font-medium text-sm">
