@@ -10,14 +10,25 @@ import {
   generateSignedOAuthState,
   oauthStateCookieOptions,
 } from "@/utils/oauth/state";
+import { normalizeInternalPath } from "@/utils/path";
 
 export type GetAuthLinkUrlResponse = { url: string };
 
-const getAuthUrl = ({ userId }: { userId: string }) => {
+const getAuthUrl = ({
+  userId,
+  returnTo,
+}: {
+  userId: string;
+  returnTo?: string;
+}) => {
   const googleAuth = getLinkingOAuth2Client();
   const stateNonce = randomUUID();
 
-  const state = generateSignedOAuthState({ userId, nonce: stateNonce });
+  const state = generateSignedOAuthState({
+    userId,
+    nonce: stateNonce,
+    returnTo,
+  });
 
   const url = googleAuth.generateAuthUrl({
     access_type: "offline",
@@ -43,7 +54,10 @@ export const GET = withAuth("google/linking/auth-url", async (request) => {
     );
   }
 
-  const { url: authUrl, state, stateNonce } = getAuthUrl({ userId });
+  const returnTo =
+    normalizeInternalPath(request.nextUrl.searchParams.get("returnTo")) ??
+    undefined;
+  const { url: authUrl, state, stateNonce } = getAuthUrl({ userId, returnTo });
   const logger = createOAuthLinkingAuditLogger({
     actorUserId: userId,
     logger: request.logger,

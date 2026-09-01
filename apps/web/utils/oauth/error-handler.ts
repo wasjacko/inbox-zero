@@ -10,6 +10,7 @@ interface ErrorHandlerParams {
   error: unknown;
   logger: Logger;
   provider?: "google" | "microsoft";
+  returnTo?: string;
   stateCookieName: string;
 }
 
@@ -18,6 +19,7 @@ export function handleOAuthCallbackError({
   stateCookieName,
   logger,
   provider,
+  returnTo,
 }: ErrorHandlerParams): NextResponse {
   logger.error("Error in OAuth linking callback:", { error });
   const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -35,6 +37,7 @@ export function handleOAuthCallbackError({
           error: mappedError.errorCode,
           error_description: mappedError.userMessage,
         },
+        returnTo,
         stateCookieName,
       });
     }
@@ -46,6 +49,7 @@ export function handleOAuthCallbackError({
         error: "link_failed",
         error_description: safeErrorDescription,
       },
+      returnTo,
       stateCookieName,
     });
   }
@@ -55,6 +59,7 @@ export function handleOAuthCallbackError({
       error: "link_failed",
       error_description: errorMessage,
     },
+    returnTo,
     stateCookieName,
   });
 }

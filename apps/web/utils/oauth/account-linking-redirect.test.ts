@@ -33,4 +33,25 @@ describe("createAccountLinkingRedirect", () => {
     );
     expect(response.cookies.getAll()).toEqual([]);
   });
+
+  it("returns to a safe onboarding path after account linking", () => {
+    const response = createAccountLinkingRedirect({
+      query: { success: "account_created_and_linked" },
+      returnTo: "/onboarding",
+    });
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/onboarding?success=account_created_and_linked",
+    );
+  });
+
+  it("rejects an external return path", () => {
+    const response = createAccountLinkingRedirect({
+      returnTo: "//malicious.example",
+    });
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/accounts",
+    );
+  });
 });

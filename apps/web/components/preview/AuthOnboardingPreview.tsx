@@ -20,7 +20,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toastError } from "@/components/Toast";
+import { useAccounts } from "@/hooks/useAccounts";
 import { cn } from "@/utils";
+import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { signIn, signUp } from "@/utils/auth-client";
 import {
   grantPreviewOnboardingAccess,
@@ -29,6 +32,7 @@ import {
 } from "@/utils/preview-onboarding";
 import { savePreviewFreelancerName } from "@/utils/preview-profile";
 import { savePreviewWorkspaceName } from "@/utils/preview-workspace";
+import { redirectToSafeUrl } from "@/utils/redirect";
 
 function SplitOnboardingShell({
   children,
@@ -655,6 +659,65 @@ type MobileOnboardingState = {
   connectedChannels: string[];
 };
 
+function useOnboardingChannelConnections() {
+  const { data: accountsData } = useAccounts();
+  const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
+  const [connectingChannels, setConnectingChannels] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!accountsData) return;
+
+    const connected = accountsData.emailAccounts.flatMap((emailAccount) => {
+      if (emailAccount.account.provider === "google") return ["gmail"];
+      if (emailAccount.account.provider === "microsoft") return ["outlook"];
+      return [];
+    });
+
+    setConnectedChannels([...new Set(connected)]);
+  }, [accountsData]);
+
+  const connectChannel = async (channel: string) => {
+    if (
+      connectedChannels.includes(channel) ||
+      connectingChannels.includes(channel)
+    ) {
+      return;
+    }
+
+    const provider =
+      channel === "gmail"
+        ? "google"
+        : channel === "outlook"
+          ? "microsoft"
+          : null;
+    if (!provider) return;
+
+    setConnectingChannels((current) => [...current, channel]);
+
+    try {
+      const url = await getAccountLinkingUrl(provider, {
+        returnTo: "/onboarding",
+      });
+      redirectToSafeUrl(url, { allowExternal: true });
+    } catch (error) {
+      console.error(`Error initiating ${provider} account linking:`, error);
+      setConnectingChannels((current) =>
+        current.filter((item) => item !== channel),
+      );
+      toastError({
+        title: `Impossible de connecter ${channel === "gmail" ? "Gmail" : "Outlook"}`,
+        description: "Réessayez dans quelques instants.",
+      });
+    }
+  };
+
+  return {
+    connectedChannels,
+    connectingChannels,
+    connectChannel,
+  };
+}
+
 function MobileOnboardingPreview() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -668,8 +731,8 @@ function MobileOnboardingPreview() {
     activity: "",
   });
   const [workspaceName, setWorkspaceName] = useState("");
-  const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
-  const [connectingChannels, setConnectingChannels] = useState<string[]>([]);
+  const { connectedChannels, connectingChannels, connectChannel } =
+    useOnboardingChannelConnections();
   const [preparing, setPreparing] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
   const [restored, setRestored] = useState(false);
@@ -699,9 +762,6 @@ function MobileOnboardingPreview() {
         }
         if (typeof state.workspaceName === "string") {
           setWorkspaceName(state.workspaceName);
-        }
-        if (Array.isArray(state.connectedChannels)) {
-          setConnectedChannels(state.connectedChannels);
         }
       }
     } catch {
@@ -739,25 +799,6 @@ function MobileOnboardingPreview() {
         ? current.filter((item) => item !== value)
         : [...current, value],
     );
-  };
-
-  const toggleConnection = (value: string) => {
-    if (connectedChannels.includes(value)) {
-      setConnectedChannels((current) =>
-        current.filter((item) => item !== value),
-      );
-      return;
-    }
-    if (connectingChannels.includes(value)) return;
-    setConnectingChannels((current) => [...current, value]);
-    window.setTimeout(() => {
-      setConnectingChannels((current) =>
-        current.filter((item) => item !== value),
-      );
-      setConnectedChannels((current) =>
-        current.includes(value) ? current : [...current, value],
-      );
-    }, 850);
   };
 
   const continueOnboarding = () => {
@@ -908,7 +949,7 @@ function MobileOnboardingPreview() {
               <ConnectChannelsStep
                 connected={connectedChannels}
                 connecting={connectingChannels}
-                onToggle={toggleConnection}
+                onConnect={connectChannel}
                 selected={selectedChannels}
               />
             ) : null}
@@ -963,7 +1004,8 @@ function DesktopOnboardingPreview() {
     activity: "",
   });
   const [workspaceName, setWorkspaceName] = useState("");
-  const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
+  const { connectedChannels, connectingChannels, connectChannel } =
+    useOnboardingChannelConnections();
   const [preparing, setPreparing] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
 
@@ -1176,13 +1218,8 @@ function DesktopOnboardingPreview() {
                 {step === 3 ? (
                   <ConnectChannelsStep
                     connected={connectedChannels}
-                    onToggle={(value) =>
-                      toggleValue(
-                        value,
-                        connectedChannels,
-                        setConnectedChannels,
-                      )
-                    }
+                    connecting={connectingChannels}
+                    onConnect={connectChannel}
                     selected={selectedChannels}
                   />
                 ) : null}
@@ -1579,12 +1616,12 @@ function ConnectChannelsStep({
   selected,
   connected,
   connecting = [],
-  onToggle,
+  onConnect,
 }: {
   selected: string[];
   connected: string[];
   connecting?: string[];
-  onToggle: (value: string) => void;
+  onConnect: (value: string) => void;
 }) {
   const channels = channelOptions.filter((channel) =>
     selected.includes(channel.id),
@@ -1600,6 +1637,8 @@ function ConnectChannelsStep({
         {channels.map((channel) => {
           const active = connected.includes(channel.id);
           const isConnecting = connecting.includes(channel.id);
+          const isAvailable =
+            channel.id === "gmail" || channel.id === "outlook";
           return (
             <div
               className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
@@ -1632,7 +1671,9 @@ function ConnectChannelsStep({
                     ? "Connecté"
                     : isConnecting
                       ? "Connexion…"
-                      : "À connecter"}
+                      : isAvailable
+                        ? "À connecter"
+                        : "Bientôt disponible"}
                 </span>
               </span>
               <Button
@@ -1640,16 +1681,18 @@ function ConnectChannelsStep({
                   "min-w-28",
                   !active && "bg-[#4771df] text-white hover:bg-[#3c63c9]",
                 )}
-                disabled={isConnecting}
-                onClick={() => onToggle(channel.id)}
+                disabled={active || isConnecting || !isAvailable}
+                onClick={() => onConnect(channel.id)}
                 size="sm"
                 variant={active ? "outline" : "default"}
               >
                 {active
-                  ? "Déconnecter"
+                  ? "Connecté"
                   : isConnecting
                     ? "Connexion…"
-                    : "Connecter"}
+                    : isAvailable
+                      ? "Connecter"
+                      : "Bientôt"}
               </Button>
             </div>
           );

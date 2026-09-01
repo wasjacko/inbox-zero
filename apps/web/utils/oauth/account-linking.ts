@@ -12,6 +12,7 @@ interface AccountLinkingParams {
   logger: Logger;
   provider: "google" | "microsoft";
   providerEmail: string;
+  returnTo?: string;
   targetUserId: string;
 }
 
@@ -22,6 +23,7 @@ export async function handleAccountLinking({
   targetUserId,
   provider,
   providerEmail,
+  returnTo,
   logger,
 }: AccountLinkingParams): Promise<
   | { type: "continue_create" }
@@ -84,6 +86,7 @@ export async function handleAccountLinking({
         type: "redirect",
         response: createAccountLinkingRedirect({
           query: { error: "account_already_exists" },
+          returnTo,
         }),
       };
     }
@@ -103,6 +106,7 @@ export async function handleAccountLinking({
         type: "redirect",
         response: createAccountLinkingRedirect({
           query: { error: "account_already_exists" },
+          returnTo,
         }),
       };
     }

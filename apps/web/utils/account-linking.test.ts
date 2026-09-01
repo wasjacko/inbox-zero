@@ -36,4 +36,22 @@ describe("getAccountLinkingUrl", () => {
 
     await expect(getAccountLinkingUrl("google")).resolves.toBe("/logout");
   });
+
+  it("passes an onboarding return path to the OAuth endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: "https://accounts.google.com/oauth" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getAccountLinkingUrl("google", { returnTo: "/onboarding" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/google/linking/auth-url?returnTo=%2Fonboarding",
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  });
 });

@@ -10,13 +10,20 @@ import { isGoogleProvider } from "@/utils/email/provider-types";
  */
 export async function getAccountLinkingUrl(
   provider: "google" | "microsoft",
+  options?: { returnTo?: `/${string}` },
 ): Promise<string> {
   const apiProvider = provider === "microsoft" ? "outlook" : "google";
+  const searchParams = new URLSearchParams();
+  if (options?.returnTo) searchParams.set("returnTo", options.returnTo);
+  const query = searchParams.toString();
 
-  const response = await fetch(`/api/${apiProvider}/linking/auth-url`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
+  const response = await fetch(
+    `/api/${apiProvider}/linking/auth-url${query ? `?${query}` : ""}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as {

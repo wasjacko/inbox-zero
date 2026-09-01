@@ -53,7 +53,7 @@ export const GET = withError("google/linking/callback", async (request) => {
     return validation.response;
   }
 
-  const { targetUserId, code, stateNonce } = validation;
+  const { targetUserId, code, stateNonce, returnTo } = validation;
   logger = logOAuthLinkingCallbackValidation({
     actorUserId,
     logger,
@@ -65,6 +65,7 @@ export const GET = withError("google/linking/callback", async (request) => {
   if (actorUserId && actorUserId !== targetUserId) {
     return createAccountLinkingRedirect({
       query: { error: "invalid_state" },
+      returnTo,
       stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
     });
   }
@@ -76,6 +77,7 @@ export const GET = withError("google/linking/callback", async (request) => {
     });
     return createAccountLinkingRedirect({
       query: cachedResult.params,
+      returnTo,
       stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
     });
   }
@@ -86,6 +88,7 @@ export const GET = withError("google/linking/callback", async (request) => {
       targetUserId,
     });
     return createAccountLinkingRedirect({
+      returnTo,
       stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
     });
   }
@@ -128,6 +131,7 @@ export const GET = withError("google/linking/callback", async (request) => {
       targetUserId,
       provider: "google",
       providerEmail,
+      returnTo,
       logger,
     });
 
@@ -164,6 +168,7 @@ export const GET = withError("google/linking/callback", async (request) => {
       await setOAuthCodeResult(code, { success: "tokens_updated" });
       return createAccountLinkingRedirect({
         query: { success: "tokens_updated" },
+        returnTo,
         stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
       });
     }
@@ -200,6 +205,7 @@ export const GET = withError("google/linking/callback", async (request) => {
           await setOAuthCodeResult(code, { success: "tokens_updated" });
           return createAccountLinkingRedirect({
             query: { success: "tokens_updated" },
+            returnTo,
             stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
           });
         }
@@ -291,6 +297,7 @@ export const GET = withError("google/linking/callback", async (request) => {
       await setOAuthCodeResult(code, { success: "account_created_and_linked" });
       return createAccountLinkingRedirect({
         query: { success: "account_created_and_linked" },
+        returnTo,
         stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
       });
     }
@@ -322,6 +329,7 @@ export const GET = withError("google/linking/callback", async (request) => {
       await setOAuthCodeResult(code, { success: "tokens_updated" });
       return createAccountLinkingRedirect({
         query: { success: "tokens_updated" },
+        returnTo,
         stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
       });
     }
@@ -371,12 +379,14 @@ export const GET = withError("google/linking/callback", async (request) => {
     await setOAuthCodeResult(code, { success: successMessage });
     return createAccountLinkingRedirect({
       query: { success: successMessage },
+      returnTo,
       stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
     });
   } catch (error) {
     await clearOAuthCode(code);
     return handleOAuthCallbackError({
       error,
+      returnTo,
       stateCookieName: GOOGLE_LINKING_STATE_COOKIE_NAME,
       logger,
     });

@@ -92,4 +92,24 @@ describe("validateOAuthCallback", () => {
       expect(result.code).toBe("valid-code");
     }
   });
+
+  it("returns a safe internal return path from the signed state", () => {
+    vi.mocked(parseSignedOAuthState).mockReturnValueOnce({
+      userId: "user-id",
+      nonce: "nonce",
+      issuedAt: 123,
+      returnTo: "/onboarding",
+    });
+
+    const result = validateOAuthCallback({
+      code: "valid-code",
+      receivedState: "matching-state",
+      storedState: "matching-state",
+      stateCookieName: "test_cookie",
+      logger,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.returnTo).toBe("/onboarding");
+  });
 });
