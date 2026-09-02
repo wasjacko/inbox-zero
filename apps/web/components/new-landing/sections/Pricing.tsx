@@ -57,7 +57,7 @@ const pricingTiers: PricingTier[] = [
     badges: [{ message: "Save 10%", annualOnly: true }],
     button: {
       variant: "secondary-two",
-      content: "Try free for 7 days",
+      content: "Essayer gratuitement 14 jours",
       href: "/login",
     },
     icon: <Briefcase />,
@@ -69,7 +69,7 @@ const pricingTiers: PricingTier[] = [
       { message: "Popular", variant: "green" },
     ],
     button: {
-      content: "Try free for 7 days",
+      content: "Essayer gratuitement 14 jours",
       href: "/login",
     },
     icon: <Zap />,
@@ -79,7 +79,7 @@ const pricingTiers: PricingTier[] = [
     badges: [{ message: "Save 16%", annualOnly: true }],
     button: {
       variant: "secondary-two",
-      content: "Try free for 7 days",
+      content: "Essayer gratuitement 14 jours",
       href: "/login",
     },
     icon: <Sparkle />,
@@ -97,8 +97,11 @@ export function Pricing() {
 
   return (
     <Section id="pricing">
-      <SectionHeading>Try for free, affordable paid plans</SectionHeading>
-      <SectionSubtitle>No hidden fees. Cancel anytime.</SectionSubtitle>
+      <SectionHeading>14 jours gratuits, puis un plan clair</SectionHeading>
+      <SectionSubtitle>
+        Testez Freescale sans engagement. À la fin de l’essai, choisissez le
+        plan à 19 € ou 29 € par mois — aucune surprise.
+      </SectionSubtitle>
       <SectionContent
         noMarginTop
         className="mt-6 flex flex-col items-center justify-center"

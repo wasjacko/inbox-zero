@@ -3174,6 +3174,43 @@ export function PremiumPreview() {
             title="Plan et facturation"
           />
 
+          <Card className="mt-6 border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-950/25">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+                    <SparklesIcon className="size-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Essai gratuit en cours</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Il vous reste 14 jours pour tester Freescale sans
+                      engagement.
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Quota d’essai :{" "}
+                      <span className="font-medium text-foreground">
+                        0 / 100 actions IA
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col gap-1 sm:text-right">
+                  <span className="text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                    Après l’essai
+                  </span>
+                  <span className="text-sm font-medium">
+                    19 € ou 29 € / mois
+                  </span>
+                </div>
+              </div>
+              <p className="mt-4 border-t border-blue-200/70 pt-3 text-xs text-muted-foreground dark:border-blue-900/70">
+                Aucune facturation automatique pendant l’essai : choisissez
+                votre plan avant son expiration.
+              </p>
+            </CardContent>
+          </Card>
+
           {cancellationScheduled && (
             <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 text-sm lg:hidden">
               L’abonnement restera actif jusqu’au 30 août 2027, puis prendra fin

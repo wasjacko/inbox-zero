@@ -280,6 +280,15 @@ function MobileAuthPreview() {
               ? "Créez votre espace et laissez Mue retrouver l’essentiel dans vos échanges."
               : "Retrouvez votre espace, vos messages et vos prochaines actions."}
           </p>
+          {mode === "signup" ? (
+            <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/70 px-3.5 py-3 text-blue-950 dark:border-blue-950 dark:bg-blue-950/30 dark:text-blue-100">
+              <p className="font-medium text-sm">14 jours d’essai gratuit</p>
+              <p className="mt-1 text-xs leading-5 opacity-80">
+                Sans engagement. Après l’essai, choisissez le plan à 19 € ou 29
+                € par mois. Vous gardez vos données dans tous les cas.
+              </p>
+            </div>
+          ) : null}
 
           <Button
             className="mt-8 h-12 w-full rounded-xl bg-background text-foreground shadow-sm hover:bg-muted"
@@ -465,6 +474,14 @@ function DesktopAuthPreview() {
             ? "Créez votre compte pour configurer votre premier espace de travail."
             : "Connectez-vous pour accéder à votre espace de travail."}
         </p>
+        {mode === "signup" ? (
+          <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/70 px-3.5 py-3 text-blue-950 dark:border-blue-950 dark:bg-blue-950/30 dark:text-blue-100">
+            <p className="font-medium text-sm">14 jours d’essai gratuit</p>
+            <p className="mt-1 text-xs leading-5 opacity-80">
+              Sans engagement, puis choisissez 19 € ou 29 € par mois.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <div>
@@ -2178,6 +2195,18 @@ function ReadyStep({
       <p className="mx-auto mt-3 max-w-lg text-muted-foreground text-sm leading-6 sm:text-base">
         {channelCount} sources connectées. Votre premier brief vous attend.
       </p>
+      <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-left dark:border-blue-950 dark:bg-blue-950/30">
+        <div className="flex items-start gap-3">
+          <SparklesIcon className="mt-0.5 size-5 shrink-0 text-blue-600" />
+          <div>
+            <p className="font-medium text-sm">Votre essai gratuit est lancé</p>
+            <p className="mt-1 text-muted-foreground text-xs leading-5">
+              14 jours pour tester Freescale. Vous pourrez ensuite choisir
+              sereinement entre les plans 19 € et 29 € par mois.
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="mx-auto mt-8 grid max-w-xl gap-3 text-left sm:grid-cols-3">
         {[
           [BriefcaseBusinessIcon, "3 projets", "identifiés"],
