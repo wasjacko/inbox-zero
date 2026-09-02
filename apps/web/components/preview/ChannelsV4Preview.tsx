@@ -536,6 +536,7 @@ const channels: Channel[] = [
   "slack",
   "telegram",
 ];
+const DESKTOP_CONVERSATIONS_PER_PAGE = 25;
 
 export function ChannelsV4Preview() {
   const router = useRouter();
@@ -644,7 +645,7 @@ export function ChannelsV4Preview() {
   }, [loadedThreads, provider, userEmail]);
 
   const loadMoreThreads = async () => {
-    if (!emailAccountId || !nextPageToken || loadingMore) return;
+    if (!emailAccountId || !nextPageToken || loadingMore) return false;
     setLoadingMore(true);
     try {
       const response = await fetch(
@@ -655,10 +656,12 @@ export function ChannelsV4Preview() {
       const page = (await response.json()) as ThreadsListResponse;
       setAdditionalThreads((current) => [...current, ...page.threads]);
       setNextPageToken(page.nextPageToken ?? null);
+      return page.threads.length > 0;
     } catch {
       toastError({
         description: "Impossible de charger les messages suivants.",
       });
+      return false;
     } finally {
       setLoadingMore(false);
     }
@@ -2085,7 +2088,7 @@ function ConversationList({
   onCheck: (ids: string[]) => void;
   onFolderChange: (folder: Folder) => void;
   onLabelFilterChange: (label: string) => void;
-  onLoadMore: () => Promise<void>;
+  onLoadMore: () => Promise<boolean>;
   onManageLabels: () => void;
   onOpen: (id: string) => void;
   onOrganizeSelection: () => void;
@@ -2096,19 +2099,33 @@ function ConversationList({
   taskTutorialStep: number | null;
 }) {
   const [selectionMode, setSelectionMode] = useState(false);
+  const [page, setPage] = useState(0);
+  const pageStart = page * DESKTOP_CONVERSATIONS_PER_PAGE;
+  const pageEnd = pageStart + DESKTOP_CONVERSATIONS_PER_PAGE;
+  const pageConversations = conversations.slice(pageStart, pageEnd);
+  const canGoNext = pageEnd < conversations.length || hasMore;
+  const filterKey = `${folder}:${labelFilter}:${source}:${query}`;
+  const pageFilterKeyRef = useRef(filterKey);
+
+  useEffect(() => {
+    if (pageFilterKeyRef.current === filterKey) return;
+    pageFilterKeyRef.current = filterKey;
+    setPage(0);
+  }, [filterKey]);
+
   const allChecked =
-    conversations.length > 0 &&
-    conversations.every((item) => checkedIds.includes(item.id));
+    pageConversations.length > 0 &&
+    pageConversations.every((item) => checkedIds.includes(item.id));
   const toggleAll = () =>
     onCheck(
       allChecked
         ? checkedIds.filter(
-            (id) => !conversations.some((item) => item.id === id),
+            (id) => !pageConversations.some((item) => item.id === id),
           )
         : [
             ...new Set([
               ...checkedIds,
-              ...conversations.map((item) => item.id),
+              ...pageConversations.map((item) => item.id),
             ]),
           ],
     );
@@ -2389,6 +2406,7 @@ function ConversationList({
               <span className="font-medium text-xs">{folderLabel}</span>
               <span className="text-muted-foreground text-xs">
                 {conversations.length}
+                {hasMore ? "+" : ""}
               </span>
               {source !== "all" ? (
                 <Badge className="gap-1 border-0 bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">
@@ -2414,7 +2432,7 @@ function ConversationList({
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 sm:px-3 lg:px-4">
-        {conversations.map((conversation) => {
+        {pageConversations.map((conversation) => {
           const checked = checkedIds.includes(conversation.id);
           return (
             <div
@@ -2520,19 +2538,39 @@ function ConversationList({
             </div>
           );
         })}
-        {hasMore ? (
-          <div className="flex justify-center px-3 py-4">
+        {conversations.length ? (
+          <div className="sticky bottom-0 flex items-center justify-between border-t bg-background/95 px-3 py-3 backdrop-blur sm:px-4">
             <Button
-              className="gap-2"
-              disabled={loadingMore}
-              onClick={onLoadMore}
+              className="gap-1.5"
+              disabled={page === 0 || loadingMore}
+              onClick={() => setPage((current) => Math.max(0, current - 1))}
+              size="sm"
+              variant="outline"
+            >
+              <ArrowLeftIcon className="size-4" />
+              Précédent
+            </Button>
+            <span className="font-medium text-muted-foreground text-xs">
+              Page {page + 1}
+            </span>
+            <Button
+              className="gap-1.5"
+              disabled={!canGoNext || loadingMore}
+              onClick={async () => {
+                if (pageEnd < conversations.length) {
+                  setPage((current) => current + 1);
+                  return;
+                }
+                if (await onLoadMore()) setPage((current) => current + 1);
+              }}
               size="sm"
               variant="outline"
             >
               {loadingMore ? (
                 <LoaderCircleIcon className="size-4 animate-spin" />
               ) : null}
-              {loadingMore ? "Chargement…" : "Afficher plus de messages"}
+              Suivant
+              {!loadingMore ? <ArrowRightIcon className="size-4" /> : null}
             </Button>
           </div>
         ) : null}

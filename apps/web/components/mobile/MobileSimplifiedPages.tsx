@@ -657,7 +657,7 @@ export function MobileChannelsPreview({
   onCompose?: (recipient: string, message: string) => Promise<boolean>;
   onCreateTask?: (id: string) => void;
   onMarkRead?: (id: string) => Promise<boolean>;
-  onLoadMore?: () => Promise<void>;
+  onLoadMore?: () => Promise<boolean>;
   onEnableContactPhotos?: () => Promise<void>;
   onOpenConversation?: (id: string) => void;
   onReply?: (id: string, message: string) => Promise<boolean>;
