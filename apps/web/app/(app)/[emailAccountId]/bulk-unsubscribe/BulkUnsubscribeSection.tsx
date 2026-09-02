@@ -343,6 +343,16 @@ export function BulkUnsubscribe() {
 
   const { userLabels } = useLabels();
 
+  const removedCount = useMemo(
+    () =>
+      (data?.newsletters ?? []).filter(
+        (newsletter) =>
+          newsletter.status === "UNSUBSCRIBED" ||
+          newsletter.status === "AUTO_ARCHIVED",
+      ).length,
+    [data?.newsletters],
+  );
+
   const { PremiumModal, openModal } = usePremiumModal();
 
   // Data is now filtered, sorted, and limited by the backend
@@ -473,37 +483,37 @@ export function BulkUnsubscribe() {
     <PageWrapper>
       <PageHeader
         title="Tri et désabonnement"
+        videoButtonLabel="Regarder la vidéo"
         video={{
-          title: "Getting started with Bulk Unsubscribe",
+          title: "Bien démarrer avec le tri et le désabonnement",
           description: (
             <>
-              Learn how to quickly bulk unsubscribe from and archive unwanted
-              emails. You can read more in our{" "}
+              Découvrez comment désabonner et écarter rapidement les e-mails
+              indésirables. Consultez aussi notre{" "}
               <TextLink
                 href="https://docs.getinboxzero.com/essentials/bulk-email-unsubscriber"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                help center
+                centre d’aide
               </TextLink>
               .
             </>
           ),
           youtubeVideoId: "T1rnooV4OYc",
         }}
+        actions={
+          <Button
+            disabled={removedCount === 0}
+            onClick={() => setFilter("unsubscribed")}
+            size="sm"
+            variant="outline"
+          >
+            <MailXIcon className="size-4" />
+            Voir mes suppressions ({removedCount})
+          </Button>
+        }
       />
-
-      <section className="my-4 rounded-xl border bg-muted/20 p-4">
-        <h2 className="font-medium text-sm">
-          Tous les expéditeurs de Canaux, regroupés
-        </h2>
-        <p className="mt-1 text-muted-foreground text-sm leading-6">
-          Chaque ligne regroupe tous les e-mails d’un même expéditeur. Marquez
-          vos clients à conserver, désabonnez les publicités, ou choisissez «
-          Pas un client » pour écarter leurs messages actuels et futurs. Les
-          éléments écartés restent accessibles dans l’onglet « Écartés ».
-        </p>
-      </section>
 
       {cameFromChannelConnection ? (
         <section className="my-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
@@ -526,9 +536,7 @@ export function BulkUnsubscribe() {
         className="my-4"
         icon={<ArchiveIcon className="size-5" />}
         title="Getting started with Bulk Unsubscribe"
-        description={
-          "Learn how to use the Bulk Unsubscribe to unsubscribe from and archive unwanted emails."
-        }
+        description="Découvrez comment utiliser le tri et le désabonnement pour écarter les e-mails indésirables."
         videoSrc="https://www.youtube.com/embed/T1rnooV4OYc"
         youtubeVideoId="T1rnooV4OYc"
         thumbnailSrc="https://img.youtube.com/vi/T1rnooV4OYc/0.jpg"

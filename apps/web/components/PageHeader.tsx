@@ -13,6 +13,7 @@ interface PageHeaderProps {
   description?: string;
   title: string;
   video?: Video;
+  videoButtonLabel?: string;
 }
 
 export function PageHeader({
@@ -20,6 +21,7 @@ export function PageHeader({
   title,
   video,
   description,
+  videoButtonLabel,
 }: PageHeaderProps) {
   return (
     <div>
@@ -31,7 +33,7 @@ export function PageHeader({
           )}
         </div>
         {video && (video.youtubeVideoId || video.muxPlaybackId) && (
-          <PageHeaderVideoButton video={video} />
+          <PageHeaderVideoButton label={videoButtonLabel} video={video} />
         )}
         {actions && <div className="ml-auto shrink-0">{actions}</div>}
       </div>

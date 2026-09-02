@@ -479,6 +479,7 @@ export function BulkUnsubscribePreview() {
         <PageWrapper>
           <PageHeader
             title="Désabonnement"
+            videoButtonLabel="Regarder la vidéo"
             video={{
               title: "Bien démarrer avec le désabonnement",
               description:
@@ -486,51 +487,68 @@ export function BulkUnsubscribePreview() {
               youtubeVideoId: "T1rnooV4OYc",
             }}
             actions={
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-9"
-                    aria-label="Options de désabonnement"
-                  >
-                    <MoreHorizontalIcon className="size-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem
-                    disabled={removedSenders.length === 0}
-                    onClick={() => {
-                      setFilter("Removed");
-                      setSuggestedMode(false);
-                      setQuery("");
-                      setSelected(new Set());
-                      setLoadedCount(bulkUnsubscribeSenders.length);
-                    }}
-                  >
-                    <Undo2Icon />
-                    Éléments retirés
-                    {removedSenders.length > 0 && (
-                      <span className="ml-auto text-muted-foreground">
-                        {removedSenders.length}
-                      </span>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    disabled={removedSenders.length === 0}
-                    onClick={() =>
-                      setPendingAction({
-                        emails: removedSenders.map((sender) => sender.email),
-                        action: "Restore",
-                      })
-                    }
-                  >
-                    <RotateCcwIcon />
-                    Tout restaurer
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center gap-2">
+                <Button
+                  disabled={removedSenders.length === 0}
+                  onClick={() => {
+                    setFilter("Removed");
+                    setSuggestedMode(false);
+                    setQuery("");
+                    setSelected(new Set());
+                    setLoadedCount(bulkUnsubscribeSenders.length);
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  <Undo2Icon className="size-4" />
+                  Voir mes suppressions ({removedSenders.length})
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-9"
+                      aria-label="Options de désabonnement"
+                    >
+                      <MoreHorizontalIcon className="size-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem
+                      disabled={removedSenders.length === 0}
+                      onClick={() => {
+                        setFilter("Removed");
+                        setSuggestedMode(false);
+                        setQuery("");
+                        setSelected(new Set());
+                        setLoadedCount(bulkUnsubscribeSenders.length);
+                      }}
+                    >
+                      <Undo2Icon />
+                      Éléments retirés
+                      {removedSenders.length > 0 && (
+                        <span className="ml-auto text-muted-foreground">
+                          {removedSenders.length}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={removedSenders.length === 0}
+                      onClick={() =>
+                        setPendingAction({
+                          emails: removedSenders.map((sender) => sender.email),
+                          action: "Restore",
+                        })
+                      }
+                    >
+                      <RotateCcwIcon />
+                      Tout restaurer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             }
           />
 

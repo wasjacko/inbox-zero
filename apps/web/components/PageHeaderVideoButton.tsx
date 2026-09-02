@@ -14,7 +14,13 @@ type Video = {
   muxPlaybackId?: string;
 };
 
-export function PageHeaderVideoButton({ video }: { video: Video }) {
+export function PageHeaderVideoButton({
+  video,
+  label = "Watch demo",
+}: {
+  video: Video;
+  label?: string;
+}) {
   const analytics = useVideoAnalytics({
     muxPlaybackId: video.muxPlaybackId,
     surface: "page_header",
@@ -31,7 +37,7 @@ export function PageHeaderVideoButton({ video }: { video: Video }) {
           onClick={() => analytics.trackOpened({ trigger: "page_header" })}
         >
           <PlayIcon className="mr-2 size-3" />
-          Watch demo
+          {label}
         </Button>
       </DialogTrigger>
       <OnboardingDialogContent
