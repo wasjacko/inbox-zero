@@ -1151,7 +1151,7 @@ export function useBulkUnsubscribeShortcuts<T extends Row>({
 }
 
 export function useNewsletterFilter() {
-  const [filter, setFilter] = useState<NewsletterFilterType>("unhandled");
+  const [filter, setFilter] = useState<NewsletterFilterType>("all");
 
   // Convert single filter to array format for API compatibility
   const filtersArray: (

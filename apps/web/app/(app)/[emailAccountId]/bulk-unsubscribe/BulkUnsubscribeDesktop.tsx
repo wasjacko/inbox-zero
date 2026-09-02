@@ -45,7 +45,9 @@ export function BulkUnsubscribeDesktop({
           <TableHead className="w-10 pr-0">
             <ButtonCheckbox
               label={
-                isAllSelected ? "Deselect all senders" : "Select all senders"
+                isAllSelected
+                  ? "Désélectionner tous les expéditeurs"
+                  : "Sélectionner tous les expéditeurs"
               }
               checked={isAllSelected}
               indeterminate={isSomeSelected && !isAllSelected}
@@ -53,7 +55,7 @@ export function BulkUnsubscribeDesktop({
             />
           </TableHead>
           <TableHead className="pl-8">
-            <span className="text-sm font-medium">From</span>
+            <span className="text-sm font-medium">Expéditeur</span>
           </TableHead>
           <TableHead className="whitespace-nowrap">
             <HeaderButton
@@ -63,7 +65,7 @@ export function BulkUnsubscribeDesktop({
               }
               onClick={() => onSort("emails")}
             >
-              Emails
+              E-mails
             </HeaderButton>
           </TableHead>
           <TableHead className="whitespace-nowrap">
@@ -74,7 +76,7 @@ export function BulkUnsubscribeDesktop({
               }
               onClick={() => onSort("unread")}
             >
-              Read
+              Taux de lecture
             </HeaderButton>
           </TableHead>
           <TableHead className="w-[196px]" />
@@ -117,7 +119,7 @@ export function BulkUnsubscribeRowDesktop({
     >
       <TableCell className="w-10 pr-0" data-cell="checkbox">
         <ButtonCheckbox
-          label={`Select ${item.fromName || item.name}`}
+          label={`Sélectionner ${item.fromName || item.name}`}
           checked={checked}
           onChange={(shiftKey) => onToggleSelect?.(item.name, shiftKey)}
         />
@@ -140,10 +142,10 @@ export function BulkUnsubscribeRowDesktop({
           </div>
         </div>
       </TableCell>
-      <TableCell className="whitespace-nowrap" data-label="Emails">
+      <TableCell className="whitespace-nowrap" data-label="E-mails">
         <span className="font-medium text-foreground/80">{item.value}</span>
       </TableCell>
-      <TableCell className="whitespace-nowrap" data-label="Read">
+      <TableCell className="whitespace-nowrap" data-label="Taux de lecture">
         <div className="flex items-center gap-2">
           <Progress
             value={readPercentage}

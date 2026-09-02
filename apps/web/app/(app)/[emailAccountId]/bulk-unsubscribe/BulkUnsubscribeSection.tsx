@@ -85,28 +85,28 @@ const filterOptions: {
   separatorAfter?: boolean;
 }[] = [
   {
-    label: "Unhandled",
+    label: "À trier",
     value: "unhandled",
     icon: <InboxIcon className="size-4" />,
   },
   {
-    label: "All",
+    label: "Tous les expéditeurs",
     value: "all",
     icon: <ListIcon className="size-4" />,
     separatorAfter: true,
   },
   {
-    label: "Unsubscribed",
+    label: "Désabonnés",
     value: "unsubscribed",
     icon: <MailXIcon className="size-4" />,
   },
   {
-    label: "Auto Archive",
+    label: "Écartés",
     value: "autoArchived",
     icon: <ArchiveIcon className="size-4" />,
   },
   {
-    label: "Approved",
+    label: "Clients conservés",
     value: "approved",
     icon: <ThumbsUpIcon className="size-4" />,
   },
@@ -117,9 +117,9 @@ const selectOptions = [
   { label: "Last month", value: "30" },
   { label: "Last 3 months", value: "90" },
   { label: "Last year", value: "365" },
-  { label: "All", value: "0" },
+  { label: "Tous les e-mails", value: "0" },
 ];
-const defaultSelected = selectOptions[2];
+const defaultSelected = selectOptions[4];
 
 export function BulkUnsubscribe() {
   const [dateDropdown, setDateDropdown] = useState<string>(
@@ -145,16 +145,10 @@ export function BulkUnsubscribe() {
     [now],
   );
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(now, Number.parseInt(defaultSelected.value)),
-    to: now,
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const { isLoading: isStatsLoaderLoading, onLoad } = useStatLoader();
   const refreshInterval = isStatsLoaderLoading ? 5000 : 1_000_000;
-  useEffect(() => {
-    onLoad({ loadBefore: false, showToast: false });
-  }, [onLoad]);
 
   const { emailAccountId, userEmail } = useAccount();
 
@@ -203,6 +197,27 @@ export function BulkUnsubscribe() {
     refreshInterval,
     keepPreviousData: true,
   });
+  const [isInitialSyncing, setIsInitialSyncing] = useState(false);
+  const [initialSyncComplete, setInitialSyncComplete] = useState(false);
+  const hasStartedInitialSync = useRef(false);
+
+  const syncChannelEmails = useCallback(async () => {
+    setIsInitialSyncing(true);
+    try {
+      await onLoad({ loadBefore: false, showToast: false });
+      await mutate();
+    } finally {
+      setIsInitialSyncing(false);
+      setInitialSyncComplete(true);
+    }
+  }, [mutate, onLoad]);
+
+  useEffect(() => {
+    if (isLoading || !data || data.newsletters.length > 0) return;
+    if (hasStartedInitialSync.current) return;
+    hasStartedInitialSync.current = true;
+    syncChannelEmails().catch(() => {});
+  }, [data, isLoading, syncChannelEmails]);
 
   // Track whether we're switching views (filter, sort, search, date range, expanded)
   // Show skeleton when validating with different params, not on background refresh
@@ -395,6 +410,18 @@ export function BulkUnsubscribe() {
         }}
       />
 
+      <section className="my-4 rounded-xl border bg-muted/20 p-4">
+        <h2 className="font-medium text-sm">
+          Tous les expéditeurs de Canaux, regroupés
+        </h2>
+        <p className="mt-1 text-muted-foreground text-sm leading-6">
+          Chaque ligne regroupe tous les e-mails d’un même expéditeur. Marquez
+          vos clients à conserver, désabonnez les publicités, ou choisissez «
+          Pas un client » pour écarter leurs messages actuels et futurs. Les
+          éléments écartés restent accessibles dans l’onglet « Écartés ».
+        </p>
+      </section>
+
       {cameFromChannelConnection ? (
         <section className="my-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
           <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
@@ -514,7 +541,8 @@ export function BulkUnsubscribe() {
       />
 
       <Card className="mt-2 md:mt-4 max-sm:border-0 max-sm:shadow-none">
-        {(isStatsLoading && !isLoading && !data?.newsletters.length) ||
+        {(isInitialSyncing && !data?.newsletters.length) ||
+        (isStatsLoading && !isLoading && !data?.newsletters.length) ||
         showSkeleton ? (
           <BulkUnsubscribeDesktopSkeleton />
         ) : (
@@ -561,11 +589,26 @@ export function BulkUnsubscribe() {
             ) : (
               <div className="flex flex-col items-center justify-center py-16 px-4">
                 <InboxIcon className="h-16 w-16 text-gray-300" />
-                <h3 className="mt-4 text-lg font-semibold">No emails found</h3>
+                <h3 className="mt-4 text-lg font-semibold">
+                  {initialSyncComplete
+                    ? "Aucun e-mail entrant trouvé"
+                    : "Préparation du tri"}
+                </h3>
                 <p className="mt-2 text-center text-muted-foreground">
-                  Adjust the filters or click "Load More" to load additional
-                  emails.
+                  {initialSyncComplete
+                    ? "Relancez l’analyse pour synchroniser les derniers e-mails de votre canal."
+                    : "Freescale va regrouper les e-mails de votre canal par expéditeur."}
                 </p>
+                <Button
+                  className="mt-5"
+                  disabled={isInitialSyncing}
+                  onClick={syncChannelEmails}
+                  variant="outline"
+                >
+                  {isInitialSyncing
+                    ? "Analyse en cours…"
+                    : "Analyser mes e-mails"}
+                </Button>
               </div>
             )}
           </LoadingContent>

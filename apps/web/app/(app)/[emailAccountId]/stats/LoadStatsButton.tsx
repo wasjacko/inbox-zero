@@ -20,7 +20,7 @@ export function LoadStatsButton() {
         ) : (
           <RefreshCcw className="mr-2 hidden h-4 w-4 sm:block" />
         )}
-        {isLoading ? "Loading more..." : "Load more"}
+        {isLoading ? "Chargement…" : "Charger plus d’e-mails"}
       </Button>
     </div>
   );

@@ -169,10 +169,10 @@ function UnsubscribeButton<T extends Row>({
   const isUnsubscribed = item.status === NewsletterStatus.UNSUBSCRIBED;
 
   const buttonText = isUnsubscribed
-    ? "Resubscribe"
+    ? "Restaurer"
     : hasUnsubscribeLink
-      ? "Unsubscribe"
-      : "Block";
+      ? "Désabonner"
+      : "Pas un client";
 
   const senderName = item.fromName || extractNameFromEmail(item.name);
 
@@ -186,7 +186,7 @@ function UnsubscribeButton<T extends Row>({
         onClick={() => setResubscribeDialogOpen(true)}
       >
         {unsubscribeLoading && <ButtonLoader />}
-        Resubscribe
+        Restaurer
       </Button>
     ) : (
       <Button
@@ -250,8 +250,8 @@ function ApproveButton<T extends Row>({
     <Tooltip
       content={
         isApproved
-          ? "Approved sender. Keep these emails in your inbox."
-          : "Approve sender to keep these emails in your inbox."
+          ? "Client conservé : ses e-mails restent dans Canaux."
+          : "Marquer cet expéditeur comme client à conserver."
       }
     >
       <Button
@@ -263,6 +263,7 @@ function ApproveButton<T extends Row>({
         <ThumbsUpIcon
           className={`size-5 ${isApproved ? "" : "text-gray-400"}`}
         />
+        <span>{isApproved ? "Client" : "Conserver"}</span>
       </Button>
     </Tooltip>
   );
@@ -428,7 +429,7 @@ export function MoreDropdown<T extends Row>({
               }}
             >
               <ArchiveRestoreIcon className="mr-2 size-4" />
-              <span>Auto archive</span>
+              <span>Pas un client · écarter</span>
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onClick={() => onBulkArchive([item])}>
@@ -437,7 +438,7 @@ export function MoreDropdown<T extends Row>({
             ) : (
               <ArchiveIcon className="mr-2 size-4" />
             )}
-            <span>Archive all</span>
+            <span>Archiver les e-mails actuels</span>
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
