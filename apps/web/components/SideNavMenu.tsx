@@ -56,25 +56,30 @@ export function SideNavMenu({
             event.shiftKey ||
             event.altKey ||
             item.target === "_blank";
+          if (!openSeparately) {
+            event.preventDefault();
+            closeMobileSidebar("left-sidebar");
+            router.push(item.href);
+          }
+
           const destinationAppPage = getAppPageFromNavItem({
             name: item.name,
             href: item.href,
           });
 
-          posthog.capture(PRODUCT_ANALYTICS_EVENTS.navigationClicked, {
-            ...getAppPageProperties(currentAppPage),
-            destination_page: destinationAppPage,
-            destination_page_label: destinationAppPage
-              ? APP_PAGES[destinationAppPage].label
-              : undefined,
-            nav_item: item.name,
-            nav_href_type: getNavHrefType(item.href),
-          });
-          if (openSeparately) return;
-
-          event.preventDefault();
-          closeMobileSidebar("left-sidebar");
-          router.push(item.href);
+          try {
+            posthog.capture(PRODUCT_ANALYTICS_EVENTS.navigationClicked, {
+              ...getAppPageProperties(currentAppPage),
+              destination_page: destinationAppPage,
+              destination_page_label: destinationAppPage
+                ? APP_PAGES[destinationAppPage].label
+                : undefined,
+              nav_item: item.name,
+              nav_href_type: getNavHrefType(item.href),
+            });
+          } catch {
+            // Analytics must never prevent navigation.
+          }
         };
         const content = (
           <>
