@@ -309,6 +309,36 @@ describe("GmailProvider.getThreadsWithQuery", () => {
       format: "metadata",
     });
   });
+
+  it("returns the exact Gmail inbox total instead of the list estimate", async () => {
+    vi.spyOn(gmailMessageModule, "getMessagesBatch").mockResolvedValue([]);
+    const provider = new GmailProvider({
+      users: {
+        labels: {
+          get: vi.fn().mockResolvedValue({
+            data: { id: GmailLabel.INBOX, messagesTotal: 1847 },
+          }),
+        },
+        messages: {
+          list: vi.fn().mockResolvedValue({
+            data: { messages: [], resultSizeEstimate: 200 },
+          }),
+        },
+      },
+      context: {
+        _options: {
+          auth: { credentials: { access_token: "access-token" } },
+        },
+      },
+    } as any);
+
+    const result = await provider.getThreadsWithQuery({
+      query: { type: "inbox" },
+      messageFormat: "metadata",
+    });
+
+    expect(result.totalCount).toBe(1847);
+  });
 });
 
 describe("GmailProvider.updateDraft", () => {

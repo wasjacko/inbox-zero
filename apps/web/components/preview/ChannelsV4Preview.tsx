@@ -43,6 +43,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useEffect,
   useContext,
   useLayoutEffect,
@@ -590,12 +591,8 @@ export function ChannelsV4Preview() {
   const [taskDue, setTaskDue] = useState("");
   const [taskPriority, setTaskPriority] = useState<EmailTaskPriority>("medium");
   const [taskCreating, setTaskCreating] = useState(false);
-  const [additionalThreads, setAdditionalThreads] = useState<
-    ThreadsListResponse["threads"]
-  >([]);
-  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const loadedAccountIdRef = useRef(emailAccountId);
+  const loadingMoreRef = useRef(false);
   const [taskTutorialStep, setTaskTutorialStep] = useState<number | null>(
     taskTutorialRequested ? 1 : null,
   );
@@ -612,27 +609,12 @@ export function ChannelsV4Preview() {
     return channels.filter((channel) => detected.has(channel));
   }, [conversations, provider]);
 
-  useEffect(() => {
-    if (loadedAccountIdRef.current === emailAccountId) return;
-    loadedAccountIdRef.current = emailAccountId;
-    setAdditionalThreads([]);
-    setNextPageToken(null);
-  }, [emailAccountId]);
-
-  useEffect(() => {
-    if (!realThreads || additionalThreads.length > 0) return;
-    setNextPageToken(realThreads.nextPageToken ?? null);
-  }, [additionalThreads.length, realThreads]);
-
   const loadedThreads = useMemo(() => {
     const byId = new Map(
-      [...(realThreads?.threads ?? []), ...additionalThreads].map((thread) => [
-        thread.id,
-        thread,
-      ]),
+      (realThreads?.threads ?? []).map((thread) => [thread.id, thread]),
     );
     return [...byId.values()];
-  }, [additionalThreads, realThreads]);
+  }, [realThreads]);
 
   useEffect(() => {
     setConversations(
@@ -644,18 +626,36 @@ export function ChannelsV4Preview() {
     );
   }, [loadedThreads, provider, userEmail]);
 
-  const loadMoreThreads = async () => {
-    if (!emailAccountId || !nextPageToken || loadingMore) return false;
+  const loadMoreThreads = useCallback(async () => {
+    const pageToken = realThreads?.nextPageToken;
+    if (!emailAccountId || !pageToken || loadingMoreRef.current) return false;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
       const response = await fetch(
-        `${CHANNELS_THREADS_CACHE_KEY}&nextPageToken=${encodeURIComponent(nextPageToken)}`,
+        `${CHANNELS_THREADS_CACHE_KEY}&nextPageToken=${encodeURIComponent(pageToken)}`,
         { headers: { [EMAIL_ACCOUNT_HEADER]: emailAccountId } },
       );
       if (!response.ok) throw new Error("threads_page_failed");
       const page = (await response.json()) as ThreadsListResponse;
-      setAdditionalThreads((current) => [...current, ...page.threads]);
-      setNextPageToken(page.nextPageToken ?? null);
+      await refreshThreads(
+        (current) => {
+          if (!current) return page;
+          const merged = new Map(
+            [...current.threads, ...page.threads].map((thread) => [
+              thread.id,
+              thread,
+            ]),
+          );
+          return {
+            ...current,
+            threads: [...merged.values()],
+            nextPageToken: page.nextPageToken,
+            totalCount: current.totalCount ?? page.totalCount,
+          };
+        },
+        { revalidate: false },
+      );
       return page.threads.length > 0;
     } catch {
       toastError({
@@ -663,9 +663,10 @@ export function ChannelsV4Preview() {
       });
       return false;
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  };
+  }, [emailAccountId, realThreads?.nextPageToken, refreshThreads]);
 
   useEffect(() => {
     if (!selectedThread?.thread) return;
@@ -1109,7 +1110,7 @@ export function ChannelsV4Preview() {
         conversations={mobileConversations}
         error={showThreadsError}
         loading={showInitialLoading}
-        hasMore={Boolean(nextPageToken)}
+        hasMore={Boolean(realThreads?.nextPageToken)}
         loadingMore={loadingMore}
         totalMessages={realThreads?.totalCount}
         onArchive={archiveMobileConversation}
@@ -1264,7 +1265,7 @@ export function ChannelsV4Preview() {
                 folder={folder}
                 labelFilter={labelFilter}
                 labels={labels}
-                hasMore={Boolean(nextPageToken)}
+                hasMore={Boolean(realThreads?.nextPageToken)}
                 loadingMore={loadingMore}
                 totalMessages={realThreads?.totalCount}
                 onAnalyzeSelection={() => openAi("selection")}
@@ -2111,33 +2112,12 @@ function ConversationList({
   const hasLocalNextPage = pageEnd < conversations.length;
   const filterKey = `${folder}:${labelFilter}:${source}:${query}`;
   const pageFilterKeyRef = useRef(filterKey);
-  const prefetchedBoundaryRef = useRef(0);
-  const canPrefetch =
-    folder === "all" &&
-    labelFilter === "all" &&
-    source === "all" &&
-    !query.trim();
 
   useEffect(() => {
     if (pageFilterKeyRef.current === filterKey) return;
     pageFilterKeyRef.current = filterKey;
     setPage(0);
   }, [filterKey]);
-
-  useEffect(() => {
-    if (!canPrefetch || !hasMore || loadingMore) return;
-    if (pageEnd + DESKTOP_CONVERSATIONS_PER_PAGE < conversations.length) return;
-    if (prefetchedBoundaryRef.current === conversations.length) return;
-    prefetchedBoundaryRef.current = conversations.length;
-    onLoadMore().catch(() => undefined);
-  }, [
-    canPrefetch,
-    conversations.length,
-    hasMore,
-    loadingMore,
-    onLoadMore,
-    pageEnd,
-  ]);
 
   const allChecked =
     pageConversations.length > 0 &&
@@ -2604,11 +2584,13 @@ function ConversationList({
             size="sm"
             variant="outline"
           >
-            {loadingMore ? (
+            {loadingMore && !hasLocalNextPage ? (
               <LoaderCircleIcon className="size-4 animate-spin" />
             ) : null}
             Suivant
-            {!loadingMore ? <ArrowRightIcon className="size-4" /> : null}
+            {!loadingMore || hasLocalNextPage ? (
+              <ArrowRightIcon className="size-4" />
+            ) : null}
           </Button>
         </div>
       ) : null}

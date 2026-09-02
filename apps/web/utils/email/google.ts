@@ -1561,12 +1561,27 @@ export class GmailProvider implements EmailProvider {
 
       if (options.messageFormat === "metadata") {
         const maxResults = options.maxResults || 50;
-        const messagePage = await getMessages(this.client, {
-          query: getQuery(),
-          labelIds: getLabelIds(type) || [],
-          maxResults: Math.min(maxResults * 2, 100),
-          pageToken: options.pageToken || undefined,
-        });
+        const isUnfilteredInbox =
+          type === "inbox" &&
+          !options.pageToken &&
+          !fromEmail &&
+          !after &&
+          !before &&
+          !isUnread &&
+          !excludeLabelNames?.length &&
+          !labelIds?.length &&
+          !labelId;
+        const [messagePage, inboxLabel] = await Promise.all([
+          getMessages(this.client, {
+            query: getQuery(),
+            labelIds: getLabelIds(type) || [],
+            maxResults: Math.min(maxResults * 2, 100),
+            pageToken: options.pageToken || undefined,
+          }),
+          isUnfilteredInbox
+            ? getLabelById({ gmail: this.client, id: GmailLabel.INBOX })
+            : Promise.resolve(undefined),
+        ]);
         const latestMessageByThread = new Map<string, string>();
         for (const message of messagePage.messages) {
           if (!latestMessageByThread.has(message.threadId)) {
@@ -1574,12 +1589,22 @@ export class GmailProvider implements EmailProvider {
           }
           if (latestMessageByThread.size >= maxResults) break;
         }
-        const messages = await getMessagesBatch({
-          messageIds: [...latestMessageByThread.values()],
-          accessToken: getAccessTokenFromClient(this.client),
-          logger: this.logger,
-          format: "metadata",
-        });
+        const accessToken = getAccessTokenFromClient(this.client);
+        const messageIdChunks = chunk([...latestMessageByThread.values()], 25);
+        const messages: ParsedMessage[] = [];
+        for (const chunkPair of chunk(messageIdChunks, 2)) {
+          const pairMessages = await Promise.all(
+            chunkPair.map((messageIds) =>
+              getMessagesBatch({
+                messageIds,
+                accessToken,
+                logger: this.logger,
+                format: "metadata",
+              }),
+            ),
+          );
+          messages.push(...pairMessages.flat());
+        }
 
         return {
           threads: messages.map((message) => ({
@@ -1588,7 +1613,8 @@ export class GmailProvider implements EmailProvider {
             snippet: decodeSnippet(message.snippet),
           })),
           nextPageToken: messagePage.nextPageToken,
-          totalCount: messagePage.resultSizeEstimate,
+          totalCount:
+            inboxLabel?.messagesTotal ?? messagePage.resultSizeEstimate,
         };
       }
 
