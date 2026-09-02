@@ -224,7 +224,7 @@ export function BulkUnsubscribe() {
   const [channelRows, setChannelRows] = useState<Newsletter[]>([]);
 
   useEffect(() => {
-    if (!initialSyncComplete || data?.newsletters?.length) return;
+    if (data?.newsletters?.length) return;
     let cancelled = false;
     fetch("/api/threads?type=inbox&limit=100&view=list&includePlans=false")
       .then((response) => (response.ok ? response.json() : null))
@@ -266,7 +266,7 @@ export function BulkUnsubscribe() {
     return () => {
       cancelled = true;
     };
-  }, [data?.newsletters?.length, initialSyncComplete, mutate, userEmail]);
+  }, [data?.newsletters?.length, mutate, userEmail]);
 
   // Track whether we're switching views (filter, sort, search, date range, expanded)
   // Show skeleton when validating with different params, not on background refresh
