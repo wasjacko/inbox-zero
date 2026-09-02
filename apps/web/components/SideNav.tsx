@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useQueryState } from "nuqs";
 import { useMemo, useState } from "react";
 import { AccountSwitcher } from "@/components/AccountSwitcher";
@@ -78,7 +78,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { toastSuccess } from "@/components/Toast";
-import { signOut, useSession } from "@/utils/auth-client";
+import { useSession } from "@/utils/auth-client";
+import { logOut } from "@/utils/user";
 import { useSplitLabels } from "@/hooks/useLabels";
 import {
   useCleanerEnabled,
@@ -392,7 +393,6 @@ export function SideNav({
 function PreviewAccount({ placement }: { placement: "header" | "footer" }) {
   const isFooter = placement === "footer";
   const { closeMobileSidebar, isMobile, state } = useSidebar();
-  const router = useRouter();
   const { data: session } = useSession();
   const isExpandedSidebar = state.includes("left-sidebar");
   const [suggestionOpen, setSuggestionOpen] = useState(false);
@@ -403,9 +403,7 @@ function PreviewAccount({ placement }: { placement: "header" | "footer" }) {
 
   const handleSignOut = async () => {
     closeMobileSidebar("left-sidebar");
-    await signOut();
-    router.replace("/login");
-    router.refresh();
+    await logOut("/");
   };
 
   return (

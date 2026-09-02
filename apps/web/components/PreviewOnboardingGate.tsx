@@ -6,6 +6,7 @@ import {
   grantPreviewOnboardingAccess,
   hasPreviewOnboardingAccess,
 } from "@/utils/preview-onboarding";
+import { useAccount } from "@/providers/EmailAccountProvider";
 
 type GateState = "allowed" | "redirecting";
 
@@ -19,6 +20,7 @@ export function PreviewOnboardingGate({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { emailAccount, isLoading: isAccountLoading } = useAccount();
   // Render the app immediately. Starting in a hidden `checking` state means
   // mobile users only see a blank screen until the whole client bundle has
   // hydrated, which is especially painful after returning from Google OAuth.
@@ -41,6 +43,25 @@ export function PreviewOnboardingGate({
         "tokens_updated",
         "account_merged",
       ].includes(params.get("success") ?? "");
+
+      // A real mailbox already attached to the authenticated user is the
+      // authoritative signal that this is an existing workspace. Never gate
+      // it behind browser-local onboarding state.
+      if (emailAccount) {
+        try {
+          grantPreviewOnboardingAccess(localStorage, "completed");
+        } catch {
+          // Server account state remains authoritative when storage is blocked.
+        }
+        setState("allowed");
+        return;
+      }
+
+      // Keep the already-rendered app visible while account state resolves.
+      if (isAccountLoading) {
+        setState("allowed");
+        return;
+      }
 
       if (oauthSuccess || returningExistingAccount) {
         try {
@@ -91,7 +112,7 @@ export function PreviewOnboardingGate({
         mediaQueryList.removeListener?.(verifyAccess);
       }
     };
-  }, [pathname, router]);
+  }, [emailAccount, isAccountLoading, pathname, router]);
 
   return (
     <>

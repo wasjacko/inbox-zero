@@ -9,10 +9,18 @@ const navigation = vi.hoisted(() => ({
   pathname: "/chat",
   replace: vi.fn(),
 }));
+const account = vi.hoisted(() => ({
+  emailAccount: undefined as { id: string } | undefined,
+  isLoading: false,
+}));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
   useRouter: () => ({ replace: navigation.replace }),
+}));
+
+vi.mock("@/providers/EmailAccountProvider", () => ({
+  useAccount: () => account,
 }));
 
 function setMobileViewport(matches: boolean) {
@@ -34,6 +42,8 @@ describe("PreviewOnboardingGate", () => {
     window.history.replaceState(null, "", "/chat");
     navigation.pathname = "/chat";
     navigation.replace.mockReset();
+    account.emailAccount = undefined;
+    account.isLoading = false;
     setMobileViewport(true);
   });
 
@@ -100,6 +110,22 @@ describe("PreviewOnboardingGate", () => {
 
     await waitFor(() => expect(screen.getByText("Application")).not.toBeNull());
     expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
+  it("trusts a connected server mailbox over missing local onboarding state", async () => {
+    account.emailAccount = { id: "gmail-account-1" };
+
+    render(
+      <PreviewOnboardingGate>
+        <p>Application</p>
+      </PreviewOnboardingGate>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Application")).not.toBeNull());
+    expect(navigation.replace).not.toHaveBeenCalled();
+    expect(localStorage.getItem("freescale-preview-onboarding-status")).toBe(
+      "completed",
+    );
   });
 
   it("does not change the desktop preview", async () => {

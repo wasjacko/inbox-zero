@@ -18,7 +18,7 @@ import {
   WorkflowIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MueIcon } from "@/components/MueIcon";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
@@ -38,7 +38,7 @@ import {
   PREVIEW_WORKSPACE_NAME_KEY,
 } from "@/utils/preview-workspace";
 import { cn } from "@/utils";
-import { signOut } from "@/utils/auth-client";
+import { logOut } from "@/utils/user";
 import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
 
 const pageTitles = [
@@ -104,7 +104,6 @@ const morePaths = new Set<string>(
 
 export function MobileAppNavigation() {
   const pathname = usePathname();
-  const router = useRouter();
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const mueButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
@@ -120,10 +119,8 @@ export function MobileAppNavigation() {
 
   const handleSignOut = async () => {
     setSigningOut(true);
-    await signOut();
     setWorkspaceOpen(false);
-    router.replace("/login");
-    router.refresh();
+    await logOut("/");
   };
 
   useEffect(() => {
