@@ -4,6 +4,7 @@ export const PREVIEW_CONNECTED_CHANNELS_KEY =
   "freescale-preview-connected-channels";
 export const PREVIEW_CONNECTED_CHANNELS_EVENT =
   "freescale:connected-channels-change";
+export const PREVIEW_POST_ONBOARDING_SORT_PARAM = "postOnboardingSort";
 
 export const PREVIEW_ONBOARDING_ACCESS_VALUES = [
   "completed",
@@ -27,6 +28,12 @@ export function grantPreviewOnboardingAccess(
 
 export function startPreviewOnboarding(storage: Pick<Storage, "setItem">) {
   storage.setItem(PREVIEW_ONBOARDING_STATUS_KEY, "pending");
+}
+
+export function getPreviewOnboardingDestination(connectedChannels: string[]) {
+  return connectedChannels.length > 0
+    ? `/chat?onboarding=complete&${PREVIEW_POST_ONBOARDING_SORT_PARAM}=1`
+    : "/setup?onboarding=complete";
 }
 
 export function getPreviewConnectedChannels(storage: Pick<Storage, "getItem">) {

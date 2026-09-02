@@ -26,6 +26,7 @@ import { cn } from "@/utils";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { signIn, signUp } from "@/utils/auth-client";
 import {
+  getPreviewOnboardingDestination,
   grantPreviewOnboardingAccess,
   savePreviewConnectedChannels,
   startPreviewOnboarding,
@@ -844,14 +845,14 @@ function MobileOnboardingPreview() {
     window.localStorage.removeItem(mobileOnboardingStorageKey);
     grantPreviewOnboardingAccess(window.localStorage, "completed");
     window.setTimeout(() => {
-      router.push("/chat?onboarding=complete");
+      router.push(getPreviewOnboardingDestination(connectedChannels));
     }, 520);
   };
 
   const skipOnboarding = () => {
     savePreviewConnectedChannels([]);
     grantPreviewOnboardingAccess(window.localStorage, "skipped");
-    router.push("/chat");
+    router.push(getPreviewOnboardingDestination([]));
   };
 
   const canContinue =
@@ -1063,14 +1064,14 @@ function DesktopOnboardingPreview() {
     savePreviewConnectedChannels(connectedChannels);
     grantPreviewOnboardingAccess(window.localStorage, "completed");
     window.setTimeout(() => {
-      router.push("/setup?onboarding=complete");
+      router.push(getPreviewOnboardingDestination(connectedChannels));
     }, 700);
   };
 
   const skipOnboarding = () => {
     savePreviewConnectedChannels([]);
     grantPreviewOnboardingAccess(window.localStorage, "skipped");
-    router.push("/chat");
+    router.push(getPreviewOnboardingDestination([]));
   };
 
   const connectionCta =

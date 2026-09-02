@@ -90,6 +90,7 @@ import { redirectToSafeUrl } from "@/utils/redirect";
 import { toastError } from "@/components/Toast";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { prefixPath } from "@/utils/path";
+import { PREVIEW_POST_ONBOARDING_SORT_PARAM } from "@/utils/preview-onboarding";
 
 const CrispWithNoSSR = dynamic(() => import("@/components/CrispChat"));
 
@@ -3090,18 +3091,29 @@ function ChannelConnectedSuccessDialog() {
   const [dismissed, setDismissed] = useState(false);
   const success = searchParams.get("success");
   const connectedChannel = searchParams.get("channelConnected");
+  const promptedAfterOnboarding =
+    searchParams.get(PREVIEW_POST_ONBOARDING_SORT_PARAM) === "1";
   const isSuccessfulLink =
     success === "account_created_and_linked" ||
     success === "tokens_updated" ||
     success === "account_merged";
-  const open = isSuccessfulLink && Boolean(connectedChannel) && !dismissed;
-  const channelName = connectedChannel === "outlook" ? "Outlook" : "Gmail";
+  const open =
+    ((isSuccessfulLink && Boolean(connectedChannel)) ||
+      promptedAfterOnboarding) &&
+    !dismissed;
+  const channelName =
+    connectedChannel === "outlook"
+      ? "Outlook"
+      : connectedChannel === "gmail"
+        ? "Gmail"
+        : "Votre messagerie";
 
   const clearLinkingParams = () => {
     setDismissed(true);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("success");
     nextParams.delete("channelConnected");
+    nextParams.delete(PREVIEW_POST_ONBOARDING_SORT_PARAM);
     const nextUrl = nextParams.size ? `${pathname}?${nextParams}` : pathname;
     window.history.replaceState(window.history.state, "", nextUrl);
   };
@@ -3110,7 +3122,7 @@ function ChannelConnectedSuccessDialog() {
     if (!emailAccountId) return;
     const destination = prefixPath(
       emailAccountId,
-      "/bulk-unsubscribe?select=suggested&source=channel-connected",
+      `/bulk-unsubscribe?select=suggested&source=${promptedAfterOnboarding ? "onboarding" : "channel-connected"}`,
     );
     window.location.assign(destination);
   };

@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getPreviewConnectedChannels,
+  getPreviewOnboardingDestination,
   PREVIEW_CONNECTED_CHANNELS_EVENT,
   PREVIEW_CONNECTED_CHANNELS_KEY,
   savePreviewConnectedChannels,
@@ -32,5 +33,17 @@ describe("preview onboarding connections", () => {
     ]);
     expect(listener).toHaveBeenCalledOnce();
     window.removeEventListener(PREVIEW_CONNECTED_CHANNELS_EVENT, listener);
+  });
+
+  it("opens the cleanup prompt after onboarding with a connected channel", () => {
+    expect(getPreviewOnboardingDestination(["gmail"])).toBe(
+      "/chat?onboarding=complete&postOnboardingSort=1",
+    );
+  });
+
+  it("opens configuration when onboarding ends without a channel", () => {
+    expect(getPreviewOnboardingDestination([])).toBe(
+      "/setup?onboarding=complete",
+    );
   });
 });
