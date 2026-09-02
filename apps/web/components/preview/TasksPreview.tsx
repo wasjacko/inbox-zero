@@ -293,7 +293,6 @@ export function TasksPreview() {
   const {
     data: storedTasks,
     error: tasksError,
-    isLoading: tasksLoading,
     mutate: refreshTasks,
   } = useSWR<GetFreescaleTasksResponse>(
     emailAccountId ? "/api/user/tasks" : null,
@@ -305,7 +304,6 @@ export function TasksPreview() {
   const [sort, setSort] = useState<"manual" | "due" | "priority">("manual");
   const [createOpen, setCreateOpen] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>("todo");
-  const [hydrated, setHydrated] = useState(false);
   const [mueProjection, setMueProjection] =
     useState<MueWorkflowProjection | null>(null);
   const [highlightedTaskIds, setHighlightedTaskIds] = useState<string[]>([]);
@@ -387,12 +385,7 @@ export function TasksPreview() {
           : undefined,
       })),
     );
-    setHydrated(true);
   }, [storedTasks]);
-
-  useEffect(() => {
-    if (tasksError || (!tasksLoading && !storedTasks)) setHydrated(true);
-  }, [storedTasks, tasksError, tasksLoading]);
 
   useEffect(() => {
     let highlightTimer: number | undefined;
@@ -673,10 +666,7 @@ export function TasksPreview() {
           </div>
         </div>
 
-        <TabsContent
-          value="table"
-          className={cn("mt-6 space-y-6", !hydrated && "invisible")}
-        >
+        <TabsContent value="table" className="mt-6 space-y-6">
           {statuses.map((status) => (
             <TaskGroup
               key={status.id}
@@ -694,10 +684,7 @@ export function TasksPreview() {
             />
           ))}
         </TabsContent>
-        <TabsContent
-          value="kanban"
-          className={cn("mt-6", !hydrated && "invisible")}
-        >
+        <TabsContent value="kanban" className="mt-6">
           <TaskKanban
             tasks={visibleTasks}
             projectedTasks={projectedTasks}
