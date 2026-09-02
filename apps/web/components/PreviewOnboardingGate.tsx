@@ -39,9 +39,26 @@ export function PreviewOnboardingGate({
     };
 
     verifyAccess();
-    viewport.addEventListener("change", verifyAccess);
+    // Older mobile Safari exposes the legacy MediaQueryList listener API only.
+    // If the listener registration throws, the gate stays in `checking` and
+    // the app appears as a completely blank page.
+    const mediaQueryList = viewport as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+    };
+    if (typeof mediaQueryList.addEventListener === "function") {
+      mediaQueryList.addEventListener("change", verifyAccess);
+    } else {
+      mediaQueryList.addListener?.(verifyAccess);
+    }
 
-    return () => viewport.removeEventListener("change", verifyAccess);
+    return () => {
+      if (typeof mediaQueryList.removeEventListener === "function") {
+        mediaQueryList.removeEventListener("change", verifyAccess);
+      } else {
+        mediaQueryList.removeListener?.(verifyAccess);
+      }
+    };
   }, [pathname, router]);
 
   return (
@@ -57,7 +74,11 @@ export function PreviewOnboardingGate({
           aria-label="Ouverture de l’onboarding"
           className="fixed inset-0 z-[200] bg-white lg:hidden dark:bg-slate-950"
           role="status"
-        />
+        >
+          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-slate-500">
+            Chargement de votre espace…
+          </div>
+        </div>
       ) : null}
     </>
   );
