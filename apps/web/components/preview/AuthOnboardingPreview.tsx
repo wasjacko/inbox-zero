@@ -9,7 +9,9 @@ import {
   Clock3Icon,
   EyeIcon,
   EyeOffIcon,
+  LoaderCircleIcon,
   MailIcon,
+  RefreshCwIcon,
   ShieldCheckIcon,
   SparklesIcon,
   UsersRoundIcon,
@@ -18,10 +20,12 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
+import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { Button } from "@/components/ui/button";
 import { toastError } from "@/components/Toast";
 import { useAccounts } from "@/hooks/useAccounts";
+import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { cn } from "@/utils";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { signIn, signUp } from "@/utils/auth-client";
@@ -736,6 +740,43 @@ function onlyAvailableOnboardingChannels(channels: string[]) {
 }
 
 export function OnboardingPreview() {
+  const searchParams = useSearchParams();
+  const isOAuthPopup = searchParams.get("oauthPopup") === "1";
+  const oauthSuccess = searchParams.get("success");
+  const oauthError = searchParams.get("error");
+  const oauthChannel = searchParams.get("channelConnected");
+
+  useEffect(() => {
+    if (!isOAuthPopup || !window.opener) return;
+
+    window.opener.postMessage(
+      {
+        type: "freescale:onboarding-oauth-complete",
+        channel: oauthChannel,
+        success: oauthSuccess,
+        error: oauthError,
+      },
+      window.location.origin,
+    );
+    window.close();
+  }, [isOAuthPopup, oauthChannel, oauthError, oauthSuccess]);
+
+  if (isOAuthPopup) {
+    return (
+      <main className="grid min-h-svh place-items-center bg-white px-6 text-center dark:bg-slate-950">
+        <div>
+          <LoaderCircleIcon className="mx-auto size-6 animate-spin text-blue-600" />
+          <p className="mt-3 font-medium">
+            {oauthError ? "Connexion impossible" : "Connexion confirmée"}
+          </p>
+          <p className="mt-1 text-muted-foreground text-sm">
+            Vous pouvez fermer cette fenêtre.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <>
       <MobileOnboardingPreview />
@@ -761,7 +802,7 @@ type MobileOnboardingState = {
 };
 
 function useOnboardingChannelConnections() {
-  const { data: accountsData } = useAccounts();
+  const { data: accountsData, mutate: mutateAccounts } = useAccounts();
   const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
   const [connectingChannels, setConnectingChannels] = useState<string[]>([]);
 
@@ -776,6 +817,47 @@ function useOnboardingChannelConnections() {
 
     setConnectedChannels([...new Set(connected)]);
   }, [accountsData]);
+
+  useEffect(() => {
+    const handleOAuthCompletion = async (event: MessageEvent) => {
+      if (
+        event.origin !== window.location.origin ||
+        event.data?.type !== "freescale:onboarding-oauth-complete"
+      ) {
+        return;
+      }
+
+      const channel =
+        typeof event.data.channel === "string" ? event.data.channel : null;
+      if (channel) {
+        setConnectingChannels((current) =>
+          current.filter((item) => item !== channel),
+        );
+      }
+
+      if (event.data.error || !event.data.success) {
+        toastError({
+          title: "Connexion non terminée",
+          description: "Le canal n’a pas été connecté. Vous pouvez réessayer.",
+        });
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/user/email-accounts?connectedAt=${Date.now()}`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) throw new Error("Unable to refresh accounts");
+        await mutateAccounts(await response.json(), { revalidate: false });
+      } catch {
+        await mutateAccounts();
+      }
+    };
+
+    window.addEventListener("message", handleOAuthCompletion);
+    return () => window.removeEventListener("message", handleOAuthCompletion);
+  }, [mutateAccounts]);
 
   const connectChannel = async (channel: string) => {
     if (
@@ -794,13 +876,33 @@ function useOnboardingChannelConnections() {
     if (!provider) return;
 
     setConnectingChannels((current) => [...current, channel]);
+    const popup = window.open(
+      "",
+      `freescale-connect-${channel}`,
+      "popup=yes,width=560,height=720,left=120,top=80",
+    );
 
     try {
-      const url = await getAccountLinkingUrl(provider, {
-        returnTo: "/onboarding",
-      });
-      redirectToSafeUrl(url, { allowExternal: true });
+      const returnTo = popup
+        ? (`/onboarding?oauthPopup=1&channelConnected=${channel}` as const)
+        : (`/onboarding?channelConnected=${channel}` as const);
+      const url = await getAccountLinkingUrl(provider, { returnTo });
+
+      if (popup) {
+        popup.location.href = url;
+        popup.focus();
+        const closeWatcher = window.setInterval(() => {
+          if (!popup.closed) return;
+          window.clearInterval(closeWatcher);
+          setConnectingChannels((current) =>
+            current.filter((item) => item !== channel),
+          );
+        }, 500);
+      } else {
+        redirectToSafeUrl(url, { allowExternal: true });
+      }
     } catch (error) {
+      popup?.close();
       console.error(`Error initiating ${provider} account linking:`, error);
       setConnectingChannels((current) =>
         current.filter((item) => item !== channel),
@@ -1055,7 +1157,7 @@ function MobileOnboardingPreview() {
               />
             ) : null}
             {step === 4 ? (
-              <FirstValueScanStep
+              <RealFirstValueScanStep
                 connected={connectedChannels}
                 onStatusChange={setScanComplete}
               />
@@ -1323,7 +1425,7 @@ function DesktopOnboardingPreview() {
                   />
                 ) : null}
                 {step === 4 ? (
-                  <FirstValueScanStep
+                  <RealFirstValueScanStep
                     connected={connectedChannels}
                     onStatusChange={setScanComplete}
                   />
@@ -1828,7 +1930,177 @@ const understandingSteps = [
   "Priorités organisées",
 ];
 
-function FirstValueScanStep({
+type RealInboxScan = {
+  totalCount: number;
+  unreadCount: number;
+  actionCount: number;
+  fetchedCount: number;
+};
+
+function RealFirstValueScanStep({
+  connected,
+  onStatusChange,
+}: {
+  connected: string[];
+  onStatusChange: (complete: boolean) => void;
+}) {
+  const { data: accountsData } = useAccounts();
+  const gmailAccount = accountsData?.emailAccounts.find(
+    ({ account }) => account.provider === "google",
+  );
+  const [result, setResult] = useState<RealInboxScan | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const scanInbox = useCallback(async () => {
+    if (!connected.includes("gmail") || !gmailAccount?.id) {
+      setResult({
+        totalCount: 0,
+        unreadCount: 0,
+        actionCount: 0,
+        fetchedCount: 0,
+      });
+      onStatusChange(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setResult(null);
+    onStatusChange(false);
+
+    try {
+      const response = await fetch(
+        "/api/threads?view=list&limit=100&includePlans=true",
+        {
+          cache: "no-store",
+          headers: { [EMAIL_ACCOUNT_HEADER]: gmailAccount.id },
+        },
+      );
+      if (!response.ok) throw new Error("Inbox scan failed");
+
+      const data = (await response.json()) as ThreadsListResponse;
+      const threads = Array.isArray(data.threads) ? data.threads : [];
+      const scanResult = {
+        totalCount: data.totalCount ?? threads.length,
+        unreadCount: data.unreadCount ?? 0,
+        actionCount: threads.filter((thread) => thread.plans.length > 0).length,
+        fetchedCount: threads.length,
+      };
+
+      setResult(scanResult);
+      onStatusChange(true);
+    } catch (scanError) {
+      console.error("Error scanning the connected inbox:", scanError);
+      setError(
+        "Freescale n’a pas pu lire Gmail. Vérifiez l’autorisation puis réessayez.",
+      );
+      onStatusChange(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connected, gmailAccount?.id, onStatusChange]);
+
+  useEffect(() => {
+    scanInbox();
+  }, [scanInbox]);
+
+  if (isLoading || (!result && !error)) {
+    return (
+      <div className="mx-auto flex min-h-[510px] max-w-xl flex-col items-center justify-center py-8 text-center">
+        <span className="flex size-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+          <LoaderCircleIcon className="size-7 animate-spin" />
+        </span>
+        <p className="mt-6 font-medium text-blue-600 text-sm">
+          Analyse de votre vraie messagerie
+        </p>
+        <h1 className="mt-2 font-medium text-3xl tracking-[-0.045em] sm:text-[2.45rem]">
+          Lecture de Gmail en cours
+        </h1>
+        <p className="mt-4 max-w-md text-muted-foreground text-sm leading-6">
+          Freescale récupère vos échanges autorisés. Cette étape se termine
+          uniquement lorsque Gmail a répondu.
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto flex min-h-[510px] max-w-xl flex-col items-center justify-center py-8 text-center">
+        <p className="font-medium text-2xl tracking-tight">
+          L’analyse n’a pas abouti
+        </p>
+        <p className="mt-3 max-w-md text-muted-foreground text-sm leading-6">
+          {error}
+        </p>
+        <Button className="mt-6" onClick={scanInbox} variant="outline">
+          <RefreshCwIcon className="size-4" />
+          Réessayer l’analyse
+        </Button>
+      </div>
+    );
+  }
+
+  const cards = [
+    {
+      Icon: MailIcon,
+      title: `${result?.totalCount ?? 0} emails`,
+      description: "Détectés dans votre boîte Gmail",
+      tone: "bg-blue-50 text-blue-600 dark:bg-blue-950/40",
+    },
+    {
+      Icon: Clock3Icon,
+      title: `${result?.unreadCount ?? 0} non lus`,
+      description: "Comptés directement par Gmail",
+      tone: "bg-amber-50 text-amber-600 dark:bg-amber-950/40",
+    },
+    {
+      Icon: SparklesIcon,
+      title: `${result?.actionCount ?? 0} actions`,
+      description: `Identifiées sur ${result?.fetchedCount ?? 0} échanges récents`,
+      tone: "bg-violet-50 text-violet-600 dark:bg-violet-950/40",
+    },
+  ];
+
+  return (
+    <div className="mx-auto flex min-h-[510px] max-w-3xl flex-col justify-center py-3 text-center">
+      <p className="font-medium text-emerald-600 text-sm">Analyse terminée</p>
+      <h1 className="mt-2 font-medium text-3xl tracking-[-0.045em] sm:text-[2.45rem]">
+        Votre messagerie est prête.
+      </h1>
+      <p className="mx-auto mt-3 max-w-lg text-muted-foreground text-sm leading-6">
+        Ces résultats viennent directement du compte Gmail que vous venez de
+        connecter.
+      </p>
+      <div className="mt-10 grid gap-3 sm:grid-cols-3">
+        {cards.map(({ Icon, title, description, tone }) => (
+          <div
+            className="rounded-2xl border bg-white p-5 text-left shadow-[0_18px_50px_-40px_rgba(15,23,42,0.5)] dark:bg-slate-950"
+            key={description}
+          >
+            <span
+              className={cn(
+                "flex size-9 items-center justify-center rounded-xl",
+                tone,
+              )}
+            >
+              <Icon className="size-4" />
+            </span>
+            <p className="mt-5 font-medium text-xl tracking-[-0.03em]">
+              {title}
+            </p>
+            <p className="mt-1.5 text-muted-foreground text-xs leading-5">
+              {description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LegacyFirstValueScanStep({
   connected,
   onStatusChange,
 }: {
