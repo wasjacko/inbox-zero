@@ -2106,12 +2106,33 @@ function ConversationList({
   const canGoNext = pageEnd < conversations.length || hasMore;
   const filterKey = `${folder}:${labelFilter}:${source}:${query}`;
   const pageFilterKeyRef = useRef(filterKey);
+  const prefetchedBoundaryRef = useRef(0);
+  const canPrefetch =
+    folder === "all" &&
+    labelFilter === "all" &&
+    source === "all" &&
+    !query.trim();
 
   useEffect(() => {
     if (pageFilterKeyRef.current === filterKey) return;
     pageFilterKeyRef.current = filterKey;
     setPage(0);
   }, [filterKey]);
+
+  useEffect(() => {
+    if (!canPrefetch || !hasMore || loadingMore) return;
+    if (pageEnd < conversations.length) return;
+    if (prefetchedBoundaryRef.current === conversations.length) return;
+    prefetchedBoundaryRef.current = conversations.length;
+    onLoadMore().catch(() => undefined);
+  }, [
+    canPrefetch,
+    conversations.length,
+    hasMore,
+    loadingMore,
+    onLoadMore,
+    pageEnd,
+  ]);
 
   const allChecked =
     pageConversations.length > 0 &&
@@ -2538,42 +2559,6 @@ function ConversationList({
             </div>
           );
         })}
-        {conversations.length ? (
-          <div className="sticky bottom-0 flex items-center justify-between border-t bg-background/95 px-3 py-3 backdrop-blur sm:px-4">
-            <Button
-              className="gap-1.5"
-              disabled={page === 0 || loadingMore}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-              size="sm"
-              variant="outline"
-            >
-              <ArrowLeftIcon className="size-4" />
-              Précédent
-            </Button>
-            <span className="font-medium text-muted-foreground text-xs">
-              Page {page + 1}
-            </span>
-            <Button
-              className="gap-1.5"
-              disabled={!canGoNext || loadingMore}
-              onClick={async () => {
-                if (pageEnd < conversations.length) {
-                  setPage((current) => current + 1);
-                  return;
-                }
-                if (await onLoadMore()) setPage((current) => current + 1);
-              }}
-              size="sm"
-              variant="outline"
-            >
-              {loadingMore ? (
-                <LoaderCircleIcon className="size-4 animate-spin" />
-              ) : null}
-              Suivant
-              {!loadingMore ? <ArrowRightIcon className="size-4" /> : null}
-            </Button>
-          </div>
-        ) : null}
         {!conversations.length ? (
           <div className="py-16 text-center">
             <InboxIcon className="mx-auto size-8 text-muted-foreground/40" />
@@ -2581,6 +2566,42 @@ function ConversationList({
           </div>
         ) : null}
       </div>
+      {conversations.length ? (
+        <div className="flex shrink-0 items-center justify-between border-t bg-background px-4 py-3 lg:px-5">
+          <Button
+            className="gap-1.5"
+            disabled={page === 0}
+            onClick={() => setPage((current) => Math.max(0, current - 1))}
+            size="sm"
+            variant="outline"
+          >
+            <ArrowLeftIcon className="size-4" />
+            Précédent
+          </Button>
+          <span className="font-medium text-muted-foreground text-xs">
+            Page {page + 1}
+          </span>
+          <Button
+            className="gap-1.5"
+            disabled={!canGoNext || loadingMore}
+            onClick={async () => {
+              if (pageEnd < conversations.length) {
+                setPage((current) => current + 1);
+                return;
+              }
+              if (await onLoadMore()) setPage((current) => current + 1);
+            }}
+            size="sm"
+            variant="outline"
+          >
+            {loadingMore ? (
+              <LoaderCircleIcon className="size-4 animate-spin" />
+            ) : null}
+            Suivant
+            {!loadingMore ? <ArrowRightIcon className="size-4" /> : null}
+          </Button>
+        </div>
+      ) : null}
     </section>
   );
 }
