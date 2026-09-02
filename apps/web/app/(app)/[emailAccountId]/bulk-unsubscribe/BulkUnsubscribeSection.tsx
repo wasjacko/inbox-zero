@@ -24,6 +24,7 @@ import type {
   NewsletterStatsQuery,
   NewsletterStatsResponse,
 } from "@/app/api/user/stats/newsletters/route";
+import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { getDateRangeParams } from "@/app/(app)/[emailAccountId]/stats/params";
 import { NewsletterModal } from "@/app/(app)/[emailAccountId]/stats/NewsletterModal";
 import { useEmailsToIncludeFilter } from "@/app/(app)/[emailAccountId]/stats/EmailsToIncludeFilter";
@@ -54,6 +55,7 @@ import { BulkActions } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/BulkA
 import { ArchiveProgress } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/ArchiveProgress";
 import { ClientOnly } from "@/components/ClientOnly";
 import { useAccount } from "@/providers/EmailAccountProvider";
+import { extractEmailAddress, extractNameFromEmail } from "@/utils/email";
 import { LoadStatsButton } from "@/app/(app)/[emailAccountId]/stats/LoadStatsButton";
 import { PageWrapper } from "@/components/PageWrapper";
 import { PageHeader } from "@/components/PageHeader";
@@ -219,6 +221,53 @@ export function BulkUnsubscribe() {
     syncChannelEmails().catch(() => {});
   }, [data, isLoading, syncChannelEmails]);
 
+  const [channelRows, setChannelRows] = useState<Newsletter[]>([]);
+
+  useEffect(() => {
+    if (!initialSyncComplete || data?.newsletters?.length) return;
+    let cancelled = false;
+    fetch("/api/threads?type=inbox&limit=100&view=list&includePlans=false")
+      .then((response) => (response.ok ? response.json() : null))
+      .then(async (result: ThreadsListResponse | null) => {
+        if (cancelled || !result?.threads) return;
+        const grouped = new Map<string, Newsletter>();
+        for (const thread of result.threads) {
+          for (const message of thread.messages) {
+            const rawFrom = message.headers?.from ?? "";
+            const sender = extractEmailAddress(rawFrom).toLowerCase();
+            if (!sender || sender === userEmail.toLowerCase()) continue;
+            const existing = grouped.get(sender);
+            const next: Newsletter = existing ?? {
+              name: sender,
+              fromName: extractNameFromEmail(rawFrom),
+              value: 0,
+              inboxEmails: 0,
+              readEmails: 0,
+              unsubscribeLink: message.headers?.["list-unsubscribe"] ?? null,
+              autoArchived: undefined,
+              labelFilters: [],
+              status: null,
+            };
+            next.value += 1;
+            if (message.labelIds?.includes("INBOX")) next.inboxEmails += 1;
+            if (!message.labelIds?.includes("UNREAD")) next.readEmails += 1;
+            grouped.set(sender, next);
+          }
+        }
+        const sortedRows = [...grouped.values()].sort(
+          (a, b) => b.value - a.value,
+        );
+        setChannelRows(sortedRows);
+        await mutate({ newsletters: sortedRows } as NewsletterStatsResponse, {
+          revalidate: false,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [data?.newsletters?.length, initialSyncComplete, mutate, userEmail]);
+
   // Track whether we're switching views (filter, sort, search, date range, expanded)
   // Show skeleton when validating with different params, not on background refresh
   const [lastFetchedParams, setLastFetchedParams] = useState<string>("");
@@ -263,7 +312,7 @@ export function BulkUnsubscribe() {
   const { PremiumModal, openModal } = usePremiumModal();
 
   // Data is now filtered, sorted, and limited by the backend
-  const rows = data?.newsletters;
+  const rows = data?.newsletters?.length ? data.newsletters : channelRows;
   const [isSuggestedMode, setIsSuggestedMode] = useState(false);
 
   const {
