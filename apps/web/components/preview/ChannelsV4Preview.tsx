@@ -1111,6 +1111,7 @@ export function ChannelsV4Preview() {
         loading={showInitialLoading}
         hasMore={Boolean(nextPageToken)}
         loadingMore={loadingMore}
+        totalMessages={realThreads?.totalCount}
         onArchive={archiveMobileConversation}
         onCompose={sendMobileMessage}
         onCreateTask={(conversationId) => {
@@ -1265,6 +1266,7 @@ export function ChannelsV4Preview() {
                 labels={labels}
                 hasMore={Boolean(nextPageToken)}
                 loadingMore={loadingMore}
+                totalMessages={realThreads?.totalCount}
                 onAnalyzeSelection={() => openAi("selection")}
                 onCheck={setCheckedIds}
                 onFolderChange={setFolder}
@@ -2061,6 +2063,7 @@ function ConversationList({
   labels,
   hasMore,
   loadingMore,
+  totalMessages,
   onAnalyzeSelection,
   onCheck,
   onFolderChange,
@@ -2084,6 +2087,7 @@ function ConversationList({
   labels: InboxLabel[];
   hasMore: boolean;
   loadingMore: boolean;
+  totalMessages?: number;
   onAnalyzeSelection: () => void;
   onCheck: (ids: string[]) => void;
   onFolderChange: (folder: Folder) => void;
@@ -2104,6 +2108,7 @@ function ConversationList({
   const pageEnd = pageStart + DESKTOP_CONVERSATIONS_PER_PAGE;
   const pageConversations = conversations.slice(pageStart, pageEnd);
   const canGoNext = pageEnd < conversations.length || hasMore;
+  const hasLocalNextPage = pageEnd < conversations.length;
   const filterKey = `${folder}:${labelFilter}:${source}:${query}`;
   const pageFilterKeyRef = useRef(filterKey);
   const prefetchedBoundaryRef = useRef(0);
@@ -2121,7 +2126,7 @@ function ConversationList({
 
   useEffect(() => {
     if (!canPrefetch || !hasMore || loadingMore) return;
-    if (pageEnd < conversations.length) return;
+    if (pageEnd + DESKTOP_CONVERSATIONS_PER_PAGE < conversations.length) return;
     if (prefetchedBoundaryRef.current === conversations.length) return;
     prefetchedBoundaryRef.current = conversations.length;
     onLoadMore().catch(() => undefined);
@@ -2426,8 +2431,13 @@ function ConversationList({
             <>
               <span className="font-medium text-xs">{folderLabel}</span>
               <span className="text-muted-foreground text-xs">
-                {conversations.length}
-                {hasMore ? "+" : ""}
+                {folder === "all" &&
+                labelFilter === "all" &&
+                source === "all" &&
+                !query.trim() &&
+                totalMessages !== undefined
+                  ? `${totalMessages} messages Gmail`
+                  : `${conversations.length}${hasMore ? "+" : ""}`}
               </span>
               {source !== "all" ? (
                 <Badge className="gap-1 border-0 bg-muted px-1.5 py-0 text-[10px] text-muted-foreground">
@@ -2583,7 +2593,7 @@ function ConversationList({
           </span>
           <Button
             className="gap-1.5"
-            disabled={!canGoNext || loadingMore}
+            disabled={!canGoNext || (loadingMore && !hasLocalNextPage)}
             onClick={async () => {
               if (pageEnd < conversations.length) {
                 setPage((current) => current + 1);

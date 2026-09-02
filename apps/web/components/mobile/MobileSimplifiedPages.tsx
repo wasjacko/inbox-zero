@@ -634,6 +634,7 @@ export function MobileChannelsPreview({
   hasMore = false,
   loading = false,
   loadingMore = false,
+  totalMessages,
   onArchive,
   onCompose,
   onCreateTask,
@@ -653,6 +654,7 @@ export function MobileChannelsPreview({
   hasMore?: boolean;
   loading?: boolean;
   loadingMore?: boolean;
+  totalMessages?: number;
   onArchive?: (id: string) => Promise<boolean>;
   onCompose?: (recipient: string, message: string) => Promise<boolean>;
   onCreateTask?: (id: string) => void;
@@ -807,7 +809,9 @@ export function MobileChannelsPreview({
         </div>
         <div className="flex items-center justify-between pb-3 text-xs">
           <span className="text-muted-foreground">
-            {visible.length} conversation{visible.length > 1 ? "s" : ""}
+            {source === "Tous" && !query.trim() && activeFilters.size === 0
+              ? `${totalMessages ?? visible.length} message${(totalMessages ?? visible.length) > 1 ? "s" : ""} Gmail`
+              : `${visible.length} résultat${visible.length > 1 ? "s" : ""}`}
           </span>
           <button
             className="mobile-touch-target px-2 font-medium text-blue-600"

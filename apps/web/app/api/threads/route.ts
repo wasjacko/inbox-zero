@@ -108,12 +108,13 @@ async function getThreads({
   messageFormat: "full" | "metadata";
 }) {
   // Get threads using the provider
-  const { threads, nextPageToken } = await emailProvider.getThreadsWithQuery({
-    query,
-    maxResults: query.limit || 50,
-    pageToken: query.nextPageToken || undefined,
-    messageFormat,
-  });
+  const { threads, nextPageToken, totalCount } =
+    await emailProvider.getThreadsWithQuery({
+      query,
+      maxResults: query.limit || 50,
+      pageToken: query.nextPageToken || undefined,
+      messageFormat,
+    });
 
   const threadIds = threads.map((t) => t.id);
   const executedRules = includePlans
@@ -181,6 +182,7 @@ async function getThreads({
   return {
     threads: threadsWithPlans.filter(isDefined),
     nextPageToken,
+    totalCount,
   };
 }
 
@@ -202,7 +204,11 @@ function aggregateThreadPlans<
   return [...latestByRule.values()];
 }
 
-function toListThreads({ threads, nextPageToken }: ThreadsResponse) {
+function toListThreads({
+  threads,
+  nextPageToken,
+  totalCount,
+}: ThreadsResponse) {
   return {
     threads: threads.map((thread) => ({
       id: thread.id,
@@ -221,5 +227,6 @@ function toListThreads({ threads, nextPageToken }: ThreadsResponse) {
       })),
     })),
     nextPageToken,
+    totalCount,
   };
 }

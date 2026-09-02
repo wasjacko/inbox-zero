@@ -1477,6 +1477,7 @@ export class GmailProvider implements EmailProvider {
   }): Promise<{
     threads: EmailThread[];
     nextPageToken?: string;
+    totalCount?: number;
   }> {
     return this.withRateLimitTracking("get-threads-with-query", async () => {
       const {
@@ -1587,6 +1588,7 @@ export class GmailProvider implements EmailProvider {
             snippet: decodeSnippet(message.snippet),
           })),
           nextPageToken: messagePage.nextPageToken,
+          totalCount: messagePage.resultSizeEstimate,
         };
       }
 

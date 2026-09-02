@@ -214,6 +214,7 @@ export async function getMessages(
     threadId: string;
   }[];
   nextPageToken?: string;
+  resultSizeEstimate?: number;
 }> {
   const messages = await withGmailRetry(() =>
     gmail.users.messages.list({
@@ -228,6 +229,7 @@ export async function getMessages(
   return {
     messages: messages.data.messages?.filter(isMessage) || [],
     nextPageToken: messages.data.nextPageToken || undefined,
+    resultSizeEstimate: messages.data.resultSizeEstimate ?? undefined,
   };
 }
 
