@@ -589,6 +589,12 @@ export function ChannelsV4Preview() {
   const [taskDue, setTaskDue] = useState("");
   const [taskPriority, setTaskPriority] = useState<EmailTaskPriority>("medium");
   const [taskCreating, setTaskCreating] = useState(false);
+  const [additionalThreads, setAdditionalThreads] = useState<
+    ThreadsListResponse["threads"]
+  >([]);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadedAccountIdRef = useRef(emailAccountId);
   const [taskTutorialStep, setTaskTutorialStep] = useState<number | null>(
     taskTutorialRequested ? 1 : null,
   );
@@ -606,14 +612,57 @@ export function ChannelsV4Preview() {
   }, [conversations, provider]);
 
   useEffect(() => {
+    if (loadedAccountIdRef.current === emailAccountId) return;
+    loadedAccountIdRef.current = emailAccountId;
+    setAdditionalThreads([]);
+    setNextPageToken(null);
+  }, [emailAccountId]);
+
+  useEffect(() => {
+    if (!realThreads || additionalThreads.length > 0) return;
+    setNextPageToken(realThreads.nextPageToken ?? null);
+  }, [additionalThreads.length, realThreads]);
+
+  const loadedThreads = useMemo(() => {
+    const byId = new Map(
+      [...(realThreads?.threads ?? []), ...additionalThreads].map((thread) => [
+        thread.id,
+        thread,
+      ]),
+    );
+    return [...byId.values()];
+  }, [additionalThreads, realThreads]);
+
+  useEffect(() => {
     setConversations(
       toRealChannelConversations({
         provider,
-        threads: realThreads?.threads ?? [],
+        threads: loadedThreads,
         userEmail,
       }),
     );
-  }, [provider, realThreads, userEmail]);
+  }, [loadedThreads, provider, userEmail]);
+
+  const loadMoreThreads = async () => {
+    if (!emailAccountId || !nextPageToken || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const response = await fetch(
+        `${CHANNELS_THREADS_CACHE_KEY}&nextPageToken=${encodeURIComponent(nextPageToken)}`,
+        { headers: { [EMAIL_ACCOUNT_HEADER]: emailAccountId } },
+      );
+      if (!response.ok) throw new Error("threads_page_failed");
+      const page = (await response.json()) as ThreadsListResponse;
+      setAdditionalThreads((current) => [...current, ...page.threads]);
+      setNextPageToken(page.nextPageToken ?? null);
+    } catch {
+      toastError({
+        description: "Impossible de charger les messages suivants.",
+      });
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedThread?.thread) return;
@@ -1057,6 +1106,8 @@ export function ChannelsV4Preview() {
         conversations={mobileConversations}
         error={showThreadsError}
         loading={showInitialLoading}
+        hasMore={Boolean(nextPageToken)}
+        loadingMore={loadingMore}
         onArchive={archiveMobileConversation}
         onCompose={sendMobileMessage}
         onCreateTask={(conversationId) => {
@@ -1075,6 +1126,7 @@ export function ChannelsV4Preview() {
           setTaskDialogOpen(true);
         }}
         onMarkRead={markMobileConversationRead}
+        onLoadMore={loadMoreThreads}
         onOpenConversation={openConversation}
         onReply={sendMobileReply}
         onRetry={async () => {
@@ -1208,10 +1260,13 @@ export function ChannelsV4Preview() {
                 folder={folder}
                 labelFilter={labelFilter}
                 labels={labels}
+                hasMore={Boolean(nextPageToken)}
+                loadingMore={loadingMore}
                 onAnalyzeSelection={() => openAi("selection")}
                 onCheck={setCheckedIds}
                 onFolderChange={setFolder}
                 onLabelFilterChange={setLabelFilter}
+                onLoadMore={loadMoreThreads}
                 onManageLabels={() => setTagManagerOpen(true)}
                 onOpen={openConversation}
                 onOrganizeSelection={() => openOrganization(checkedIds)}
@@ -2001,10 +2056,13 @@ function ConversationList({
   folder,
   labelFilter,
   labels,
+  hasMore,
+  loadingMore,
   onAnalyzeSelection,
   onCheck,
   onFolderChange,
   onLabelFilterChange,
+  onLoadMore,
   onManageLabels,
   onOpen,
   onOrganizeSelection,
@@ -2021,10 +2079,13 @@ function ConversationList({
   folder: Folder;
   labelFilter: string;
   labels: InboxLabel[];
+  hasMore: boolean;
+  loadingMore: boolean;
   onAnalyzeSelection: () => void;
   onCheck: (ids: string[]) => void;
   onFolderChange: (folder: Folder) => void;
   onLabelFilterChange: (label: string) => void;
+  onLoadMore: () => Promise<void>;
   onManageLabels: () => void;
   onOpen: (id: string) => void;
   onOrganizeSelection: () => void;
@@ -2459,6 +2520,22 @@ function ConversationList({
             </div>
           );
         })}
+        {hasMore ? (
+          <div className="flex justify-center px-3 py-4">
+            <Button
+              className="gap-2"
+              disabled={loadingMore}
+              onClick={onLoadMore}
+              size="sm"
+              variant="outline"
+            >
+              {loadingMore ? (
+                <LoaderCircleIcon className="size-4 animate-spin" />
+              ) : null}
+              {loadingMore ? "Chargement…" : "Afficher plus de messages"}
+            </Button>
+          </div>
+        ) : null}
         {!conversations.length ? (
           <div className="py-16 text-center">
             <InboxIcon className="mx-auto size-8 text-muted-foreground/40" />

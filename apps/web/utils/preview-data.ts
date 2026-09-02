@@ -1,7 +1,7 @@
 import { createSearchParams } from "@/utils/url";
 
 export const CHANNELS_THREADS_CACHE_KEY =
-  "/api/threads?type=inbox&limit=8&view=list&includePlans=false";
+  "/api/threads?type=inbox&limit=25&view=list&includePlans=false";
 
 export const BULK_UNSUBSCRIBE_THREADS_CACHE_KEY =
   "/api/threads?type=inbox&limit=100&view=list&includePlans=false";

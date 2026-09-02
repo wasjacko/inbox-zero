@@ -631,11 +631,14 @@ export function MobileChannelsPreview({
   availableChannels = [],
   conversations = [],
   error = false,
+  hasMore = false,
   loading = false,
+  loadingMore = false,
   onArchive,
   onCompose,
   onCreateTask,
   onMarkRead,
+  onLoadMore,
   onEnableContactPhotos,
   onOpenConversation,
   onReply,
@@ -647,11 +650,14 @@ export function MobileChannelsPreview({
   availableChannels?: Array<"gmail" | "outlook">;
   conversations?: MobileChannelConversation[];
   error?: boolean;
+  hasMore?: boolean;
   loading?: boolean;
+  loadingMore?: boolean;
   onArchive?: (id: string) => Promise<boolean>;
   onCompose?: (recipient: string, message: string) => Promise<boolean>;
   onCreateTask?: (id: string) => void;
   onMarkRead?: (id: string) => Promise<boolean>;
+  onLoadMore?: () => Promise<void>;
   onEnableContactPhotos?: () => Promise<void>;
   onOpenConversation?: (id: string) => void;
   onReply?: (id: string, message: string) => Promise<boolean>;
@@ -897,6 +903,19 @@ export function MobileChannelsPreview({
             </span>
           </button>
         ))}
+        {hasMore && !loading && !error ? (
+          <div className="border-t px-4 py-3">
+            <Button
+              className="w-full"
+              disabled={loadingMore}
+              onClick={onLoadMore}
+              size="sm"
+              variant="ghost"
+            >
+              {loadingMore ? "Chargement…" : "Afficher plus de messages"}
+            </Button>
+          </div>
+        ) : null}
         {loading ? (
           <div className="px-5 py-10 text-center text-muted-foreground text-sm">
             Chargement de vos messages…
