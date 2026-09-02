@@ -1296,9 +1296,24 @@ export function MobileRelationsPreview({
         </div>
         <div className="overflow-hidden rounded-2xl border bg-card">
           {loading ? (
-            <p className="px-4 py-10 text-center text-muted-foreground text-sm">
-              Synchronisation des contacts…
-            </p>
+            <div
+              aria-label="Chargement des relations"
+              className="divide-y"
+              role="status"
+            >
+              {Array.from({ length: 3 }, (_, index) => (
+                <div
+                  className="flex min-h-[88px] items-center gap-3 p-3"
+                  key={index}
+                >
+                  <span className="size-11 shrink-0 animate-pulse rounded-full bg-muted" />
+                  <span className="min-w-0 flex-1 space-y-2">
+                    <span className="block h-3 w-32 animate-pulse rounded-full bg-muted" />
+                    <span className="block h-2.5 w-48 max-w-full animate-pulse rounded-full bg-muted" />
+                  </span>
+                </div>
+              ))}
+            </div>
           ) : error ? (
             <div className="px-4 py-8 text-center">
               <p className="font-medium text-sm">Contacts indisponibles</p>

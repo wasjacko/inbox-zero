@@ -5,10 +5,8 @@ import {
   CalendarDaysIcon,
   ChevronDownIcon,
   CircleDollarSignIcon,
-  RotateCcwIcon,
-  MessageSquareIcon,
-  LoaderCircleIcon,
   MailIcon,
+  MessageSquareIcon,
   TimerResetIcon,
   UsersRoundIcon,
   ZapIcon,
@@ -447,16 +445,6 @@ export function ClientRelationsPreview() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                aria-label="Actualiser les données"
-                onClick={() =>
-                  Promise.all([refreshRelations(), refreshActivity()])
-                }
-                size="icon"
-                variant="outline"
-              >
-                <RotateCcwIcon className="size-4" />
-              </Button>
             </div>
           </div>
 
@@ -475,9 +463,23 @@ export function ClientRelationsPreview() {
             </div>
             <div className="mt-4 overflow-hidden rounded-2xl border bg-background">
               {relationsLoading ? (
-                <div className="flex items-center justify-center px-5 py-12 text-muted-foreground text-sm">
-                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                  Synchronisation des contacts…
+                <div
+                  aria-label="Chargement des relations"
+                  className="divide-y"
+                  role="status"
+                >
+                  {Array.from({ length: 4 }, (_, index) => (
+                    <div
+                      className="flex items-center gap-3 px-4 py-3.5"
+                      key={index}
+                    >
+                      <span className="size-9 shrink-0 animate-pulse rounded-full bg-muted" />
+                      <span className="min-w-0 flex-1 space-y-2">
+                        <span className="block h-3 w-36 animate-pulse rounded-full bg-muted" />
+                        <span className="block h-2.5 w-56 max-w-full animate-pulse rounded-full bg-muted" />
+                      </span>
+                    </div>
+                  ))}
                 </div>
               ) : relationsError ? (
                 <div className="px-5 py-10 text-center">
