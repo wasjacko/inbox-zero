@@ -191,11 +191,11 @@ export function MobileChatPreview({
     }));
   }, [contactPhotos, provider, realThreads, userEmail]);
   const clientsToDisplay = realClients.slice(0, 3);
-  const unreadCount = clientsToDisplay.reduce(
+  const unreadCount = realClients.reduce(
     (total, client) => total + client.unread,
     0,
   );
-  const replyCount = clientsToDisplay.filter((client) =>
+  const replyCount = realClients.filter((client) =>
     client.headline.startsWith("Réponse à préparer"),
   ).length;
   const selectedClient = useMemo(
