@@ -623,7 +623,10 @@ export function BulkUnsubscribe() {
         ) : (
           <LoadingContent
             loading={!data && isLoading}
-            error={error}
+            // The stats endpoint may fail while the channel sync is healthy.
+            // Render the grouped channel rows instead of hiding them behind a
+            // generic error screen.
+            error={error && !channelRows.length ? error : undefined}
             loadingComponent={<BulkUnsubscribeDesktopSkeleton />}
           >
             {tableRows?.length ? (
