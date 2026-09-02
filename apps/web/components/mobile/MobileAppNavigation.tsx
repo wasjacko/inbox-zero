@@ -236,14 +236,12 @@ export function MobileAppNavigation() {
           href="/channels-v4"
           icon={<MessagesSquareIcon className="size-5" />}
           label="Canaux"
-          onClick={() => router.push("/channels-v4")}
         />
         <MobileBottomBarItem
           active={pathname === "/tasks"}
           href="/tasks"
           icon={<ListTodoIcon className="size-5" />}
           label="Tâches"
-          onClick={() => router.push("/tasks")}
         />
         <MobileBottomBarItem
           active={plusActive}

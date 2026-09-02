@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ComponentProps, ReactNode, Ref } from "react";
 import { AlertCircleIcon, ChevronLeftIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -129,14 +130,14 @@ export function MobileBottomBarItem({
 
   if (href) {
     return (
-      <a
+      <Link
         aria-current={active ? "page" : undefined}
         className={itemClassName}
         href={href}
         onClick={onClick}
       >
         {content}
-      </a>
+      </Link>
     );
   }
 

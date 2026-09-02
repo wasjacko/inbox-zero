@@ -35,11 +35,9 @@ type NavItem = {
 export function SideNavMenu({
   items,
   activeHref,
-  nativeNavigation = false,
 }: {
   items: NavItem[];
   activeHref: string;
-  nativeNavigation?: boolean;
 }) {
   const { closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
@@ -92,22 +90,9 @@ export function SideNavMenu({
               tooltip={item.name}
               sidebarName="left-sidebar"
             >
-              {nativeNavigation ? (
-                <a
-                  href={item.href}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    handleClick(false);
-                    window.location.assign(item.href);
-                  }}
-                >
-                  {content}
-                </a>
-              ) : (
-                <Link href={item.href} onClick={handleClick}>
-                  {content}
-                </Link>
-              )}
+              <Link href={item.href} onClick={handleClick}>
+                {content}
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );

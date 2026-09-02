@@ -13,7 +13,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArchiveIcon,
@@ -3011,6 +3011,14 @@ export function SideNavWithTopNav({
   previewMode?: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!previewMode) return;
+    for (const href of ["/chat", "/channels-v4", "/tasks", "/stats"]) {
+      router.prefetch(href);
+    }
+  }, [previewMode, router]);
 
   if (!pathname) return null;
 
