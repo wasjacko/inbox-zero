@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import type { ThreadsListResponse } from "@/app/api/threads/route";
+import { PageWrapper } from "@/components/PageWrapper";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,50 +43,65 @@ export function DesktopRealBrief({
 
   if (!scanStarted) {
     return (
-      <div className="flex min-h-[calc(100svh-8rem)] items-center justify-center px-6">
-        <section className="max-w-lg text-center">
-          <InboxIcon className="mx-auto size-10 text-blue-600" />
-          <h1 className="mt-5 font-medium text-4xl tracking-tight">
+      <PageWrapper className="flex min-h-[calc(100svh-8rem)] flex-col pb-10">
+        <header className="mt-4 sm:mt-8">
+          <h1 className="font-semibold text-3xl tracking-tight">
             {getPreviewGreeting(freelancerName)}
           </h1>
-          <h2 className="mt-8 font-semibold text-xl">Messagerie connectée</h2>
-          <p className="mt-3 text-muted-foreground leading-6">
-            Lancez l’analyse pour préparer un brief à partir de vos vrais
-            échanges. Rien ne sera envoyé sans votre accord.
+          <p className="mt-1 text-muted-foreground text-sm">
+            Retrouvez vos priorités et préparez votre journée avec Mue.
           </p>
-          <Button className="mt-6" onClick={() => setScanStarted(true)}>
-            Analyser mes emails
-          </Button>
+        </header>
+
+        <section className="mt-6 flex min-h-[26rem] flex-1 items-center justify-center rounded-2xl border bg-muted/15 px-6 py-12 shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+          <div className="w-full max-w-lg text-center">
+            <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/60">
+              <InboxIcon className="size-6" />
+            </span>
+            <h2 className="mt-5 font-semibold text-xl tracking-tight">
+              Messagerie connectée
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-muted-foreground text-sm leading-6">
+              Lancez l’analyse pour préparer un brief à partir de vos vrais
+              échanges. Rien ne sera envoyé sans votre accord.
+            </p>
+            <Button
+              className="mt-6 rounded-[13px] border border-[#5989f0] bg-gradient-to-b from-[#2965ec] to-[#5c89f8] px-5 text-white shadow-[0_2px_10px_rgba(75,131,253,0.2)] transition-[background-image,filter] duration-200 hover:from-[#255ddd] hover:to-[#4d7ced] hover:brightness-[1.03]"
+              onClick={() => setScanStarted(true)}
+            >
+              Analyser mes emails
+            </Button>
+          </div>
         </section>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="mx-auto min-h-[calc(100svh-8rem)] w-full max-w-3xl px-6 pb-12 pt-16">
-      <header className="text-center">
-        <h1 className="font-medium text-4xl tracking-tight">
+    <PageWrapper className="min-h-[calc(100svh-8rem)] pb-12">
+      <header className="mt-4 sm:mt-8">
+        <h1 className="font-semibold text-3xl tracking-tight">
           {getPreviewGreeting(freelancerName)}
         </h1>
-        <p className="mt-3 text-muted-foreground">
+        <p className="mt-1 text-muted-foreground text-sm">
           Voici les échanges qui méritent votre attention.
         </p>
       </header>
 
       {isLoading ? (
-        <div className="mt-16 flex items-center justify-center text-muted-foreground">
+        <div className="mt-6 flex min-h-[26rem] items-center justify-center rounded-2xl border bg-muted/15 text-muted-foreground">
           <LoaderCircleIcon className="mr-2 size-5 animate-spin" />
           Analyse de vos emails…
         </div>
       ) : error ? (
-        <div className="mt-12 rounded-2xl border p-8 text-center">
+        <div className="mt-6 rounded-2xl border bg-muted/15 p-8 text-center">
           <p className="font-medium">Impossible d’analyser vos emails.</p>
           <Button className="mt-4" onClick={() => mutate()} variant="outline">
             Réessayer
           </Button>
         </div>
       ) : conversations.length ? (
-        <div className="mt-10 grid gap-3">
+        <div className="mt-6 grid gap-3">
           {conversations.map((conversation) => (
             <Link
               className="group flex items-center gap-4 rounded-2xl border bg-background p-5 shadow-sm transition-colors hover:bg-muted/40"
@@ -123,13 +139,13 @@ export function DesktopRealBrief({
           ))}
         </div>
       ) : (
-        <div className="mt-12 rounded-2xl border p-8 text-center">
+        <div className="mt-6 rounded-2xl border bg-muted/15 p-8 text-center">
           <p className="font-medium">Aucun échange récent à traiter.</p>
           <p className="mt-2 text-muted-foreground text-sm">
             Le prochain brief utilisera les nouveaux emails reçus.
           </p>
         </div>
       )}
-    </div>
+    </PageWrapper>
   );
 }
