@@ -1573,11 +1573,12 @@ export class GmailProvider implements EmailProvider {
           }
           if (latestMessageByThread.size >= maxResults) break;
         }
-        const messages = await Promise.all(
-          [...latestMessageByThread.values()].map(async (messageId) =>
-            parseMessage(await getMessage(messageId, this.client, "metadata")),
-          ),
-        );
+        const messages = await getMessagesBatch({
+          messageIds: [...latestMessageByThread.values()],
+          accessToken: getAccessTokenFromClient(this.client),
+          logger: this.logger,
+          format: "metadata",
+        });
 
         return {
           threads: messages.map((message) => ({

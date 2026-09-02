@@ -743,6 +743,8 @@ export function ChannelsV4Preview() {
   const selected =
     conversations.find((conversation) => conversation.id === selectedId) ??
     null;
+  const showInitialLoading = threadsLoading && conversations.length === 0;
+  const showThreadsError = Boolean(threadsError) && conversations.length === 0;
 
   const mobileConversations = useMemo<MobileChannelConversation[]>(
     () =>
@@ -1099,8 +1101,8 @@ export function ChannelsV4Preview() {
             channel === "gmail" || channel === "outlook",
         )}
         conversations={mobileConversations}
-        error={Boolean(threadsError)}
-        loading={threadsLoading}
+        error={showThreadsError}
+        loading={showInitialLoading}
         onArchive={archiveMobileConversation}
         onCompose={sendMobileMessage}
         onCreateTask={(conversationId) => {
@@ -1168,11 +1170,11 @@ export function ChannelsV4Preview() {
           </div>
 
           <Card className="mt-4 flex min-h-0 flex-1 overflow-hidden shadow-sm">
-            {threadsLoading ? (
+            {showInitialLoading ? (
               <ChannelsLoadingState
                 channel={provider === "microsoft" ? "outlook" : "gmail"}
               />
-            ) : threadsError ? (
+            ) : showThreadsError ? (
               <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
                 <p className="font-medium text-sm">
                   Gmail n’a pas pu être synchronisé
