@@ -31,11 +31,18 @@ export default async function WelcomeRedirectPage(props: {
       user.createdAt.getTime() < Date.now() - 2 * 60 * 1000)
       ? "existing-account"
       : undefined;
+
+  // Google signs in an existing identity even when the user started from the
+  // sign-up screen. Returning users must recover their existing workspace and
+  // connected channels instead of being sent through first-run onboarding.
+  if (existingAccountNotice) {
+    await redirectToEmailAccountPath("/chat", {
+      notice: existingAccountNotice,
+    });
+  }
+
   if (user.completedOnboardingAt) {
-    await redirectToEmailAccountPath(
-      "/automation",
-      existingAccountNotice ? { notice: existingAccountNotice } : undefined,
-    );
+    await redirectToEmailAccountPath("/automation");
   }
 
   if (user.premiumId) {
@@ -45,16 +52,9 @@ export default async function WelcomeRedirectPage(props: {
     });
 
     if (isPremiumRecord(premium)) {
-      await redirectToEmailAccountPath(
-        "/setup",
-        existingAccountNotice ? { notice: existingAccountNotice } : undefined,
-      );
+      await redirectToEmailAccountPath("/setup");
     }
   }
 
-  redirect(
-    buildRedirectUrl("/onboarding", {
-      notice: existingAccountNotice,
-    }),
-  );
+  redirect(buildRedirectUrl("/onboarding"));
 }

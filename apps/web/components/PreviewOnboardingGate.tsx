@@ -34,13 +34,15 @@ export function PreviewOnboardingGate({
 
     const verifyAccess = () => {
       const params = new URLSearchParams(window.location.search);
+      const returningExistingAccount =
+        params.get("notice") === "existing-account";
       const oauthSuccess = [
         "account_created_and_linked",
         "tokens_updated",
         "account_merged",
       ].includes(params.get("success") ?? "");
 
-      if (oauthSuccess) {
+      if (oauthSuccess || returningExistingAccount) {
         try {
           grantPreviewOnboardingAccess(localStorage, "completed");
         } catch {

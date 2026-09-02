@@ -89,6 +89,19 @@ describe("PreviewOnboardingGate", () => {
     );
   });
 
+  it("does not send a returning existing account back to onboarding", async () => {
+    window.history.replaceState(null, "", "/chat?notice=existing-account");
+
+    render(
+      <PreviewOnboardingGate>
+        <p>Application</p>
+      </PreviewOnboardingGate>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Application")).not.toBeNull());
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
   it("does not change the desktop preview", async () => {
     setMobileViewport(false);
 

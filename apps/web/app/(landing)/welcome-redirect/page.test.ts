@@ -166,11 +166,29 @@ describe("WelcomeRedirectPage", () => {
       WelcomeRedirectPage({
         searchParams: Promise.resolve({ intent: "signup" }),
       }),
-    ).rejects.toThrow("account-redirect:/automation");
+    ).rejects.toThrow("account-redirect:/chat");
 
-    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith(
-      "/automation",
-      { notice: "existing-account" },
-    );
+    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith("/chat", {
+      notice: "existing-account",
+    });
+  });
+
+  it("skips onboarding for an older existing Google account", async () => {
+    mocks.findUser.mockResolvedValue({
+      completedOnboardingAt: null,
+      createdAt: new Date("2025-01-01T00:00:00.000Z"),
+      premiumId: null,
+    });
+
+    await expect(
+      WelcomeRedirectPage({
+        searchParams: Promise.resolve({ intent: "signup" }),
+      }),
+    ).rejects.toThrow("account-redirect:/chat");
+
+    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith("/chat", {
+      notice: "existing-account",
+    });
+    expect(mocks.findPremium).not.toHaveBeenCalled();
   });
 });
