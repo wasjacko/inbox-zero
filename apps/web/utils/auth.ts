@@ -5,6 +5,7 @@ import type { GenericOAuthConfig } from "better-auth/plugins/generic-oauth";
 import { oAuthProxy } from "better-auth/plugins";
 import { createContact as createLoopsContact } from "@inboxzero/loops";
 import { createContact as createResendContact } from "@inboxzero/resend";
+import { sendAuthVerificationEmail } from "@inboxzero/resend";
 import type { Account, AuthContext } from "better-auth";
 import { APIError, betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
@@ -224,6 +225,18 @@ export const betterAuthConfig = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    requireEmailVerification: true,
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendAuthVerificationEmail({
+        from: env.RESEND_FROM_EMAIL,
+        to: user.email,
+        url,
+      });
+    },
   },
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -286,11 +299,8 @@ export const betterAuthConfig = betterAuth({
       // Microsoft Entra email claims can be mutable/unverified, so Microsoft
       // must not implicitly link users by email during social sign-in.
       trustedProviders: ["google", "apple"],
-      // A verified identity from a trusted provider may safely attach to an
-      // existing password account with the same email address. Otherwise,
-      // password-created users without a separate email-verification step get
-      // stuck on `account_not_linked` when they first choose Google sign-in.
-      requireLocalEmailVerified: false,
+      // Never attach a social identity to an unverified password account.
+      requireLocalEmailVerified: true,
     },
   },
   verification: {

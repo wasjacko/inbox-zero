@@ -284,6 +284,23 @@ async function authMiddleware(
     );
   }
 
+  if (session.user.emailVerified === false) {
+    baseLogger.warn("Auth middleware returning 403", {
+      ...authLogContext,
+      reason: "email_not_verified",
+      userId: session.user.id,
+    });
+
+    return NextResponse.json(
+      {
+        error: "Email verification required",
+        code: "EMAIL_NOT_VERIFIED",
+        isKnownError: true,
+      },
+      { status: 403 },
+    );
+  }
+
   const authReq = req as RequestWithAuth;
   authReq.auth = { userId: session.user.id };
 

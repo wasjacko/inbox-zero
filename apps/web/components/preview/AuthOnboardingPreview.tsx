@@ -111,6 +111,9 @@ function useFreescaleAuthentication(mode: AuthMode) {
   const router = useRouter();
   const [loading, setLoading] = useState<AuthLoading>(null);
   const [error, setError] = useState<string | null>(null);
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(
+    null,
+  );
 
   const continueWithGoogle = async () => {
     setLoading("google");
@@ -138,6 +141,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
   }) => {
     setLoading("email");
     setError(null);
+    setVerificationEmail(null);
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
@@ -181,6 +185,9 @@ function useFreescaleAuthentication(mode: AuthMode) {
 
       if (mode === "signup") {
         startPreviewOnboarding(window.localStorage);
+        setVerificationEmail(normalizedEmail);
+        setLoading(null);
+        return;
       }
 
       router.push(
@@ -198,6 +205,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
     continueWithGoogle,
     error,
     loading,
+    verificationEmail,
     resetError: () => setError(null),
   };
 }
@@ -210,6 +218,9 @@ function getFreescaleAuthError(error: unknown) {
 
   if (code.includes("USER_ALREADY_EXISTS")) {
     return "Un compte existe déjà avec cette adresse email.";
+  }
+  if (code.includes("EMAIL_NOT_VERIFIED")) {
+    return "Cette adresse n’est pas encore vérifiée. Ouvrez l’e-mail de confirmation avant de vous connecter.";
   }
   if (
     code.includes("INVALID_EMAIL_OR_PASSWORD") ||
@@ -236,8 +247,13 @@ function MobileAuthPreview() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { continueWithEmail, continueWithGoogle, error, loading } =
-    useFreescaleAuthentication(mode);
+  const {
+    continueWithEmail,
+    continueWithGoogle,
+    error,
+    loading,
+    verificationEmail,
+  } = useFreescaleAuthentication(mode);
 
   const handleEmailSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -396,6 +412,15 @@ function MobileAuthPreview() {
                 {error}
               </p>
             ) : null}
+            {verificationEmail ? (
+              <p
+                className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800 text-sm dark:bg-emerald-950/30 dark:text-emerald-300"
+                role="status"
+              >
+                Vérifiez votre boîte {verificationEmail}. Le compte ne sera
+                accessible qu’après confirmation de cette adresse.
+              </p>
+            ) : null}
             <Button
               className="h-12 w-full rounded-xl"
               disabled={loading !== null}
@@ -446,8 +471,14 @@ function DesktopAuthPreview() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { continueWithEmail, continueWithGoogle, error, loading, resetError } =
-    useFreescaleAuthentication(mode);
+  const {
+    continueWithEmail,
+    continueWithGoogle,
+    error,
+    loading,
+    resetError,
+    verificationEmail,
+  } = useFreescaleAuthentication(mode);
 
   const handleEmailSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -587,6 +618,15 @@ function DesktopAuthPreview() {
             role="alert"
           >
             {error}
+          </p>
+        ) : null}
+        {verificationEmail ? (
+          <p
+            className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800 text-sm dark:bg-emerald-950/30 dark:text-emerald-300"
+            role="status"
+          >
+            Vérifiez votre boîte {verificationEmail}. Le compte ne sera
+            accessible qu’après confirmation de cette adresse.
           </p>
         ) : null}
 

@@ -78,11 +78,21 @@ describe("betterAuthConfig", () => {
     ).toEqual(["google", "apple"]);
   });
 
-  it("allows a verified Google identity to link to an existing password user", () => {
+  it("only links social identities to verified password accounts", () => {
     expect(
       (betterAuthConfig as any).options.account.accountLinking
         .requireLocalEmailVerified,
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it("requires email ownership verification for password accounts", () => {
+    expect(
+      (betterAuthConfig as any).options.emailAndPassword
+        .requireEmailVerification,
+    ).toBe(true);
+    expect(
+      (betterAuthConfig as any).options.emailVerification.sendOnSignUp,
+    ).toBe(true);
   });
 });
 

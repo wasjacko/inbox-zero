@@ -48,6 +48,7 @@ import HostBookingRescheduledEmail, {
   type HostBookingRescheduledEmailProps,
 } from "../emails/host-booking-rescheduled";
 import InvoiceEmail, { type InvoiceEmailProps } from "../emails/invoice";
+import VerifyEmail from "../emails/verify-email";
 
 const RESEND_NOT_CONFIGURED_MESSAGE =
   "Resend is not configured. You need to add a RESEND_API_KEY in your .env file for emails to work.";
@@ -152,6 +153,23 @@ const sendTransactionalEmail = async ({
 
   return result;
 };
+
+export const sendAuthVerificationEmail = async ({
+  from,
+  to,
+  url,
+}: {
+  from: string;
+  to: string;
+  url: string;
+}) =>
+  sendTransactionalEmail({
+    from,
+    to,
+    subject: "Confirmez votre adresse e-mail Freescale",
+    react: <VerifyEmail url={url} />,
+    tags: [{ name: "category", value: "email-verification" }],
+  });
 
 // export const sendStatsEmail = async ({
 //   to,

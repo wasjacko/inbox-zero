@@ -327,6 +327,23 @@ describe("Middleware", () => {
       });
     });
 
+    it("should reject an existing session with an unverified email", async () => {
+      mockAuth.mockResolvedValue({
+        user: { id: mockUserId, emailVerified: false },
+      } as any);
+      const handler: NextHandler<RequestWithAuth> = vi.fn();
+
+      const response = await withAuth(handler)(mockReq, mockContext);
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({
+        error: "Email verification required",
+        code: "EMAIL_NOT_VERIFIED",
+        isKnownError: true,
+      });
+    });
+
     it("should return 500 if auth throws", async () => {
       const authError = new Error("Session lookup failed");
       mockAuth.mockRejectedValue(authError);
