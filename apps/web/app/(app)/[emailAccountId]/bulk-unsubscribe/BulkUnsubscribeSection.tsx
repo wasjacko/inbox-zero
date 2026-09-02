@@ -222,13 +222,30 @@ export function BulkUnsubscribe() {
   }, [data, isLoading, syncChannelEmails]);
 
   const [channelRows, setChannelRows] = useState<Newsletter[]>([]);
+  const [isChannelRowsLoading, setIsChannelRowsLoading] = useState(true);
 
   useEffect(() => {
-    if (data?.newsletters?.length) return;
+    if (data?.newsletters?.length || !emailAccountId) {
+      setIsChannelRowsLoading(false);
+      return;
+    }
     let cancelled = false;
-    fetch("/api/threads?type=inbox&limit=100&view=list&includePlans=false")
-      .then((response) => (response.ok ? response.json() : null))
-      .then(async (result: ThreadsListResponse | null) => {
+    let attempt = 0;
+    const loadChannelRows = async () => {
+      try {
+        const response = await fetch(
+          "/api/threads?type=inbox&limit=100&view=list&includePlans=false",
+        );
+        const result: ThreadsListResponse | null = response.ok
+          ? await response.json()
+          : null;
+        // Gmail can finish its initial sync a moment after the page mounts.
+        // Retry briefly so the bulk view fills itself without a manual action.
+        if (!result?.threads?.length && attempt < 5 && !cancelled) {
+          attempt += 1;
+          window.setTimeout(loadChannelRows, 1500);
+          return;
+        }
         if (cancelled || !result?.threads) return;
         const grouped = new Map<string, Newsletter>();
         for (const thread of result.threads) {
@@ -261,12 +278,18 @@ export function BulkUnsubscribe() {
         await mutate({ newsletters: sortedRows } as NewsletterStatsResponse, {
           revalidate: false,
         });
-      })
-      .catch(() => {});
+      } catch {
+        // The stats loader continues in the background; keep the empty state
+        // recoverable if the channel endpoint is temporarily unavailable.
+      } finally {
+        if (!cancelled) setIsChannelRowsLoading(false);
+      }
+    };
+    loadChannelRows();
     return () => {
       cancelled = true;
     };
-  }, [data?.newsletters?.length, mutate, userEmail]);
+  }, [data?.newsletters?.length, emailAccountId, mutate, userEmail]);
 
   // Track whether we're switching views (filter, sort, search, date range, expanded)
   // Show skeleton when validating with different params, not on background refresh
@@ -591,7 +614,10 @@ export function BulkUnsubscribe() {
 
       <Card className="mt-2 md:mt-4 max-sm:border-0 max-sm:shadow-none">
         {(isInitialSyncing && !data?.newsletters.length) ||
-        (isStatsLoading && !isLoading && !data?.newsletters.length) ||
+        (isStatsLoading &&
+          !isLoading &&
+          !data?.newsletters.length &&
+          !channelRows.length) ||
         showSkeleton ? (
           <BulkUnsubscribeDesktopSkeleton />
         ) : (
@@ -639,25 +665,25 @@ export function BulkUnsubscribe() {
               <div className="flex flex-col items-center justify-center py-16 px-4">
                 <InboxIcon className="h-16 w-16 text-gray-300" />
                 <h3 className="mt-4 text-lg font-semibold">
-                  {initialSyncComplete
-                    ? "Aucun e-mail entrant trouvé"
-                    : "Préparation du tri"}
+                  {isChannelRowsLoading || !initialSyncComplete
+                    ? "Préparation du tri"
+                    : "Aucun e-mail entrant trouvé"}
                 </h3>
                 <p className="mt-2 text-center text-muted-foreground">
-                  {initialSyncComplete
-                    ? "Relancez l’analyse pour synchroniser les derniers e-mails de votre canal."
-                    : "Freescale va regrouper les e-mails de votre canal par expéditeur."}
+                  {isChannelRowsLoading || !initialSyncComplete
+                    ? "Les e-mails synchronisés sont regroupés automatiquement par expéditeur."
+                    : "Aucun e-mail entrant n’est disponible sur ce canal pour le moment."}
                 </p>
-                <Button
-                  className="mt-5"
-                  disabled={isInitialSyncing}
-                  onClick={syncChannelEmails}
-                  variant="outline"
-                >
-                  {isInitialSyncing
-                    ? "Analyse en cours…"
-                    : "Analyser mes e-mails"}
-                </Button>
+                {!isChannelRowsLoading && initialSyncComplete ? (
+                  <Button
+                    className="mt-5"
+                    disabled={isInitialSyncing}
+                    onClick={syncChannelEmails}
+                    variant="outline"
+                  >
+                    Actualiser les e-mails
+                  </Button>
+                ) : null}
               </div>
             )}
           </LoadingContent>
