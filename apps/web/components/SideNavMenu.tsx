@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import type { ComponentProps } from "react";
+import type { ComponentProps, MouseEvent } from "react";
 import type { LucideIcon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import {
   SidebarMenu,
@@ -41,13 +41,21 @@ export function SideNavMenu({
 }) {
   const { closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
   const posthog = usePostHog();
   const currentAppPage = getAppPageFromPathname(pathname);
 
   return (
     <SidebarMenu>
       {items.map((item) => {
-        const handleClick = (closeSidebar = true) => {
+        const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+          const openSeparately =
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey ||
+            item.target === "_blank";
           const destinationAppPage = getAppPageFromNavItem({
             name: item.name,
             href: item.href,
@@ -62,7 +70,11 @@ export function SideNavMenu({
             nav_item: item.name,
             nav_href_type: getNavHrefType(item.href),
           });
-          if (closeSidebar) closeMobileSidebar("left-sidebar");
+          if (openSeparately) return;
+
+          event.preventDefault();
+          closeMobileSidebar("left-sidebar");
+          router.push(item.href);
         };
         const content = (
           <>
