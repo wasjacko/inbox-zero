@@ -1,5 +1,11 @@
-import { BulkUnsubscribePreview } from "@/components/preview/MainPreviewPages";
+import { BulkUnsubscribe } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/BulkUnsubscribeSection";
+import { PermissionsCheck } from "@/app/(app)/[emailAccountId]/PermissionsCheck";
 
 export default function BulkUnsubscribePage() {
-  return <BulkUnsubscribePreview />;
+  return (
+    <>
+      <PermissionsCheck />
+      <BulkUnsubscribe />
+    </>
+  );
 }
