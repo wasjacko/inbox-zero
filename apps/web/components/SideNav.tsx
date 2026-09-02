@@ -337,13 +337,18 @@ export function SideNav({
             <>
               <SidebarGroup>
                 <SidebarGroupLabel>Gérer</SidebarGroupLabel>
-                <SideNavMenu items={navigation.manageItems} activeHref={path} />
+                <SideNavMenu
+                  items={navigation.manageItems}
+                  activeHref={path}
+                  nativeNavigation={previewMode}
+                />
               </SidebarGroup>
               <SidebarGroup>
                 <SidebarGroupLabel>Nettoyage</SidebarGroupLabel>
                 <SideNavMenu
                   items={navigation.cleanupItems}
                   activeHref={path}
+                  nativeNavigation={previewMode}
                 />
               </SidebarGroup>
             </>

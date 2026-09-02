@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import type { ComponentProps, MouseEvent } from "react";
+import type { ComponentProps } from "react";
 import type { LucideIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import {
   SidebarMenu,
@@ -35,33 +35,21 @@ type NavItem = {
 export function SideNavMenu({
   items,
   activeHref,
+  nativeNavigation = false,
 }: {
   items: NavItem[];
   activeHref: string;
+  nativeNavigation?: boolean;
 }) {
   const { closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
-  const router = useRouter();
   const posthog = usePostHog();
   const currentAppPage = getAppPageFromPathname(pathname);
 
   return (
     <SidebarMenu>
       {items.map((item) => {
-        const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
-          const openSeparately =
-            event.button !== 0 ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.shiftKey ||
-            event.altKey ||
-            item.target === "_blank";
-          if (!openSeparately) {
-            event.preventDefault();
-            closeMobileSidebar("left-sidebar");
-            router.push(item.href);
-          }
-
+        const handleClick = () => {
           const destinationAppPage = getAppPageFromNavItem({
             name: item.name,
             href: item.href,
@@ -80,6 +68,7 @@ export function SideNavMenu({
           } catch {
             // Analytics must never prevent navigation.
           }
+          closeMobileSidebar("left-sidebar");
         };
         const content = (
           <>
@@ -107,9 +96,15 @@ export function SideNavMenu({
               tooltip={item.name}
               sidebarName="left-sidebar"
             >
-              <Link href={item.href} onClick={handleClick}>
-                {content}
-              </Link>
+              {nativeNavigation ? (
+                <a href={item.href} onClick={handleClick}>
+                  {content}
+                </a>
+              ) : (
+                <Link href={item.href} onClick={handleClick}>
+                  {content}
+                </Link>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
