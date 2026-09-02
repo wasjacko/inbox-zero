@@ -17,7 +17,6 @@ import {
   SettingsIcon,
   WorkflowIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MueIcon } from "@/components/MueIcon";
@@ -398,7 +397,7 @@ function MobileNavigationRow({
   onNavigate: () => void;
 }) {
   return (
-    <Link
+    <a
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex min-h-14 items-center gap-3 px-4 transition-colors active:bg-muted",
@@ -408,11 +407,18 @@ function MobileNavigationRow({
         destructive && "text-red-600 dark:text-red-400",
       )}
       href={href}
-      onClick={onNavigate}
+      onClick={(event) => {
+        event.preventDefault();
+        onNavigate();
+        // Closing the Radix sheet can unmount a Next Link before its
+        // client-side transition starts. A native location change is reliable
+        // from both mobile Safari and installed/PWA contexts.
+        window.location.assign(href);
+      }}
     >
       <Icon className="size-5 shrink-0" />
       <span className="min-w-0 flex-1 font-medium text-sm">{label}</span>
       <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
-    </Link>
+    </a>
   );
 }

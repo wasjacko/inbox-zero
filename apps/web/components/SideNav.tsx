@@ -538,11 +538,15 @@ function PreviewAccount({ placement }: { placement: "header" | "footer" }) {
     icon: LucideIcon;
   }) {
     return (
-      <DropdownMenuItem asChild>
-        <Link href={href} onClick={() => closeMobileSidebar("left-sidebar")}>
-          <Icon className="mr-2 size-4" />
-          {children}
-        </Link>
+      <DropdownMenuItem
+        onSelect={(event) => {
+          event.preventDefault();
+          closeMobileSidebar("left-sidebar");
+          window.location.assign(href);
+        }}
+      >
+        <Icon className="mr-2 size-4" />
+        {children}
       </DropdownMenuItem>
     );
   }
