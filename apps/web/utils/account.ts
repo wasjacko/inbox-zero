@@ -36,7 +36,15 @@ export async function redirectToEmailAccountPath(
     () => getLastEmailAccountFromCookie(userId),
   );
 
-  let emailAccountId = lastEmailAccountId;
+  const validatedLastEmailAccount = lastEmailAccountId
+    ? await measureRedirectStep(timing, "validate-last-email-account", () =>
+        prisma.emailAccount.findFirst({
+          where: { id: lastEmailAccountId, userId },
+          select: { id: true },
+        }),
+      )
+    : null;
+  let emailAccountId = validatedLastEmailAccount?.id ?? null;
 
   // If no last account is available, fall back to the first account.
   if (!emailAccountId) {
@@ -56,8 +64,8 @@ export async function redirectToEmailAccountPath(
   if (!emailAccountId) {
     logRedirectTiming(timing, {
       outcome: "connect-mailbox",
-      usedLastEmailAccountCookie: !!lastEmailAccountId,
-      usedFallbackAccountLookup: !lastEmailAccountId,
+      usedLastEmailAccountCookie: !!validatedLastEmailAccount,
+      usedFallbackAccountLookup: !validatedLastEmailAccount,
       foundEmailAccount: false,
     });
     redirect(
@@ -74,8 +82,8 @@ export async function redirectToEmailAccountPath(
 
   logRedirectTiming(timing, {
     outcome: "account-path",
-    usedLastEmailAccountCookie: !!lastEmailAccountId,
-    usedFallbackAccountLookup: !lastEmailAccountId,
+    usedLastEmailAccountCookie: !!validatedLastEmailAccount,
+    usedFallbackAccountLookup: !validatedLastEmailAccount,
     foundEmailAccount: true,
   });
   redirect(redirectUrl);

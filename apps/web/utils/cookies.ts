@@ -36,6 +36,9 @@ export function parseLastEmailAccountCookieValue({
     if (parsed.userId !== userId) return null;
     return parsed.emailAccountId;
   } catch {
-    return cookieValue;
+    // Legacy cookies were not scoped to a user and can point at a deleted or
+    // different user's mailbox after sign-out. Ignore them and resolve the
+    // current user's first real mailbox from the database instead.
+    return null;
   }
 }

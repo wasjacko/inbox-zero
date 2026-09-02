@@ -86,7 +86,8 @@ export const GET = withAuth("user/email-accounts", async (request) => {
   const result = await getEmailAccounts({ userId });
   return NextResponse.json(result, {
     headers: {
-      "Cache-Control": "private, max-age=300, stale-while-revalidate=3600",
+      "Cache-Control": "private, no-store, max-age=0",
+      Vary: "Cookie",
     },
   });
 });

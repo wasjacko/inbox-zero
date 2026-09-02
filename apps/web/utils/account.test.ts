@@ -117,7 +117,7 @@ describe("redirectToEmailAccountPath", () => {
     );
   });
 
-  it("uses the last email account cookie without querying for an account", async () => {
+  it("uses the last email account cookie only after ownership validation", async () => {
     mocks.cookies.mockResolvedValue({
       get: () => ({
         value: JSON.stringify({
@@ -126,12 +126,16 @@ describe("redirectToEmailAccountPath", () => {
         }),
       }),
     });
+    mocks.findFirst.mockResolvedValue({ id: "account_123" });
 
     await expect(redirectToEmailAccountPath("/setup")).rejects.toThrow(
       "redirect:/account_123/setup",
     );
 
-    expect(mocks.findFirst).not.toHaveBeenCalled();
+    expect(mocks.findFirst).toHaveBeenCalledWith({
+      where: { id: "account_123", userId: "user_123" },
+      select: { id: true },
+    });
     expect(getAccountRedirectLog(consoleLogSpy)).toEqual(
       expect.objectContaining({
         path: "/setup",
@@ -144,6 +148,34 @@ describe("redirectToEmailAccountPath", () => {
         }),
       }),
     );
+  });
+
+  it("falls back when the cookie points to a missing or foreign account", async () => {
+    mocks.cookies.mockResolvedValue({
+      get: () => ({
+        value: JSON.stringify({
+          userId: "user_123",
+          emailAccountId: "stale_account",
+        }),
+      }),
+    });
+    mocks.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "owned_account" });
+
+    await expect(redirectToEmailAccountPath("/chat")).rejects.toThrow(
+      "redirect:/owned_account/chat",
+    );
+
+    expect(mocks.findFirst).toHaveBeenNthCalledWith(1, {
+      where: { id: "stale_account", userId: "user_123" },
+      select: { id: true },
+    });
+    expect(mocks.findFirst).toHaveBeenNthCalledWith(2, {
+      where: { userId: "user_123" },
+      select: { id: true },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
   });
 });
 

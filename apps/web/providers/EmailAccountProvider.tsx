@@ -5,19 +5,6 @@ import { useParams } from "next/navigation";
 import type { GetEmailAccountsResponse } from "@/app/api/user/email-accounts/route";
 import { setLastEmailAccountAction } from "@/utils/actions/email-account-cookie";
 
-const EMAIL_ACCOUNTS_CACHE_KEY = "freescale-email-accounts-v1";
-
-function readCachedAccounts() {
-  if (typeof window === "undefined") return null;
-  try {
-    return JSON.parse(
-      window.sessionStorage.getItem(EMAIL_ACCOUNTS_CACHE_KEY) ?? "null",
-    ) as GetEmailAccountsResponse | null;
-  } catch {
-    return null;
-  }
-}
-
 type Context = {
   emailAccount: GetEmailAccountsResponse["emailAccounts"][number] | undefined;
   emailAccountId: string;
@@ -51,12 +38,6 @@ export function EmailAccountProvider({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const cachedAccounts = readCachedAccounts();
-    if (cachedAccounts) {
-      setData(cachedAccounts);
-      setIsLoading(false);
-    }
-
     async function fetchAccounts() {
       try {
         // Not using SWR here because this will lead to a circular provider tree
@@ -69,10 +50,6 @@ export function EmailAccountProvider({
         if (response.ok) {
           const result: GetEmailAccountsResponse = await response.json();
           setData(result);
-          window.sessionStorage.setItem(
-            EMAIL_ACCOUNTS_CACHE_KEY,
-            JSON.stringify(result),
-          );
         }
       } catch (error) {
         console.error("Error fetching accounts:", error);
