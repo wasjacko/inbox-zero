@@ -84,5 +84,9 @@ async function getEmailAccounts({ userId }: { userId: string }) {
 export const GET = withAuth("user/email-accounts", async (request) => {
   const userId = request.auth.userId;
   const result = await getEmailAccounts({ userId });
-  return NextResponse.json(result);
+  return NextResponse.json(result, {
+    headers: {
+      "Cache-Control": "private, max-age=300, stale-while-revalidate=3600",
+    },
+  });
 });

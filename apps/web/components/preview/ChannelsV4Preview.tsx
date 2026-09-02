@@ -584,9 +584,6 @@ export function ChannelsV4Preview() {
       dedupingInterval: 60_000,
       keepPreviousData: true,
       revalidateOnFocus: false,
-      onSuccess(data) {
-        cacheThreads(emailAccountId, data);
-      },
     },
   );
   const requestedConversationId = searchParams.get("conversation");
@@ -642,11 +639,19 @@ export function ChannelsV4Preview() {
 
   useEffect(() => {
     const cached = readCachedThreads(emailAccountId);
-    if (cached) refreshThreads(cached, { revalidate: false });
-  }, [emailAccountId, refreshThreads]);
+    if (!cached) return;
+    setConversations(
+      toRealChannelConversations({
+        provider,
+        threads: cached.threads,
+        userEmail,
+      }),
+    );
+  }, [emailAccountId, provider, userEmail]);
 
   useEffect(() => {
     if (!realThreads || !Array.isArray(realThreads.threads)) return;
+    cacheThreads(emailAccountId, realThreads);
     setConversations(
       toRealChannelConversations({
         provider,
@@ -654,7 +659,7 @@ export function ChannelsV4Preview() {
         userEmail,
       }),
     );
-  }, [provider, realThreads, userEmail]);
+  }, [emailAccountId, provider, realThreads, userEmail]);
 
   useEffect(() => {
     if (!selectedThread?.thread) return;

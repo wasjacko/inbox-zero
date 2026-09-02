@@ -62,6 +62,10 @@ export function EmailAccountProvider({
         // Not using SWR here because this will lead to a circular provider tree
         // This is the simplest fix
         const response = await fetch("/api/user/email-accounts");
+        if (response.status === 401) {
+          window.location.replace("/login");
+          return;
+        }
         if (response.ok) {
           const result: GetEmailAccountsResponse = await response.json();
           setData(result);

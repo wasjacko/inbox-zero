@@ -79,15 +79,7 @@ export function PreviewDataGate({ children }: { children: React.ReactNode }) {
 
   if (routeIsAvailable) return children;
 
-  if (isLoading) {
-    return (
-      <div
-        aria-label="Chargement des connexions"
-        className="min-h-[60svh]"
-        role="status"
-      />
-    );
-  }
+  if (isLoading) return children;
 
   if (emailAccount) return children;
 

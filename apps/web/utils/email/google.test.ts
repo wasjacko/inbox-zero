@@ -3,7 +3,6 @@ import type { EmailThread } from "@/utils/email/types";
 import type { ParsedMessage } from "@/utils/types";
 import { GmailLabel } from "@/utils/gmail/label";
 import * as gmailLabelModule from "@/utils/gmail/label";
-import * as gmailMessageModule from "@/utils/gmail/message";
 import * as gmailThreadModule from "@/utils/gmail/thread";
 import { GmailProvider } from "./google";
 
@@ -278,14 +277,13 @@ describe("GmailProvider.getThreadsWithQuery", () => {
   });
 
   it("uses Gmail metadata format for list requests", async () => {
-    const getMessagesBatch = vi
-      .spyOn(gmailMessageModule, "getMessagesBatch")
-      .mockResolvedValue([
-        createParsedMessage({ id: "message-1", threadId: "thread-1" }),
-      ]);
+    const get = vi.fn().mockResolvedValue({
+      data: createParsedMessage({ id: "message-1", threadId: "thread-1" }),
+    });
     const provider = new GmailProvider({
       users: {
         messages: {
+          get,
           list: vi.fn().mockResolvedValue({
             data: {
               messages: [{ id: "message-1", threadId: "thread-1" }],
@@ -302,13 +300,11 @@ describe("GmailProvider.getThreadsWithQuery", () => {
 
     await provider.getThreadsWithQuery({ messageFormat: "metadata" });
 
-    expect(getMessagesBatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messageIds: ["message-1"],
-        accessToken: "access-token",
-        format: "metadata",
-      }),
-    );
+    expect(get).toHaveBeenCalledWith({
+      userId: "me",
+      id: "message-1",
+      format: "metadata",
+    });
   });
 });
 
