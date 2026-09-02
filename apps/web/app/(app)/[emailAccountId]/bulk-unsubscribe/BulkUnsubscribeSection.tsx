@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import useSWR from "swr";
+import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import { subDays } from "date-fns/subDays";
 import { ChevronDown } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
@@ -77,6 +77,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  BULK_UNSUBSCRIBE_CACHE_KEY,
+  BULK_UNSUBSCRIBE_THREADS_CACHE_KEY,
+} from "@/utils/preview-data";
 
 type Newsletter = NewsletterStatsResponse["newsletters"][number];
 
@@ -192,10 +196,13 @@ export function BulkUnsubscribe() {
     ...(search ? { search } : {}),
   };
   const urlParams = createSearchParams(params);
-  const { data, isLoading, isValidating, error, mutate } = useSWR<
+  const newsletterCacheKey = `/api/user/stats/newsletters?${urlParams}`;
+  const canUseChannelFallback =
+    newsletterCacheKey === BULK_UNSUBSCRIBE_CACHE_KEY;
+  const { data, isLoading, isValidating, error, mutate } = usePreloadedPageData<
     NewsletterStatsResponse,
     { error: string }
-  >(`/api/user/stats/newsletters?${urlParams}`, {
+  >(newsletterCacheKey, {
     refreshInterval,
     keepPreviousData: true,
   });
@@ -223,29 +230,29 @@ export function BulkUnsubscribe() {
 
   const [channelRows, setChannelRows] = useState<Newsletter[]>([]);
   const [isChannelRowsLoading, setIsChannelRowsLoading] = useState(true);
+  const { data: preloadedChannelThreads, error: preloadedChannelThreadsError } =
+    usePreloadedPageData<ThreadsListResponse>(
+      emailAccountId && canUseChannelFallback && !data?.newsletters.length
+        ? BULK_UNSUBSCRIBE_THREADS_CACHE_KEY
+        : null,
+      { dedupingInterval: 60_000, revalidateOnFocus: false },
+    );
 
   useEffect(() => {
-    if (data?.newsletters?.length || !emailAccountId) {
+    if (
+      data?.newsletters?.length ||
+      !emailAccountId ||
+      !canUseChannelFallback
+    ) {
+      setChannelRows([]);
       setIsChannelRowsLoading(false);
       return;
     }
+    if (!preloadedChannelThreads && !preloadedChannelThreadsError) return;
     let cancelled = false;
-    let attempt = 0;
     const loadChannelRows = async () => {
       try {
-        const response = await fetch(
-          "/api/threads?type=inbox&limit=100&view=list&includePlans=false",
-        );
-        const result: ThreadsListResponse | null = response.ok
-          ? await response.json()
-          : null;
-        // Gmail can finish its initial sync a moment after the page mounts.
-        // Retry briefly so the bulk view fills itself without a manual action.
-        if (!result?.threads?.length && attempt < 5 && !cancelled) {
-          attempt += 1;
-          window.setTimeout(loadChannelRows, 1500);
-          return;
-        }
+        const result = preloadedChannelThreads;
         if (cancelled || !result?.threads) return;
         const grouped = new Map<string, Newsletter>();
         for (const thread of result.threads) {
@@ -263,7 +270,7 @@ export function BulkUnsubscribe() {
               unsubscribeLink: message.headers?.["list-unsubscribe"] ?? null,
               autoArchived: undefined,
               labelFilters: [],
-              status: null,
+              status: undefined,
             };
             next.value += 1;
             if (message.labelIds?.includes("INBOX")) next.inboxEmails += 1;
@@ -275,9 +282,6 @@ export function BulkUnsubscribe() {
           (a, b) => b.value - a.value,
         );
         setChannelRows(sortedRows);
-        await mutate({ newsletters: sortedRows } as NewsletterStatsResponse, {
-          revalidate: false,
-        });
       } catch {
         // The stats loader continues in the background; keep the empty state
         // recoverable if the channel endpoint is temporarily unavailable.
@@ -289,14 +293,21 @@ export function BulkUnsubscribe() {
     return () => {
       cancelled = true;
     };
-  }, [data?.newsletters?.length, emailAccountId, mutate, userEmail]);
+  }, [
+    canUseChannelFallback,
+    data?.newsletters?.length,
+    emailAccountId,
+    preloadedChannelThreads,
+    preloadedChannelThreadsError,
+    userEmail,
+  ]);
 
   // Track whether we're switching views (filter, sort, search, date range, expanded)
   // Show skeleton when validating with different params, not on background refresh
   const [lastFetchedParams, setLastFetchedParams] = useState<string>("");
   const currentParamsString = urlParams.toString();
   const isParamsChanged = lastFetchedParams !== currentParamsString;
-  const showSkeleton = isValidating && isParamsChanged;
+  const showSkeleton = !data && isValidating && isParamsChanged;
 
   // Update lastFetchedParams when data arrives for new params
   useEffect(() => {

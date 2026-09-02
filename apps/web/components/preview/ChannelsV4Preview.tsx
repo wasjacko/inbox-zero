@@ -50,7 +50,7 @@ import {
   useRef,
   useState,
 } from "react";
-import useSWR from "swr";
+import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { GithubIcon, WhatsAppIcon } from "@/components/BrandIcons";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -126,6 +126,7 @@ import {
   trashThreadAction,
 } from "@/utils/actions/mail";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
+import { CHANNELS_THREADS_CACHE_KEY } from "@/utils/preview-data";
 
 type Channel = "gmail" | "outlook" | "whatsapp" | "slack" | "telegram";
 type AiMode = "manual" | "assist" | "suggest";
@@ -536,37 +537,6 @@ const channels: Channel[] = [
   "telegram",
 ];
 
-const THREADS_CACHE_PREFIX = "freescale-channel-threads-v1:";
-
-function readCachedThreads(emailAccountId: string) {
-  if (!emailAccountId || typeof window === "undefined") return;
-  try {
-    const cached = JSON.parse(
-      window.sessionStorage.getItem(
-        `${THREADS_CACHE_PREFIX}${emailAccountId}`,
-      ) ?? "null",
-    ) as { data?: ThreadsListResponse; savedAt?: number } | null;
-    if (!cached?.data || !cached.savedAt) return;
-    if (Date.now() - cached.savedAt > 15 * 60_000) return;
-    return cached.data;
-  } catch {
-    return;
-  }
-}
-
-function cacheThreads(emailAccountId: string, data: ThreadsListResponse) {
-  if (!emailAccountId || typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(
-      `${THREADS_CACHE_PREFIX}${emailAccountId}`,
-      JSON.stringify({ data, savedAt: Date.now() }),
-    );
-  } catch {
-    // Browsers can disable session storage; the live request remains the source
-    // of truth in that case.
-  }
-}
-
 export function ChannelsV4Preview() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -576,10 +546,8 @@ export function ChannelsV4Preview() {
     error: threadsError,
     isLoading: threadsLoading,
     mutate: refreshThreads,
-  } = useSWR<ThreadsListResponse>(
-    emailAccountId
-      ? "/api/threads?type=inbox&limit=8&view=list&includePlans=false"
-      : null,
+  } = usePreloadedPageData<ThreadsListResponse>(
+    emailAccountId ? CHANNELS_THREADS_CACHE_KEY : null,
     {
       dedupingInterval: 60_000,
       keepPreviousData: true,
@@ -638,28 +606,14 @@ export function ChannelsV4Preview() {
   }, [conversations, provider]);
 
   useEffect(() => {
-    const cached = readCachedThreads(emailAccountId);
-    if (!cached) return;
     setConversations(
       toRealChannelConversations({
         provider,
-        threads: cached.threads,
+        threads: realThreads?.threads ?? [],
         userEmail,
       }),
     );
-  }, [emailAccountId, provider, userEmail]);
-
-  useEffect(() => {
-    if (!realThreads || !Array.isArray(realThreads.threads)) return;
-    cacheThreads(emailAccountId, realThreads);
-    setConversations(
-      toRealChannelConversations({
-        provider,
-        threads: realThreads.threads,
-        userEmail,
-      }),
-    );
-  }, [emailAccountId, provider, realThreads, userEmail]);
+  }, [provider, realThreads, userEmail]);
 
   useEffect(() => {
     if (!selectedThread?.thread) return;

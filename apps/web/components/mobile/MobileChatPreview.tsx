@@ -11,7 +11,7 @@ import {
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
-import useSWR from "swr";
+import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { WhatsAppIcon } from "@/components/BrandIcons";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
@@ -30,6 +30,7 @@ import { cn } from "@/utils";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { useContactPhotos } from "@/hooks/useContactPhotos";
 import { toRealChannelConversations } from "@/utils/channels/real-conversations";
+import { CHANNELS_THREADS_CACHE_KEY } from "@/utils/preview-data";
 
 type MobileBriefChannel = "Gmail" | "Outlook" | "WhatsApp";
 
@@ -145,10 +146,9 @@ export function MobileChatPreview({
   const { emailAccountId, provider, userEmail } = useAccount();
   const [scanStarted, setScanStarted] = useState(false);
   const { data: realThreads, isLoading: threadsLoading } =
-    useSWR<ThreadsListResponse>(
-      scanStarted && emailAccountId
-        ? "/api/threads?type=inbox&limit=8&view=list&includePlans=false"
-        : null,
+    usePreloadedPageData<ThreadsListResponse>(
+      emailAccountId ? CHANNELS_THREADS_CACHE_KEY : null,
+      { dedupingInterval: 60_000, revalidateOnFocus: false },
     );
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});

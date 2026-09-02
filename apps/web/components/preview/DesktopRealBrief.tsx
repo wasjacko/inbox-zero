@@ -3,7 +3,7 @@
 import { ArrowRightIcon, InboxIcon, LoaderCircleIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import useSWR from "swr";
+import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
@@ -14,6 +14,7 @@ import { useAccount } from "@/providers/EmailAccountProvider";
 import { useContactPhotos } from "@/hooks/useContactPhotos";
 import { toRealChannelConversations } from "@/utils/channels/real-conversations";
 import { getPreviewGreeting } from "@/utils/preview-profile";
+import { CHANNELS_THREADS_CACHE_KEY } from "@/utils/preview-data";
 
 export function DesktopRealBrief({
   freelancerName,
@@ -22,11 +23,11 @@ export function DesktopRealBrief({
 }) {
   const { emailAccountId, provider, userEmail } = useAccount();
   const [scanStarted, setScanStarted] = useState(false);
-  const { data, error, isLoading, mutate } = useSWR<ThreadsListResponse>(
-    scanStarted && emailAccountId
-      ? "/api/threads?type=inbox&limit=8&view=list&includePlans=false"
-      : null,
-  );
+  const { data, error, isLoading, mutate } =
+    usePreloadedPageData<ThreadsListResponse>(
+      emailAccountId ? CHANNELS_THREADS_CACHE_KEY : null,
+      { dedupingInterval: 60_000, revalidateOnFocus: false },
+    );
   const conversations = useMemo(() => {
     if (!data || !Array.isArray(data.threads)) return [];
     return toRealChannelConversations({

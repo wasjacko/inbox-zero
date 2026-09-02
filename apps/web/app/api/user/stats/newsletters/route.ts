@@ -88,7 +88,7 @@ async function getEmailMessages(
         emailFilters,
         from,
         emailProvider,
-      )[0],
+      ).at(0),
       labelFilters: findSenderLabelFilters(emailFilters, from),
       status: findNewsletterStatus(newsletterStatuses, from),
     };

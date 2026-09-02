@@ -35,7 +35,7 @@ const StatLoaderContext = createContext<Context>({
 export const useStatLoader = () => useContext(StatLoaderContext);
 
 class StatLoader {
-  #isLoading = false;
+  readonly #pending = new Map<string, Promise<void>>();
 
   async loadStats({
     emailAccountId,
@@ -46,21 +46,27 @@ class StatLoader {
     loadBefore: boolean;
     showToast: boolean;
   }) {
-    if (this.#isLoading) return;
+    if (!emailAccountId) return;
+    const key = `${emailAccountId}:${loadBefore}`;
+    const pending = this.#pending.get(key);
+    if (pending) return pending;
 
-    this.#isLoading = true;
-
-    const res = await loadEmailStatsAction(emailAccountId, { loadBefore });
-
-    if (showToast) {
-      if (isError(res)) {
-        toastError({ description: "Error loading stats." });
-      } else {
-        toastSuccess({ description: "Stats loaded!" });
+    const request = (async () => {
+      try {
+        const res = await loadEmailStatsAction(emailAccountId, { loadBefore });
+        if (showToast) {
+          if (isError(res)) {
+            toastError({ description: "Error loading stats." });
+          } else {
+            toastSuccess({ description: "Stats loaded!" });
+          }
+        }
+      } finally {
+        this.#pending.delete(key);
       }
-    }
-
-    this.#isLoading = false;
+    })();
+    this.#pending.set(key, request);
+    return request;
   }
 }
 
@@ -74,12 +80,15 @@ export function StatLoaderProvider(props: { children: React.ReactNode }) {
   const onLoad = useCallback(
     async (options: { loadBefore: boolean; showToast: boolean }) => {
       setIsLoading(true);
-      await statLoader.loadStats({
-        emailAccountId,
-        loadBefore: options.loadBefore,
-        showToast: options.showToast,
-      });
-      setIsLoading(false);
+      try {
+        await statLoader.loadStats({
+          emailAccountId,
+          loadBefore: options.loadBefore,
+          showToast: options.showToast,
+        });
+      } finally {
+        setIsLoading(false);
+      }
     },
     [emailAccountId],
   );

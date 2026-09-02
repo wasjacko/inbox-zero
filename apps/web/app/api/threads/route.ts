@@ -7,6 +7,7 @@ import {
 } from "@/utils/threads/validation";
 import { isDefined } from "@/utils/types";
 import prisma from "@/utils/prisma";
+import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { isIgnoredSender } from "@/utils/filter-ignored-senders";
 import type { EmailProvider } from "@/utils/email/types";
 
@@ -67,6 +68,7 @@ export const GET = withEmailProvider(
           headers:
             view === "list"
               ? {
+                  Vary: `Cookie, ${EMAIL_ACCOUNT_HEADER}`,
                   "Cache-Control":
                     "private, max-age=30, stale-while-revalidate=300",
                 }
