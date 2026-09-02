@@ -10,11 +10,17 @@ import { isGoogleProvider } from "@/utils/email/provider-types";
  */
 export async function getAccountLinkingUrl(
   provider: "google" | "microsoft",
-  options?: { returnTo?: `/${string}` },
+  options?: {
+    preferSignedInGoogleAccount?: boolean;
+    returnTo?: `/${string}`;
+  },
 ): Promise<string> {
   const apiProvider = provider === "microsoft" ? "outlook" : "google";
   const searchParams = new URLSearchParams();
   if (options?.returnTo) searchParams.set("returnTo", options.returnTo);
+  if (options?.preferSignedInGoogleAccount && provider === "google") {
+    searchParams.set("preferSignedInGoogleAccount", "1");
+  }
   const query = searchParams.toString();
 
   const response = await fetch(

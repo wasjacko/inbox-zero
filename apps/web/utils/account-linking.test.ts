@@ -54,4 +54,25 @@ describe("getAccountLinkingUrl", () => {
       },
     );
   });
+
+  it("asks onboarding to reuse the signed-in Google account", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ url: "https://accounts.google.com/oauth" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getAccountLinkingUrl("google", {
+      returnTo: "/onboarding",
+      preferSignedInGoogleAccount: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/google/linking/auth-url?returnTo=%2Fonboarding&preferSignedInGoogleAccount=1",
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  });
 });

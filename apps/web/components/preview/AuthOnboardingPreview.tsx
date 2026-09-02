@@ -886,7 +886,10 @@ function useOnboardingChannelConnections() {
       const returnTo = popup
         ? (`/onboarding?oauthPopup=1&channelConnected=${channel}` as const)
         : (`/onboarding?channelConnected=${channel}` as const);
-      const url = await getAccountLinkingUrl(provider, { returnTo });
+      const url = await getAccountLinkingUrl(provider, {
+        returnTo,
+        preferSignedInGoogleAccount: channel === "gmail",
+      });
 
       if (popup) {
         popup.location.href = url;
