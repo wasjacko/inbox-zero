@@ -32,7 +32,7 @@ import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { toastError, toastSuccess } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/utils";
@@ -1209,19 +1209,6 @@ export function MobileChannelsPreview({
 
 type MobileRelationsPeriod = "7 jours" | "30 jours" | "3 mois";
 
-export type MobileRelationContact = {
-  id: string;
-  name: string;
-  initials: string;
-  address: string;
-  channel: "Gmail" | "Outlook";
-  subject: string;
-  time: string;
-  unreadCount: number;
-  conversationCount: number;
-  avatarUrl?: string;
-};
-
 export type MobileRelationActivity = {
   actions: number;
   followups: number;
@@ -1232,24 +1219,14 @@ export type MobileRelationActivity = {
 
 export function MobileRelationsPreview({
   activity = { actions: 0, followups: 0, messages: 0, replies: 0, tasks: 0 },
-  contacts = [],
-  error = false,
-  loading = false,
   onPeriodChange,
-  onRetry,
   period = "30 jours",
 }: {
   activity?: MobileRelationActivity;
-  contacts?: MobileRelationContact[];
-  error?: boolean;
-  loading?: boolean;
   onPeriodChange?: (period: MobileRelationsPeriod) => void;
-  onRetry?: () => Promise<unknown> | unknown;
   period?: MobileRelationsPeriod;
 } = {}) {
   const [periodOpen, setPeriodOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = contacts.find(({ id }) => id === selectedId) ?? null;
 
   return (
     <MobilePage
@@ -1282,93 +1259,7 @@ export function MobileRelationsPreview({
         />
       </div>
 
-      <section className="mt-7 px-4">
-        <div className="mb-3 flex items-end justify-between">
-          <div>
-            <h2 className="font-semibold">Contacts récents</h2>
-            <p className="mt-1 text-muted-foreground text-xs">
-              Issus de vos échanges connectés
-            </p>
-          </div>
-          <span className="text-muted-foreground text-xs">
-            {contacts.length} contact{contacts.length > 1 ? "s" : ""}
-          </span>
-        </div>
-        <div className="overflow-hidden rounded-2xl border bg-card">
-          {loading ? (
-            <div
-              aria-label="Chargement des relations"
-              className="divide-y"
-              role="status"
-            >
-              {Array.from({ length: 3 }, (_, index) => (
-                <div
-                  className="flex min-h-[88px] items-center gap-3 p-3"
-                  key={index}
-                >
-                  <span className="size-11 shrink-0 animate-pulse rounded-full bg-muted" />
-                  <span className="min-w-0 flex-1 space-y-2">
-                    <span className="block h-3 w-32 animate-pulse rounded-full bg-muted" />
-                    <span className="block h-2.5 w-48 max-w-full animate-pulse rounded-full bg-muted" />
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="px-4 py-8 text-center">
-              <p className="font-medium text-sm">Contacts indisponibles</p>
-              <Button
-                className="mt-3"
-                onClick={() => onRetry?.()}
-                size="sm"
-                variant="outline"
-              >
-                Réessayer
-              </Button>
-            </div>
-          ) : contacts.length ? (
-            contacts.map((contact, index) => (
-              <button
-                className={cn(
-                  "flex min-h-[88px] w-full items-center gap-3 p-3 text-left active:bg-muted",
-                  index < contacts.length - 1 && "border-b",
-                )}
-                key={contact.address}
-                onClick={() => setSelectedId(contact.id)}
-                type="button"
-              >
-                <Avatar className="relative size-11 shrink-0 font-medium text-xs">
-                  <AvatarImage
-                    alt={`Photo de profil de ${contact.name}`}
-                    src={contact.avatarUrl}
-                  />
-                  <AvatarFallback>{contact.initials}</AvatarFallback>
-                  {contact.unreadCount ? (
-                    <span className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-blue-600" />
-                  ) : null}
-                </Avatar>
-                <span className="min-w-0 flex-1">
-                  <strong className="block truncate text-sm">
-                    {contact.name}
-                  </strong>
-                  <span className="mt-0.5 block truncate text-muted-foreground text-xs">
-                    {contact.subject} · {contact.time}
-                  </span>
-                </span>
-                <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
-              </button>
-            ))
-          ) : (
-            <MobileEmpty
-              detail="Ils apparaîtront après vos premiers échanges Gmail ou Outlook."
-              icon={UserRoundIcon}
-              title="Aucun contact synchronisé"
-            />
-          )}
-        </div>
-      </section>
-
-      <section className="px-4 pb-24 pt-4">
+      <section className="px-4 pb-24 pt-7">
         <div className="rounded-2xl bg-muted/60 p-4">
           <p className="font-medium text-sm">Activité réellement enregistrée</p>
           <p className="mt-1 text-muted-foreground text-xs leading-5">
@@ -1417,68 +1308,6 @@ export function MobileRelationsPreview({
           )}
         </div>
       </MobileSheet>
-
-      <MobileFullScreenDialog
-        footer={
-          <Button asChild className="w-full">
-            <Link
-              href={
-                selected
-                  ? `/channels-v4?conversation=${encodeURIComponent(selected.id)}`
-                  : "/channels-v4"
-              }
-            >
-              Voir l’échange
-            </Link>
-          </Button>
-        }
-        onOpenChange={(open) => !open && setSelectedId(null)}
-        open={Boolean(selected)}
-        title={selected?.name ?? "Relation client"}
-      >
-        {selected ? (
-          <div className="space-y-6 px-5 py-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="size-14 shrink-0 font-semibold text-sm">
-                <AvatarImage
-                  alt={`Photo de profil de ${selected.name}`}
-                  src={selected.avatarUrl}
-                />
-                <AvatarFallback>{selected.initials}</AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <h2 className="truncate font-semibold text-xl">
-                  {selected.name}
-                </h2>
-                <p className="mt-1 text-muted-foreground text-sm">
-                  {selected.address} · {selected.channel}
-                </p>
-              </div>
-            </div>
-            <div className="rounded-2xl border p-4">
-              <p className="font-medium text-sm">Dernier échange</p>
-              <p className="mt-1 text-muted-foreground text-sm leading-5">
-                {selected.subject}
-              </p>
-              <p className="mt-4 text-muted-foreground text-sm">
-                {selected.time}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
-              <MetricCard
-                icon={MailIcon}
-                label="Conversations"
-                value={String(selected.conversationCount)}
-              />
-              <MetricCard
-                icon={Clock3Icon}
-                label="Non lus"
-                value={String(selected.unreadCount)}
-              />
-            </div>
-          </div>
-        ) : null}
-      </MobileFullScreenDialog>
     </MobilePage>
   );
 }
