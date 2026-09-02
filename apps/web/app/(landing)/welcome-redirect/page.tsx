@@ -26,7 +26,7 @@ export default async function WelcomeRedirectPage(props: {
   if (!user) redirect("/logout");
   if (searchParams.force) redirect("/onboarding");
   const existingAccountNotice =
-    searchParams.intent === "signup" &&
+    (searchParams.intent === "signup" || searchParams.intent === "login") &&
     (Boolean(user.completedOnboardingAt) ||
       user.createdAt.getTime() < Date.now() - 2 * 60 * 1000)
       ? "existing-account"

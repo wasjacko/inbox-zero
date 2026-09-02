@@ -191,4 +191,22 @@ describe("WelcomeRedirectPage", () => {
     });
     expect(mocks.findPremium).not.toHaveBeenCalled();
   });
+
+  it("restores an existing account from the login screen", async () => {
+    mocks.findUser.mockResolvedValue({
+      completedOnboardingAt: null,
+      createdAt: new Date("2025-01-01T00:00:00.000Z"),
+      premiumId: null,
+    });
+
+    await expect(
+      WelcomeRedirectPage({
+        searchParams: Promise.resolve({ intent: "login" }),
+      }),
+    ).rejects.toThrow("account-redirect:/chat");
+
+    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith("/chat", {
+      notice: "existing-account",
+    });
+  });
 });

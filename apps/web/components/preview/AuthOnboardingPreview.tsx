@@ -119,8 +119,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
       if (mode === "signup") startPreviewOnboarding(window.localStorage);
       await signIn.social({
         provider: "google",
-        callbackURL:
-          mode === "signup" ? "/welcome-redirect?intent=signup" : "/chat",
+        callbackURL: `/welcome-redirect?intent=${mode}`,
         errorCallbackURL: "/login?error=oauth",
       });
     } catch (authError) {
@@ -152,7 +151,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
           : await signIn.email({
               email: normalizedEmail,
               password,
-              callbackURL: "/chat",
+              callbackURL: "/welcome-redirect?intent=login",
               rememberMe: true,
             });
 
@@ -183,7 +182,9 @@ function useFreescaleAuthentication(mode: AuthMode) {
         startPreviewOnboarding(window.localStorage);
       }
 
-      router.push(mode === "signup" ? "/onboarding" : "/chat");
+      router.push(
+        mode === "signup" ? "/onboarding" : "/welcome-redirect?intent=login",
+      );
       router.refresh();
     } catch (authError) {
       setError(getFreescaleAuthError(authError));
