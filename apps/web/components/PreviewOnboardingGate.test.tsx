@@ -31,6 +31,7 @@ describe("PreviewOnboardingGate", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    window.history.replaceState(null, "", "/chat");
     navigation.pathname = "/chat";
     navigation.replace.mockReset();
     setMobileViewport(true);
@@ -66,6 +67,26 @@ describe("PreviewOnboardingGate", () => {
       ).toBeNull(),
     );
     expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
+  it("allows a mobile visitor returning from successful Google OAuth", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/chat?channelConnected=gmail&success=tokens_updated",
+    );
+
+    render(
+      <PreviewOnboardingGate>
+        <p>Application</p>
+      </PreviewOnboardingGate>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Application")).not.toBeNull());
+    expect(navigation.replace).not.toHaveBeenCalled();
+    expect(localStorage.getItem("freescale-preview-onboarding-status")).toBe(
+      "completed",
+    );
   });
 
   it("does not change the desktop preview", async () => {

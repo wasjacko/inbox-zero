@@ -2,9 +2,12 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { hasPreviewOnboardingAccess } from "@/utils/preview-onboarding";
+import {
+  grantPreviewOnboardingAccess,
+  hasPreviewOnboardingAccess,
+} from "@/utils/preview-onboarding";
 
-type GateState = "checking" | "allowed" | "redirecting";
+type GateState = "allowed" | "redirecting";
 
 const onboardingPath = "/onboarding";
 const mobileViewportQuery = "(max-width: 1023px)";
@@ -16,9 +19,10 @@ export function PreviewOnboardingGate({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [state, setState] = useState<GateState>(
-    pathname === onboardingPath ? "allowed" : "checking",
-  );
+  // Render the app immediately. Starting in a hidden `checking` state means
+  // mobile users only see a blank screen until the whole client bundle has
+  // hydrated, which is especially painful after returning from Google OAuth.
+  const [state, setState] = useState<GateState>("allowed");
 
   useEffect(() => {
     if (pathname === onboardingPath) {
@@ -29,7 +33,33 @@ export function PreviewOnboardingGate({
     const viewport = window.matchMedia(mobileViewportQuery);
 
     const verifyAccess = () => {
-      if (!viewport.matches || hasPreviewOnboardingAccess(localStorage)) {
+      const params = new URLSearchParams(window.location.search);
+      const oauthSuccess = [
+        "account_created_and_linked",
+        "tokens_updated",
+        "account_merged",
+      ].includes(params.get("success") ?? "");
+
+      if (oauthSuccess) {
+        try {
+          grantPreviewOnboardingAccess(localStorage, "completed");
+        } catch {
+          // Storage can be unavailable in private/in-app mobile browsers. The
+          // successful OAuth callback is sufficient proof for this visit.
+        }
+        setState("allowed");
+        return;
+      }
+
+      let hasAccess = false;
+      try {
+        hasAccess = hasPreviewOnboardingAccess(localStorage);
+      } catch {
+        // Keep the authenticated app usable when mobile storage is blocked.
+        hasAccess = true;
+      }
+
+      if (!viewport.matches || hasAccess) {
         setState("allowed");
         return;
       }
