@@ -1842,7 +1842,7 @@ function ConnectChannelsStep({
     <>
       <StepHeading
         title="Connectez vos outils, on s’occupe du reste"
-        description="Un clic par canal, et c’est prêt."
+        description="C’est ici que vous autorisez Freescale à accéder à vos emails. Rien n’est lu avant votre accord."
       />
       <div className="space-y-3">
         {channels.map((channel) => {
@@ -1883,7 +1883,7 @@ function ConnectChannelsStep({
                     : isConnecting
                       ? "Connexion…"
                       : isAvailable
-                        ? "À connecter"
+                        ? "Autorisation requise"
                         : "Bientôt disponible"}
                 </span>
               </span>
@@ -1902,7 +1902,7 @@ function ConnectChannelsStep({
                   : isConnecting
                     ? "Connexion…"
                     : isAvailable
-                      ? "Connecter"
+                      ? "Autoriser"
                       : "Bientôt"}
               </Button>
             </div>

@@ -7,6 +7,7 @@ import {
   parseLastEmailAccountCookieValue,
 } from "@/utils/cookies";
 import { withAuth } from "@/utils/middleware";
+import { hasGmailMailboxScope } from "@/utils/gmail/scopes";
 
 export type GetEmailAccountsResponse = Awaited<
   ReturnType<typeof getEmailAccounts>
@@ -30,6 +31,7 @@ async function getEmailAccounts({ userId }: { userId: string }) {
       account: {
         select: {
           provider: true,
+          scope: true,
         },
       },
       user: {
@@ -45,8 +47,18 @@ async function getEmailAccounts({ userId }: { userId: string }) {
     },
   });
 
+  const connectedEmailAccounts = emailAccounts.flatMap((emailAccount) => {
+    const { scope, ...account } = emailAccount.account;
+    const isIdentityOnlyGoogleAccount =
+      account.provider === "google" &&
+      scope !== null &&
+      !hasGmailMailboxScope(scope);
+
+    return isIdentityOnlyGoogleAccount ? [] : [{ ...emailAccount, account }];
+  });
+
   const accountsWithRateLimits = await Promise.all(
-    emailAccounts.map(async (account) => {
+    connectedEmailAccounts.map(async (account) => {
       const providerRateLimit = await getEmailProviderRateLimitState({
         emailAccountId: account.id,
       });

@@ -51,6 +51,22 @@ describe("betterAuthConfig login providers", () => {
       "profile",
     ]);
   });
+
+  it("does not overwrite Gmail grants during an identity-only sign-in", async () => {
+    const betterAuthConfig = await loadBetterAuthConfig(["google"]);
+    const beforeAccountUpdate =
+      betterAuthConfig.options.databaseHooks.account.update.before;
+
+    await expect(
+      beforeAccountUpdate({ scope: "openid,email,profile" }),
+    ).resolves.toBe(false);
+    await expect(
+      beforeAccountUpdate({
+        scope:
+          "openid,email,profile,https://www.googleapis.com/auth/gmail.modify",
+      }),
+    ).resolves.toBeUndefined();
+  });
 });
 
 async function loadBetterAuthConfig(enabledProviders: string[]) {

@@ -24,7 +24,11 @@ import {
   isMicrosoftProvider,
 } from "@/utils/email/provider-types";
 import { captureException } from "@/utils/error";
-import { SCOPES as GMAIL_SCOPES } from "@/utils/gmail/scopes";
+import {
+  hasGmailMailboxScope,
+  isGoogleIdentityOnlyScope,
+  SCOPES as GMAIL_SCOPES,
+} from "@/utils/gmail/scopes";
 import {
   fetchGoogleOpenIdProfile,
   getGoogleOauthDiscoveryUrl,
@@ -343,6 +347,11 @@ export const betterAuthConfig = betterAuth({
         },
       },
       update: {
+        before: async (account) => {
+          // Google sign-in is identity-only. Do not let a later sign-in replace
+          // previously granted Gmail tokens with openid/email/profile tokens.
+          if (isGoogleIdentityOnlyScope(account.scope)) return false;
+        },
         after: async (account: Account) => {
           await handleLinkAccount(account);
         },
@@ -580,8 +589,14 @@ async function getProfileData(providerId: string, accessToken: string) {
   }
 }
 
-function shouldLinkEmailAccount(providerId: string) {
-  return isGoogleProvider(providerId) || isMicrosoftProvider(providerId);
+function shouldLinkEmailAccount(account: Account) {
+  if (isGoogleProvider(account.providerId)) {
+    // A Google identity is not a connected inbox. Gmail becomes connected only
+    // after the user explicitly grants mailbox access from the connection step.
+    return account.scope == null || hasGmailMailboxScope(account.scope);
+  }
+
+  return isMicrosoftProvider(account.providerId);
 }
 
 export async function handleLinkAccount(account: Account) {
@@ -590,10 +605,13 @@ export async function handleLinkAccount(account: Account) {
   let primaryPhotoUrl: string | null | undefined;
 
   try {
-    if (!shouldLinkEmailAccount(account.providerId)) {
+    if (!shouldLinkEmailAccount(account)) {
       logger.info("[linkAccount] Skipping email account linking", {
         userId: account.userId,
         accountId: account.id,
+        reason: isGoogleProvider(account.providerId)
+          ? "identity_only_google_sign_in"
+          : "non_mailbox_provider",
       });
       return;
     }

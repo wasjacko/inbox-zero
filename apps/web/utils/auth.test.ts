@@ -329,6 +329,21 @@ describe("handleLinkAccount", () => {
     expect(clearAccountDisconnectedErrorIfResolved).not.toHaveBeenCalled();
   });
 
+  it("does not treat an identity-only Google sign-in as a connected inbox", async () => {
+    await expect(
+      handleLinkAccount({
+        id: "account_1",
+        userId: "user_1",
+        providerId: "google",
+        accessToken: "identity_access_token",
+        scope: "openid,email,profile",
+      } as any),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.emailAccount.findUnique).not.toHaveBeenCalled();
+    expect(prisma.emailAccount.upsert).not.toHaveBeenCalled();
+  });
+
   it("still requires an access token for mailbox providers", async () => {
     await expect(
       handleLinkAccount({

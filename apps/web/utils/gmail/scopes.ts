@@ -8,6 +8,28 @@ export const SCOPES = [
   "https://www.googleapis.com/auth/contacts.other.readonly",
 ];
 
+const GMAIL_MAILBOX_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
+
+export function hasGmailMailboxScope(scope: string | null | undefined) {
+  if (!scope) return false;
+
+  return new Set(scope.split(/[\s,]+/).filter(Boolean)).has(
+    GMAIL_MAILBOX_SCOPE,
+  );
+}
+
+export function isGoogleIdentityOnlyScope(scope: string | null | undefined) {
+  if (!scope) return false;
+
+  const grantedScopes = new Set(scope.split(/[\s,]+/).filter(Boolean));
+  return (
+    grantedScopes.has("openid") &&
+    grantedScopes.has("email") &&
+    grantedScopes.has("profile") &&
+    !hasGmailMailboxScope(scope)
+  );
+}
+
 export const CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/userinfo.email",
