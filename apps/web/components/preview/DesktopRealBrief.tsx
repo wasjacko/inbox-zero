@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightIcon, InboxIcon, LoaderCircleIcon } from "lucide-react";
+import { ArrowRightIcon, LoaderCircleIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
@@ -51,7 +51,7 @@ export function DesktopRealBrief({
 
   if (!scanStarted) {
     return (
-      <div className="relative flex min-h-[calc(100svh-8rem)] items-center justify-center overflow-hidden px-6 py-12">
+      <div className="relative flex min-h-[calc(100svh-8rem)] w-full items-center justify-center overflow-hidden px-6 py-12">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 h-80 opacity-60 dark:opacity-20"
@@ -61,10 +61,7 @@ export function DesktopRealBrief({
           }}
         />
         <section className="relative w-full max-w-lg text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-900/60">
-            <InboxIcon className="size-6" />
-          </span>
-          <h1 className="mt-5 font-medium text-4xl tracking-tight">
+          <h1 className="font-medium text-4xl tracking-tight">
             {getPreviewGreeting(freelancerName)}
           </h1>
           <h2 className="mt-8 font-semibold text-xl">Messagerie connectée</h2>
@@ -84,7 +81,7 @@ export function DesktopRealBrief({
   }
 
   return (
-    <div className="relative flex min-h-[calc(100svh-8rem)] items-center justify-center overflow-y-auto px-6 py-12">
+    <div className="relative flex min-h-[calc(100svh-8rem)] w-full items-center justify-center overflow-y-auto px-6 py-12">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-80 opacity-60 dark:opacity-20"
