@@ -13,7 +13,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArchiveIcon,
@@ -88,6 +88,8 @@ import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { redirectToSafeUrl } from "@/utils/redirect";
 import { toastError } from "@/components/Toast";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import { prefixPath } from "@/utils/path";
 
 const CrispWithNoSSR = dynamic(() => import("@/components/CrispChat"));
 
@@ -2694,7 +2696,9 @@ function ConnectedChannels() {
       const provider = selected === "gmail" ? "google" : "microsoft";
 
       try {
-        const url = await getAccountLinkingUrl(provider);
+        const url = await getAccountLinkingUrl(provider, {
+          returnTo: `/chat?channelConnected=${selected}`,
+        });
         redirectToSafeUrl(url, { allowExternal: true });
       } catch (error) {
         console.error(`Error initiating ${provider} account linking:`, error);
@@ -3065,6 +3069,7 @@ export function SideNavWithTopNav({
       <ContentWrapper previewMode={previewMode}>{children}</ContentWrapper>
       {previewMode ? (
         <>
+          <ChannelConnectedSuccessDialog />
           <PreviewCommandCenter />
           {!isAiHome ? <PreviewMuePanel name="mue-panel" /> : null}
         </>
@@ -3073,6 +3078,83 @@ export function SideNavWithTopNav({
         <SidebarRight name="chat-sidebar" />
       ) : null}
     </SidebarProvider>
+  );
+}
+
+function ChannelConnectedSuccessDialog() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { emailAccountId, isLoading } = useAccount();
+  const [dismissed, setDismissed] = useState(false);
+  const success = searchParams.get("success");
+  const connectedChannel = searchParams.get("channelConnected");
+  const isSuccessfulLink =
+    success === "account_created_and_linked" ||
+    success === "tokens_updated" ||
+    success === "account_merged";
+  const open = isSuccessfulLink && Boolean(connectedChannel) && !dismissed;
+  const channelName = connectedChannel === "outlook" ? "Outlook" : "Gmail";
+
+  const clearLinkingParams = () => {
+    setDismissed(true);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("success");
+    nextParams.delete("channelConnected");
+    const nextUrl = nextParams.size ? `${pathname}?${nextParams}` : pathname;
+    window.history.replaceState(window.history.state, "", nextUrl);
+  };
+
+  const startCleanup = () => {
+    if (!emailAccountId) return;
+    const destination = prefixPath(
+      emailAccountId,
+      "/bulk-unsubscribe?select=suggested&source=channel-connected",
+    );
+    window.location.assign(destination);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && clearLinkingParams()}
+    >
+      <DialogContent className="max-w-lg p-0">
+        <div className="flex flex-col items-center px-6 pb-7 pt-9 text-center sm:px-8">
+          <span className="grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+            <CheckCircle2Icon className="size-7" />
+          </span>
+          <DialogHeader className="mt-5 items-center">
+            <DialogTitle>{channelName} est bien connecté</DialogTitle>
+            <DialogDescription className="mt-2 max-w-md text-sm leading-6">
+              Freescale peut maintenant analyser vos vrais e-mails et repérer
+              les newsletters et messages promotionnels qui encombrent votre
+              boîte de réception.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-5 w-full rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-left text-sm dark:border-blue-950 dark:bg-blue-950/30">
+            <p className="font-medium text-foreground">Passez au tri</p>
+            <p className="mt-1 text-muted-foreground leading-5">
+              Nous sélectionnerons les expéditeurs que vous lisez rarement. Vous
+              pourrez vérifier la liste avant de confirmer : aucun désabonnement
+              ne sera lancé sans votre accord.
+            </p>
+          </div>
+
+          <div className="mt-6 flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button onClick={clearLinkingParams} variant="outline">
+              Plus tard
+            </Button>
+            <Button
+              disabled={isLoading || !emailAccountId}
+              onClick={startCleanup}
+            >
+              {isLoading ? "Préparation…" : "Analyser et ouvrir le tri"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

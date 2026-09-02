@@ -8,6 +8,7 @@ import { ChevronDown } from "lucide-react";
 import { usePostHog } from "posthog-js/react";
 import {
   ArchiveIcon,
+  CheckCircle2Icon,
   CheckIcon,
   ChevronsDownIcon,
   ChevronsUpIcon,
@@ -321,6 +322,8 @@ export function BulkUnsubscribe() {
   const router = useRouter();
   const pathname = usePathname();
   const hasAppliedSelectParamRef = useRef(false);
+  const cameFromChannelConnection =
+    searchParams.get("source") === "channel-connected";
 
   useEffect(() => {
     if (hasAppliedSelectParamRef.current) return;
@@ -371,7 +374,7 @@ export function BulkUnsubscribe() {
   return (
     <PageWrapper>
       <PageHeader
-        title="Bulk Unsubscriber"
+        title="Tri et désabonnement"
         video={{
           title: "Getting started with Bulk Unsubscribe",
           description: (
@@ -391,6 +394,23 @@ export function BulkUnsubscribe() {
           youtubeVideoId: "T1rnooV4OYc",
         }}
       />
+
+      {cameFromChannelConnection ? (
+        <section className="my-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+          <CheckCircle2Icon className="mt-0.5 size-5 shrink-0 text-emerald-700 dark:text-emerald-300" />
+          <div>
+            <h2 className="font-medium text-sm">
+              Votre boîte est prête à être triée
+            </h2>
+            <p className="mt-1 text-muted-foreground text-sm leading-6">
+              Les expéditeurs promotionnels rarement lus sont présélectionnés à
+              partir de vos vrais e-mails. Vérifiez la liste, retirez ceux que
+              vous souhaitez conserver, puis confirmez le désabonnement. Aucune
+              action n’est effectuée automatiquement.
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       <DismissibleVideoCard
         className="my-4"

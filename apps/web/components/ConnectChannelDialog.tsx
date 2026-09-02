@@ -58,7 +58,7 @@ export function ConnectChannelDialog({
 
     try {
       const url = await getAccountLinkingUrl(selected.provider, {
-        returnTo: "/chat",
+        returnTo: `/chat?channelConnected=${selected.id}`,
       });
       redirectToSafeUrl(url, { allowExternal: true });
     } catch (error) {
