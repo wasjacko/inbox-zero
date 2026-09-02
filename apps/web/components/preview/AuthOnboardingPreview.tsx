@@ -700,26 +700,40 @@ const channelOptions = [
     label: "Gmail",
     detail: "Emails clients",
     logo: "/images/google.svg",
+    available: true,
   },
   {
     id: "outlook",
     label: "Outlook",
     detail: "Emails et calendrier",
     logo: "/images/microsoft.svg",
+    available: false,
   },
   {
     id: "whatsapp",
     label: "WhatsApp",
     detail: "Messages directs",
     logo: "/images/whatsapp.svg",
+    available: false,
   },
   {
     id: "slack",
     label: "Slack",
     detail: "Canaux projets",
     logo: "/images/slack.svg",
+    available: false,
   },
 ] as const;
+
+const availableOnboardingChannelIds: ReadonlySet<string> = new Set(
+  channelOptions.filter((channel) => channel.available).map(({ id }) => id),
+);
+
+function onlyAvailableOnboardingChannels(channels: string[]) {
+  return channels.filter((channel) =>
+    availableOnboardingChannelIds.has(channel),
+  );
+}
 
 export function OnboardingPreview() {
   return (
@@ -808,10 +822,7 @@ function useOnboardingChannelConnections() {
 function MobileOnboardingPreview() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [selectedChannels, setSelectedChannels] = useState<string[]>([
-    "gmail",
-    "whatsapp",
-  ]);
+  const [selectedChannels, setSelectedChannels] = useState<string[]>(["gmail"]);
   const [businessProfile, setBusinessProfile] = useState({
     freelancerName: "",
     businessName: "",
@@ -835,7 +846,9 @@ function MobileOnboardingPreview() {
           );
         }
         if (Array.isArray(state.selectedChannels)) {
-          setSelectedChannels(state.selectedChannels);
+          setSelectedChannels(
+            onlyAvailableOnboardingChannels(state.selectedChannels),
+          );
         }
         if (state.businessProfile) {
           setBusinessProfile((current) => ({
@@ -881,6 +894,7 @@ function MobileOnboardingPreview() {
   ]);
 
   const toggleSelectedChannel = (value: string) => {
+    if (!availableOnboardingChannelIds.has(value)) return;
     setSelectedChannels((current) =>
       current.includes(value)
         ? current.filter((item) => item !== value)
@@ -1081,10 +1095,7 @@ function MobileOnboardingPreview() {
 function DesktopOnboardingPreview() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [selectedChannels, setSelectedChannels] = useState([
-    "gmail",
-    "whatsapp",
-  ]);
+  const [selectedChannels, setSelectedChannels] = useState(["gmail"]);
   const [businessProfile, setBusinessProfile] = useState({
     freelancerName: "",
     businessName: "",
@@ -1101,6 +1112,7 @@ function DesktopOnboardingPreview() {
     values: string[],
     setter: (values: string[]) => void,
   ) => {
+    if (!availableOnboardingChannelIds.has(value)) return;
     setter(
       values.includes(value)
         ? values.filter((item) => item !== value)
@@ -1646,13 +1658,17 @@ function ChannelsStep({
       />
       <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
         {channelOptions.map((channel) => {
-          const active = selected.includes(channel.id);
+          const active = channel.available && selected.includes(channel.id);
           return (
             <button
+              aria-disabled={!channel.available}
               className={cn(
                 "group relative flex w-full items-center gap-3 border-b border-slate-100 bg-white px-4 py-4 text-left transition-colors last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900",
                 active && "bg-[#f6f8ff] dark:bg-[#141d35]",
+                !channel.available &&
+                  "cursor-not-allowed bg-slate-50/70 hover:bg-slate-50/70 dark:bg-slate-900/40 dark:hover:bg-slate-900/40",
               )}
+              disabled={!channel.available}
               key={channel.id}
               onClick={() => onToggle(channel.id)}
               type="button"
@@ -1673,27 +1689,33 @@ function ChannelsStep({
                   {channel.detail}
                 </span>
               </span>
-              <span
-                className={cn(
-                  "relative h-6 w-11 shrink-0 rounded-full bg-slate-200 transition-colors dark:bg-slate-700",
-                  active
-                    ? "bg-[#4771df] dark:bg-[#5f85ed]"
-                    : "bg-slate-200 dark:bg-slate-700",
-                )}
-              >
+              {channel.available ? (
                 <span
                   className={cn(
-                    "absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition-transform",
-                    active && "translate-x-5",
+                    "relative h-6 w-11 shrink-0 rounded-full bg-slate-200 transition-colors dark:bg-slate-700",
+                    active
+                      ? "bg-[#4771df] dark:bg-[#5f85ed]"
+                      : "bg-slate-200 dark:bg-slate-700",
                   )}
-                />
-              </span>
+                >
+                  <span
+                    className={cn(
+                      "absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition-transform",
+                      active && "translate-x-5",
+                    )}
+                  />
+                </span>
+              ) : (
+                <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 font-medium text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+                  Bientôt
+                </span>
+              )}
             </button>
           );
         })}
       </div>
       <p className="mt-4 text-muted-foreground text-xs">
-        Modifiable à tout moment.
+        Gmail est disponible maintenant. Les autres canaux arrivent bientôt.
       </p>
     </>
   );
