@@ -3069,7 +3069,9 @@ export function SideNavWithTopNav({
       <ContentWrapper previewMode={previewMode}>{children}</ContentWrapper>
       {previewMode ? (
         <>
-          <ChannelConnectedSuccessDialog />
+          <Suspense fallback={null}>
+            <ChannelConnectedSuccessDialog />
+          </Suspense>
           <PreviewCommandCenter />
           {!isAiHome ? <PreviewMuePanel name="mue-panel" /> : null}
         </>
