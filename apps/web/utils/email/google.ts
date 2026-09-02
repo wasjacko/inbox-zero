@@ -1615,6 +1615,7 @@ export class GmailProvider implements EmailProvider {
           nextPageToken: messagePage.nextPageToken,
           totalCount:
             inboxLabel?.messagesTotal ?? messagePage.resultSizeEstimate,
+          unreadCount: inboxLabel?.messagesUnread,
         };
       }
 

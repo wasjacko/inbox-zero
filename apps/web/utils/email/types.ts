@@ -253,6 +253,7 @@ export interface EmailProvider {
     threads: EmailThread[];
     nextPageToken?: string;
     totalCount?: number;
+    unreadCount?: number;
   }>;
   hasPreviousCommunicationsWithSenderOrDomain(options: {
     from: string;

@@ -191,10 +191,9 @@ export function MobileChatPreview({
     }));
   }, [contactPhotos, provider, realThreads, userEmail]);
   const clientsToDisplay = realClients.slice(0, 3);
-  const unreadCount = realClients.reduce(
-    (total, client) => total + client.unread,
-    0,
-  );
+  const unreadCount =
+    realThreads?.unreadCount ??
+    realClients.reduce((total, client) => total + client.unread, 0);
   const replyCount = realClients.filter((client) =>
     client.headline.startsWith("Réponse à préparer"),
   ).length;

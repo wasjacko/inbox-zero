@@ -626,6 +626,13 @@ export function ChannelsV4Preview() {
     );
   }, [loadedThreads, provider, userEmail]);
 
+  useEffect(() => {
+    if (!requestedConversationId || selectedId) return;
+    if (loadedThreads.some((thread) => thread.id === requestedConversationId)) {
+      setSelectedId(requestedConversationId);
+    }
+  }, [loadedThreads, requestedConversationId, selectedId]);
+
   const loadMoreThreads = useCallback(async () => {
     const pageToken = realThreads?.nextPageToken;
     if (!emailAccountId || !pageToken || loadingMoreRef.current) return false;
@@ -652,6 +659,7 @@ export function ChannelsV4Preview() {
             threads: [...merged.values()],
             nextPageToken: page.nextPageToken,
             totalCount: current.totalCount ?? page.totalCount,
+            unreadCount: current.unreadCount ?? page.unreadCount,
           };
         },
         { revalidate: false },

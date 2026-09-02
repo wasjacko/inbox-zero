@@ -86,6 +86,7 @@ export function PreviewDataPreloader() {
               threads: [...merged.values()],
               nextPageToken: page.nextPageToken,
               totalCount: current.totalCount ?? page.totalCount,
+              unreadCount: current.unreadCount ?? page.unreadCount,
             };
           },
           { revalidate: false },

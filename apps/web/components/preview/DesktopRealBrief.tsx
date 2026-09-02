@@ -36,9 +36,9 @@ export function DesktopRealBrief({
     });
   }, [data, provider, userEmail]);
   const conversations = allConversations.slice(0, 3);
-  const unreadCount = allConversations.filter(
-    (conversation) => conversation.unread,
-  ).length;
+  const unreadCount =
+    data?.unreadCount ??
+    allConversations.filter((conversation) => conversation.unread).length;
   const replyCount = allConversations.filter(
     (conversation) =>
       conversation.unread && conversation.messages.at(-1)?.author === "contact",

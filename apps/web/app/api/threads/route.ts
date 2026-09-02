@@ -108,7 +108,7 @@ async function getThreads({
   messageFormat: "full" | "metadata";
 }) {
   // Get threads using the provider
-  const { threads, nextPageToken, totalCount } =
+  const { threads, nextPageToken, totalCount, unreadCount } =
     await emailProvider.getThreadsWithQuery({
       query,
       maxResults: query.limit || 50,
@@ -183,6 +183,7 @@ async function getThreads({
     threads: threadsWithPlans.filter(isDefined),
     nextPageToken,
     totalCount,
+    unreadCount,
   };
 }
 
@@ -208,6 +209,7 @@ function toListThreads({
   threads,
   nextPageToken,
   totalCount,
+  unreadCount,
 }: ThreadsResponse) {
   return {
     threads: threads.map((thread) => ({
@@ -228,5 +230,6 @@ function toListThreads({
     })),
     nextPageToken,
     totalCount,
+    unreadCount,
   };
 }
