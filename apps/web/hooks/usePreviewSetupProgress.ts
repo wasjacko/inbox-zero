@@ -109,6 +109,12 @@ function readState(): PreviewSetupState {
   }
 }
 
+export function syncChannelSetupStep(steps: boolean[], channels: string[]) {
+  return steps.map((value, index) =>
+    index === 0 ? channels.length > 0 : value,
+  );
+}
+
 export function usePreviewSetupProgress() {
   const [state, setState] = useState<PreviewSetupState>(freshDefaultState);
   const [hydrated, setHydrated] = useState(false);
@@ -169,9 +175,7 @@ export function usePreviewSetupProgress() {
       update((current) => ({
         ...current,
         channels,
-        steps: current.steps.map((value, index) =>
-          index === 0 ? true : value,
-        ),
+        steps: syncChannelSetupStep(current.steps, channels),
       }));
     },
     [update],

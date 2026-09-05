@@ -99,6 +99,7 @@ import {
 } from "@/utils/preview-workspace";
 import { COLORS } from "@/utils/colors";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
+import { useAccounts } from "@/hooks/useAccounts";
 import { toastError, toastSuccess } from "@/components/Toast";
 import { ButtonCheckbox } from "@/components/ButtonCheckbox";
 import { DomainIcon } from "@/components/charts/DomainIcon";
@@ -121,6 +122,9 @@ import {
   MobileFullScreenDialog,
   MobileSheet,
 } from "@/components/mobile/MobilePrimitives";
+import { getAccountLinkingUrl } from "@/utils/account-linking";
+import { getVerifiedMailboxChannels } from "@/utils/preview-onboarding";
+import { redirectToSafeUrl } from "@/utils/redirect";
 
 const mobilePreviewQuery = "(max-width: 1023px)";
 
@@ -3471,7 +3475,7 @@ const SETUP_CHANNELS = [
   {
     id: "gmail",
     name: "Gmail",
-    description: "wacilait@gmail.com",
+    description: "Messagerie Google",
   },
   {
     id: "outlook",
@@ -3481,7 +3485,7 @@ const SETUP_CHANNELS = [
   {
     id: "whatsapp",
     name: "WhatsApp",
-    description: "Conversations clients",
+    description: "Bientôt disponible",
   },
 ] as const;
 
@@ -3517,6 +3521,7 @@ function SetupChannelLogo({
 export function SetupPreview() {
   const router = useRouter();
   const setup = usePreviewSetupProgress();
+  const { data: accountsData, isLoading: accountsLoading } = useAccounts();
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [assistantDraft, setAssistantDraft] = useState(setup.assistant);
   const [newsletterDraft, setNewsletterDraft] = useState(setup.newsletters);
@@ -3526,7 +3531,9 @@ export function SetupPreview() {
   );
   const [showSuggestedNewsletters, setShowSuggestedNewsletters] =
     useState(false);
-  const [channelDraft, setChannelDraft] = useState(setup.channels);
+  const [connectingChannel, setConnectingChannel] = useState<string | null>(
+    null,
+  );
   const [taskAutomationDraft, setTaskAutomationDraft] = useState(
     setup.taskAutomation,
   );
@@ -3548,6 +3555,30 @@ export function SetupPreview() {
     visibleSetupNewsletters.every((sender) =>
       newsletterSelection.has(sender.email),
     );
+
+  const connectedChannels = useMemo(
+    () => getVerifiedMailboxChannels(accountsData?.emailAccounts ?? []),
+    [accountsData?.emailAccounts],
+  );
+
+  useEffect(() => {
+    if (accountsLoading || !setup.hydrated) return;
+
+    const savedChannels = [...setup.channels].sort().join(",");
+    const verifiedChannels = [...connectedChannels].sort().join(",");
+    const channelStepIsAccurate =
+      setup.steps[0] === connectedChannels.length > 0;
+    if (savedChannels !== verifiedChannels || !channelStepIsAccurate) {
+      setup.saveChannels(connectedChannels);
+    }
+  }, [
+    accountsLoading,
+    connectedChannels,
+    setup.channels,
+    setup.hydrated,
+    setup.saveChannels,
+    setup.steps,
+  ]);
 
   const stepDefinitions = [
     {
@@ -3587,7 +3618,6 @@ export function SetupPreview() {
     setNewsletterQuery("");
     setNewsletterSelection(new Set());
     setShowSuggestedNewsletters(false);
-    setChannelDraft([...setup.channels]);
     setTaskAutomationDraft({
       ...setup.taskAutomation,
       rules: [...setup.taskAutomation.rules],
@@ -3596,6 +3626,40 @@ export function SetupPreview() {
   };
 
   const closeStep = () => setActiveStep(null);
+
+  const connectSetupChannel = async (channel: string) => {
+    if (connectedChannels.includes(channel) || connectingChannel) return;
+
+    const provider =
+      channel === "gmail"
+        ? "google"
+        : channel === "outlook"
+          ? "microsoft"
+          : null;
+    if (!provider) {
+      toastError({
+        title: "WhatsApp bientôt disponible",
+        description:
+          "Ce canal ne sera proposé que lorsque sa connexion réelle sera prête.",
+      });
+      return;
+    }
+
+    setConnectingChannel(channel);
+    try {
+      const url = await getAccountLinkingUrl(provider, {
+        returnTo: `/setup?channelConnected=${channel}`,
+      });
+      redirectToSafeUrl(url, { allowExternal: true });
+    } catch (error) {
+      console.error(`Error initiating ${provider} account linking:`, error);
+      setConnectingChannel(null);
+      toastError({
+        title: `Impossible de connecter ${channel === "gmail" ? "Gmail" : "Outlook"}`,
+        description: "Réessayez dans quelques instants.",
+      });
+    }
+  };
 
   const applyNewsletterDecision = (
     decision: "keep" | "unsubscribe",
@@ -3612,14 +3676,6 @@ export function SetupPreview() {
   };
 
   const saveActiveStep = () => {
-    if (activeStep === 0) {
-      setup.saveChannels(channelDraft);
-      toastSuccess({
-        title: "Canaux connectés",
-        description: `${channelDraft.length} canal${channelDraft.length > 1 ? "aux" : ""} prêt${channelDraft.length > 1 ? "s" : ""} à être synchronisé${channelDraft.length > 1 ? "s" : ""}.`,
-      });
-    }
-
     if (activeStep === 1) {
       setup.saveNewsletters(newsletterDraft);
       toastSuccess({
@@ -3652,7 +3708,7 @@ export function SetupPreview() {
 
   const isStepValid =
     activeStep === 0
-      ? channelDraft.length > 0
+      ? connectedChannels.length > 0
       : activeStep === 1
         ? Object.keys(newsletterDraft).length > 0
         : activeStep === 2
@@ -4208,7 +4264,20 @@ export function SetupPreview() {
               {activeStep === 0 ? (
                 <div className="space-y-2">
                   {SETUP_CHANNELS.map(({ id, name, description }) => {
-                    const connected = channelDraft.includes(id);
+                    const connected = connectedChannels.includes(id);
+                    const provider =
+                      id === "gmail"
+                        ? "google"
+                        : id === "outlook"
+                          ? "microsoft"
+                          : null;
+                    const connectedAccount = provider
+                      ? accountsData?.emailAccounts.find(
+                          ({ account }) => account.provider === provider,
+                        )
+                      : undefined;
+                    const isConnecting = connectingChannel === id;
+                    const isAvailable = id !== "whatsapp";
                     return (
                       <button
                         className={cn(
@@ -4218,13 +4287,8 @@ export function SetupPreview() {
                             : "border-border hover:bg-muted/35",
                         )}
                         key={id}
-                        onClick={() =>
-                          setChannelDraft((current) =>
-                            current.includes(id)
-                              ? current.filter((channel) => channel !== id)
-                              : [...current, id],
-                          )
-                        }
+                        disabled={connected || isConnecting || accountsLoading}
+                        onClick={() => connectSetupChannel(id)}
                         type="button"
                       >
                         <span className="flex size-10 items-center justify-center rounded-xl bg-background shadow-sm ring-1 ring-black/[0.04]">
@@ -4235,7 +4299,7 @@ export function SetupPreview() {
                             {name}
                           </span>
                           <span className="mt-0.5 block text-muted-foreground text-xs">
-                            {description}
+                            {connectedAccount?.email ?? description}
                           </span>
                         </span>
                         <span
@@ -4246,7 +4310,13 @@ export function SetupPreview() {
                               : "bg-muted text-muted-foreground",
                           )}
                         >
-                          {connected ? "Connecté" : "Connecter"}
+                          {connected
+                            ? "Connecté"
+                            : isConnecting
+                              ? "Ouverture…"
+                              : isAvailable
+                                ? "Connecter"
+                                : "Bientôt"}
                         </span>
                       </button>
                     );
@@ -4407,14 +4477,22 @@ export function SetupPreview() {
             </div>
 
             <DialogFooter className="border-t bg-muted/20 px-6 py-4">
-              <Button onClick={closeStep} variant="ghost">
-                Annuler
-              </Button>
-              <Button disabled={!isStepValid} onClick={saveActiveStep}>
-                {setup.steps[activeStep]
-                  ? "Enregistrer les modifications"
-                  : "Valider cette étape"}
-              </Button>
+              {activeStep === 0 ? (
+                <Button onClick={closeStep} variant="outline">
+                  Fermer
+                </Button>
+              ) : (
+                <>
+                  <Button onClick={closeStep} variant="ghost">
+                    Annuler
+                  </Button>
+                  <Button disabled={!isStepValid} onClick={saveActiveStep}>
+                    {setup.steps[activeStep]
+                      ? "Enregistrer les modifications"
+                      : "Valider cette étape"}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

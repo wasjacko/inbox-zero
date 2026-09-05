@@ -85,6 +85,7 @@ import {
   PREVIEW_WORKSPACE_NAME_KEY,
 } from "@/utils/preview-workspace";
 import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
+import { useAccounts } from "@/hooks/useAccounts";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { redirectToSafeUrl } from "@/utils/redirect";
 import { toastError } from "@/components/Toast";
@@ -3088,6 +3089,7 @@ function ChannelConnectedSuccessDialog() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { emailAccountId, isLoading } = useAccount();
+  const { data: accountsData, isLoading: accountsLoading } = useAccounts();
   const [dismissed, setDismissed] = useState(false);
   const success = searchParams.get("success");
   const connectedChannel = searchParams.get("channelConnected");
@@ -3107,6 +3109,16 @@ function ChannelConnectedSuccessDialog() {
       : connectedChannel === "gmail"
         ? "Gmail"
         : "Votre messagerie";
+  const connectedProvider =
+    connectedChannel === "gmail"
+      ? "google"
+      : connectedChannel === "outlook"
+        ? "microsoft"
+        : null;
+  const connectedEmailAccountId =
+    accountsData?.emailAccounts.find(
+      ({ account }) => account.provider === connectedProvider,
+    )?.id ?? emailAccountId;
 
   const clearLinkingParams = () => {
     setDismissed(true);
@@ -3119,9 +3131,9 @@ function ChannelConnectedSuccessDialog() {
   };
 
   const startCleanup = () => {
-    if (!emailAccountId) return;
+    if (!connectedEmailAccountId) return;
     const destination = prefixPath(
-      emailAccountId,
+      connectedEmailAccountId,
       `/bulk-unsubscribe?select=suggested&source=${promptedAfterOnboarding ? "onboarding" : "channel-connected"}`,
     );
     window.location.assign(destination);
@@ -3160,10 +3172,14 @@ function ChannelConnectedSuccessDialog() {
               Plus tard
             </Button>
             <Button
-              disabled={isLoading || !emailAccountId}
+              disabled={
+                isLoading || accountsLoading || !connectedEmailAccountId
+              }
               onClick={startCleanup}
             >
-              {isLoading ? "Préparation…" : "Analyser et ouvrir le tri"}
+              {isLoading || accountsLoading
+                ? "Préparation…"
+                : "Analyser et ouvrir le tri"}
             </Button>
           </div>
         </div>
