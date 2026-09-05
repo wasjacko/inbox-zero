@@ -93,6 +93,9 @@ describe("betterAuthConfig", () => {
     expect(
       (betterAuthConfig as any).options.emailVerification.sendOnSignUp,
     ).toBe(true);
+    expect(
+      (betterAuthConfig as any).options.emailVerification.sendOnSignIn,
+    ).toBe(true);
   });
 });
 
