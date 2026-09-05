@@ -38,6 +38,10 @@ vi.mock("better-auth", () => {
   };
 });
 vi.mock("@/utils/prisma");
+vi.mock("better-auth/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("better-auth/api")>()),
+  createAuthMiddleware: (handler: unknown) => handler,
+}));
 vi.mock("@/utils/error-messages", () => ({
   addUserErrorMessage: vi.fn().mockResolvedValue(undefined),
   clearAccountDisconnectedErrorIfResolved: vi.fn().mockResolvedValue(undefined),
@@ -73,6 +77,32 @@ vi.mock("@/utils/error", () => ({
 }));
 
 describe("betterAuthConfig", () => {
+  it("routes onboarding email links to confirmation before redeeming them", async () => {
+    const redirect = vi.fn(() => new Error("redirect"));
+    await expect(
+      (betterAuthConfig as any).options.hooks.before({
+        path: "/verify-email",
+        query: { token: "signed-token", callbackURL: "/onboarding" },
+        redirect,
+      }),
+    ).rejects.toThrow("redirect");
+    expect(redirect).toHaveBeenCalledWith("/confirm-email?token=signed-token");
+  });
+
+  it("allows explicit verification and other callback flows through", async () => {
+    const redirect = vi.fn();
+    for (const query of [
+      { token: "signed-token" },
+      { token: "signed-token", callbackURL: "/settings" },
+    ]) {
+      await (betterAuthConfig as any).options.hooks.before({
+        path: "/verify-email",
+        query,
+        redirect,
+      });
+    }
+    expect(redirect).not.toHaveBeenCalled();
+  });
   it("resends verification when an unverified user retries signup", async () => {
     const auth = betterAuthConfig as any;
     auth.api.sendVerificationEmail.mockClear();

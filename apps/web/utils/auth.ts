@@ -366,6 +366,21 @@ export const betterAuthConfig = betterAuth({
     },
   },
   hooks: {
+    before: createAuthMiddleware(async (context) => {
+      // Mail gateways open links automatically. Only the confirmation page's
+      // explicit verification request should redeem an email token.
+      if (
+        context.path === "/verify-email" &&
+        context.query?.callbackURL === "/onboarding"
+      ) {
+        const token = context.query.token;
+        if (typeof token === "string") {
+          throw context.redirect(
+            `/confirm-email?token=${encodeURIComponent(token)}`,
+          );
+        }
+      }
+    }),
     after: createAuthMiddleware(async (context) => {
       try {
         const authenticatedSession = context.context.newSession;

@@ -5,10 +5,17 @@ import {
   organizationClient,
 } from "better-auth/client/plugins";
 
-export const { signIn, signOut, signUp, useSession, getSession, sso } =
-  createAuthClient({
-    plugins: [ssoClient(), organizationClient()],
-  });
+export const {
+  signIn,
+  signOut,
+  signUp,
+  useSession,
+  getSession,
+  verifyEmail,
+  sso,
+} = createAuthClient({
+  plugins: [ssoClient(), organizationClient()],
+});
 
 function createGenericOauthAuthClient() {
   return createAuthClient({
