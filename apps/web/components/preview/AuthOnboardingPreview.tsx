@@ -2020,8 +2020,6 @@ const understandingSteps = [
 type RealInboxScan = {
   totalCount: number;
   unreadCount: number;
-  actionCount: number;
-  fetchedCount: number;
 };
 
 function RealFirstValueScanStep({
@@ -2044,8 +2042,6 @@ function RealFirstValueScanStep({
       setResult({
         totalCount: 0,
         unreadCount: 0,
-        actionCount: 0,
-        fetchedCount: 0,
       });
       onStatusChange(true);
       return;
@@ -2057,22 +2053,29 @@ function RealFirstValueScanStep({
     onStatusChange(false);
 
     try {
-      const response = await fetch(
-        "/api/threads?view=list&limit=100&includePlans=true",
-        {
-          cache: "no-store",
-          headers: { [EMAIL_ACCOUNT_HEADER]: gmailAccount.id },
-        },
-      );
-      if (!response.ok) throw new Error("Inbox scan failed");
+      const requestStats = (type: "all" | "unread") =>
+        fetch(
+          `/api/threads?view=list&limit=1&includePlans=false&type=${type}`,
+          {
+            cache: "no-store",
+            headers: { [EMAIL_ACCOUNT_HEADER]: gmailAccount.id },
+          },
+        );
+      const [allResponse, unreadResponse] = await Promise.all([
+        requestStats("all"),
+        requestStats("unread"),
+      ]);
+      if (!allResponse.ok || !unreadResponse.ok) {
+        throw new Error("Inbox scan failed");
+      }
 
-      const data = (await response.json()) as ThreadsListResponse;
-      const threads = Array.isArray(data.threads) ? data.threads : [];
+      const [allData, unreadData] = (await Promise.all([
+        allResponse.json(),
+        unreadResponse.json(),
+      ])) as [ThreadsListResponse, ThreadsListResponse];
       const scanResult = {
-        totalCount: data.totalCount ?? threads.length,
-        unreadCount: data.unreadCount ?? 0,
-        actionCount: threads.filter((thread) => thread.plans.length > 0).length,
-        fetchedCount: threads.length,
+        totalCount: allData.totalCount ?? 0,
+        unreadCount: unreadData.totalCount ?? 0,
       };
 
       setResult(scanResult);
@@ -2133,7 +2136,7 @@ function RealFirstValueScanStep({
     {
       Icon: MailIcon,
       title: `${result?.totalCount ?? 0} emails`,
-      description: "Détectés dans votre boîte Gmail",
+      description: "Présents dans votre compte Gmail",
       tone: "bg-blue-50 text-blue-600 dark:bg-blue-950/40",
     },
     {
@@ -2141,12 +2144,6 @@ function RealFirstValueScanStep({
       title: `${result?.unreadCount ?? 0} non lus`,
       description: "Comptés directement par Gmail",
       tone: "bg-amber-50 text-amber-600 dark:bg-amber-950/40",
-    },
-    {
-      Icon: SparklesIcon,
-      title: `${result?.actionCount ?? 0} actions`,
-      description: `Identifiées sur ${result?.fetchedCount ?? 0} échanges récents`,
-      tone: "bg-violet-50 text-violet-600 dark:bg-violet-950/40",
     },
   ];
 
@@ -2160,7 +2157,7 @@ function RealFirstValueScanStep({
         Ces résultats viennent directement du compte Gmail que vous venez de
         connecter.
       </p>
-      <div className="mt-10 grid gap-3 sm:grid-cols-3">
+      <div className="mx-auto mt-10 grid w-full max-w-xl gap-3 sm:grid-cols-2">
         {cards.map(({ Icon, title, description, tone }) => (
           <div
             className="rounded-2xl border bg-white p-5 text-left shadow-[0_18px_50px_-40px_rgba(15,23,42,0.5)] dark:bg-slate-950"

@@ -1571,17 +1571,43 @@ export class GmailProvider implements EmailProvider {
           !excludeLabelNames?.length &&
           !labelIds?.length &&
           !labelId;
-        const [messagePage, inboxLabel] = await Promise.all([
-          getMessages(this.client, {
-            query: getQuery(),
-            labelIds: getLabelIds(type) || [],
-            maxResults: Math.min(maxResults * 2, 100),
-            pageToken: options.pageToken || undefined,
-          }),
-          isUnfilteredInbox
-            ? getLabelById({ gmail: this.client, id: GmailLabel.INBOX })
-            : Promise.resolve(undefined),
-        ]);
+        const isUnfilteredMailbox =
+          type === "all" &&
+          !options.pageToken &&
+          !fromEmail &&
+          !after &&
+          !before &&
+          !isUnread &&
+          !excludeLabelNames?.length &&
+          !labelIds?.length &&
+          !labelId;
+        const isUnfilteredUnread =
+          type === "unread" &&
+          !options.pageToken &&
+          !fromEmail &&
+          !after &&
+          !before &&
+          !excludeLabelNames?.length &&
+          !labelIds?.length &&
+          !labelId;
+        const [messagePage, inboxLabel, mailboxProfile, unreadLabel] =
+          await Promise.all([
+            getMessages(this.client, {
+              query: getQuery(),
+              labelIds: getLabelIds(type) || [],
+              maxResults: Math.min(maxResults * 2, 100),
+              pageToken: options.pageToken || undefined,
+            }),
+            isUnfilteredInbox
+              ? getLabelById({ gmail: this.client, id: GmailLabel.INBOX })
+              : Promise.resolve(undefined),
+            isUnfilteredMailbox
+              ? this.client.users.getProfile({ userId: "me" })
+              : Promise.resolve(undefined),
+            isUnfilteredUnread
+              ? getLabelById({ gmail: this.client, id: GmailLabel.UNREAD })
+              : Promise.resolve(undefined),
+          ]);
         const latestMessageByThread = new Map<string, string>();
         for (const message of messagePage.messages) {
           if (!latestMessageByThread.has(message.threadId)) {
@@ -1614,7 +1640,10 @@ export class GmailProvider implements EmailProvider {
           })),
           nextPageToken: messagePage.nextPageToken,
           totalCount:
-            inboxLabel?.messagesTotal ?? messagePage.resultSizeEstimate,
+            mailboxProfile?.data.messagesTotal ??
+            unreadLabel?.messagesTotal ??
+            inboxLabel?.messagesTotal ??
+            messagePage.resultSizeEstimate,
           unreadCount: inboxLabel?.messagesUnread,
         };
       }

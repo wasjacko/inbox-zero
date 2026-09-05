@@ -339,6 +339,66 @@ describe("GmailProvider.getThreadsWithQuery", () => {
 
     expect(result.totalCount).toBe(1847);
   });
+
+  it("returns the exact total for the whole Gmail mailbox", async () => {
+    vi.spyOn(gmailMessageModule, "getMessagesBatch").mockResolvedValue([]);
+    const getProfile = vi.fn().mockResolvedValue({
+      data: { messagesTotal: 12_345 },
+    });
+    const provider = new GmailProvider({
+      users: {
+        getProfile,
+        messages: {
+          list: vi.fn().mockResolvedValue({
+            data: { messages: [], resultSizeEstimate: 201 },
+          }),
+        },
+      },
+      context: {
+        _options: {
+          auth: { credentials: { access_token: "access-token" } },
+        },
+      },
+    } as any);
+
+    const result = await provider.getThreadsWithQuery({
+      query: { type: "all" },
+      messageFormat: "metadata",
+    });
+
+    expect(getProfile).toHaveBeenCalledWith({ userId: "me" });
+    expect(result.totalCount).toBe(12_345);
+  });
+
+  it("returns Gmail's exact unread total", async () => {
+    vi.spyOn(gmailMessageModule, "getMessagesBatch").mockResolvedValue([]);
+    const provider = new GmailProvider({
+      users: {
+        labels: {
+          get: vi.fn().mockResolvedValue({
+            data: { id: GmailLabel.UNREAD, messagesTotal: 678 },
+          }),
+        },
+        messages: {
+          list: vi.fn().mockResolvedValue({
+            data: { messages: [], resultSizeEstimate: 100 },
+          }),
+        },
+      },
+      context: {
+        _options: {
+          auth: { credentials: { access_token: "access-token" } },
+        },
+      },
+    } as any);
+
+    const result = await provider.getThreadsWithQuery({
+      query: { type: "unread" },
+      messageFormat: "metadata",
+    });
+
+    expect(result.totalCount).toBe(678);
+  });
 });
 
 describe("GmailProvider.updateDraft", () => {
