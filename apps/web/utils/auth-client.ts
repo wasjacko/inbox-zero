@@ -12,6 +12,7 @@ export const {
   useSession,
   getSession,
   verifyEmail,
+  sendVerificationEmail,
   sso,
 } = createAuthClient({
   plugins: [ssoClient(), organizationClient()],

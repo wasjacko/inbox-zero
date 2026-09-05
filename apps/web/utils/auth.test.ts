@@ -77,6 +77,12 @@ vi.mock("@/utils/error", () => ({
 }));
 
 describe("betterAuthConfig", () => {
+  it("allows password sign-up for every valid email address", () => {
+    expect(
+      (betterAuthConfig as any).options.databaseHooks.user.create.before,
+    ).toBeUndefined();
+  });
+
   it("routes onboarding email links to confirmation before redeeming them", async () => {
     const redirect = vi.fn(() => new Error("redirect"));
     await expect(

@@ -9,6 +9,7 @@ const mockCreateAuthClient = vi.fn(() => ({
   },
   signOut: vi.fn(),
   signUp: vi.fn(),
+  sendVerificationEmail: vi.fn(),
   sso: vi.fn(),
   useSession: vi.fn(),
 }));

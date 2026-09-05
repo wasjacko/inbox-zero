@@ -28,7 +28,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { cn } from "@/utils";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
-import { signIn, signUp } from "@/utils/auth-client";
+import { sendVerificationEmail, signIn, signUp } from "@/utils/auth-client";
 import {
   getPreviewOnboardingDestination,
   grantPreviewOnboardingAccess,
@@ -109,7 +109,7 @@ export function AuthPreview() {
 }
 
 type AuthMode = "signup" | "login";
-type AuthLoading = "google" | "email" | null;
+type AuthLoading = "google" | "email" | "verification" | null;
 
 function useFreescaleAuthentication(mode: AuthMode) {
   const router = useRouter();
@@ -118,6 +118,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
   const [verificationEmail, setVerificationEmail] = useState<string | null>(
     null,
   );
+  const [verificationResent, setVerificationResent] = useState(false);
 
   const continueWithGoogle = async () => {
     setLoading("google");
@@ -146,6 +147,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
     setLoading("email");
     setError(null);
     setVerificationEmail(null);
+    setVerificationResent(false);
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
@@ -204,12 +206,34 @@ function useFreescaleAuthentication(mode: AuthMode) {
     }
   };
 
+  const resendVerification = async () => {
+    if (!verificationEmail) return;
+
+    setLoading("verification");
+    setError(null);
+    setVerificationResent(false);
+    try {
+      const result = await sendVerificationEmail({
+        email: verificationEmail,
+        callbackURL: "/onboarding",
+      });
+      if (result.error) throw result.error;
+      setVerificationResent(true);
+    } catch (authError) {
+      setError(getFreescaleAuthError(authError));
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return {
     continueWithEmail,
     continueWithGoogle,
     error,
     loading,
     verificationEmail,
+    verificationResent,
+    resendVerification,
     resetError: () => setError(null),
   };
 }
@@ -257,6 +281,8 @@ function MobileAuthPreview() {
     error,
     loading,
     verificationEmail,
+    verificationResent,
+    resendVerification,
   } = useFreescaleAuthentication(mode);
 
   const handleEmailSubmit = (event: FormEvent) => {
@@ -417,13 +443,27 @@ function MobileAuthPreview() {
               </p>
             ) : null}
             {verificationEmail ? (
-              <p
+              <div
                 className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800 text-sm dark:bg-emerald-950/30 dark:text-emerald-300"
                 role="status"
               >
-                Vérifiez votre boîte {verificationEmail}. Le compte ne sera
-                accessible qu’après confirmation de cette adresse.
-              </p>
+                <p>
+                  Vérifiez votre boîte {verificationEmail}. Le compte ne sera
+                  accessible qu’après confirmation de cette adresse.
+                </p>
+                <button
+                  className="mt-2 font-medium underline underline-offset-4"
+                  disabled={loading !== null}
+                  onClick={() => resendVerification().catch(() => undefined)}
+                  type="button"
+                >
+                  {loading === "verification"
+                    ? "Envoi en cours…"
+                    : verificationResent
+                      ? "E-mail renvoyé"
+                      : "Renvoyer l’e-mail"}
+                </button>
+              </div>
             ) : null}
             <Button
               className="h-12 w-full rounded-xl"
@@ -482,6 +522,8 @@ function DesktopAuthPreview() {
     loading,
     resetError,
     verificationEmail,
+    verificationResent,
+    resendVerification,
   } = useFreescaleAuthentication(mode);
 
   const handleEmailSubmit = (event: FormEvent) => {
@@ -625,13 +667,27 @@ function DesktopAuthPreview() {
           </p>
         ) : null}
         {verificationEmail ? (
-          <p
+          <div
             className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800 text-sm dark:bg-emerald-950/30 dark:text-emerald-300"
             role="status"
           >
-            Vérifiez votre boîte {verificationEmail}. Le compte ne sera
-            accessible qu’après confirmation de cette adresse.
-          </p>
+            <p>
+              Vérifiez votre boîte {verificationEmail}. Le compte ne sera
+              accessible qu’après confirmation de cette adresse.
+            </p>
+            <button
+              className="mt-2 font-medium underline underline-offset-4"
+              disabled={loading !== null}
+              onClick={() => resendVerification().catch(() => undefined)}
+              type="button"
+            >
+              {loading === "verification"
+                ? "Envoi en cours…"
+                : verificationResent
+                  ? "E-mail renvoyé"
+                  : "Renvoyer l’e-mail"}
+            </button>
+          </div>
         ) : null}
 
         <Button
