@@ -858,21 +858,18 @@ type MobileOnboardingState = {
 };
 
 function useOnboardingChannelConnections() {
-  const { data: accountsData, mutate: mutateAccounts } = useAccounts();
+  const searchParams = useSearchParams();
+  const { mutate: mutateAccounts } = useAccounts();
   const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
   const [connectingChannels, setConnectingChannels] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!accountsData) return;
-
-    const connected = accountsData.emailAccounts.flatMap((emailAccount) => {
-      if (emailAccount.account.provider === "google") return ["gmail"];
-      if (emailAccount.account.provider === "microsoft") return ["outlook"];
-      return [];
-    });
-
-    setConnectedChannels([...new Set(connected)]);
-  }, [accountsData]);
+    const channel = searchParams.get("channelConnected");
+    if (!channel || !searchParams.get("success")) return;
+    setConnectedChannels((current) =>
+      current.includes(channel) ? current : [...current, channel],
+    );
+  }, [searchParams]);
 
   useEffect(() => {
     const handleOAuthCompletion = async (event: MessageEvent) => {
@@ -897,6 +894,12 @@ function useOnboardingChannelConnections() {
           description: "Le canal n’a pas été connecté. Vous pouvez réessayer.",
         });
         return;
+      }
+
+      if (channel) {
+        setConnectedChannels((current) =>
+          current.includes(channel) ? current : [...current, channel],
+        );
       }
 
       try {
