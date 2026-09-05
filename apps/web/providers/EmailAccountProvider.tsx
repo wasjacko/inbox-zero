@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useParams } from "next/navigation";
 import type { GetEmailAccountsResponse } from "@/app/api/user/email-accounts/route";
 import { setLastEmailAccountAction } from "@/utils/actions/email-account-cookie";
@@ -14,6 +21,7 @@ type Context = {
   providerRateLimit:
     | GetEmailAccountsResponse["emailAccounts"][number]["providerRateLimit"]
     | null;
+  refreshAccounts: () => Promise<GetEmailAccountsResponse | null>;
 };
 
 const EmailAccountContext = createContext<Context | undefined>(undefined);
@@ -25,6 +33,7 @@ const previewContextValue: Context = {
   isLoading: false,
   provider: "",
   providerRateLimit: null,
+  refreshAccounts: async () => null,
 };
 
 export function EmailAccountProvider({
@@ -37,29 +46,33 @@ export function EmailAccountProvider({
   const [data, setData] = useState<GetEmailAccountsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchAccounts() {
-      try {
-        // Not using SWR here because this will lead to a circular provider tree
-        // This is the simplest fix
-        const response = await fetch("/api/user/email-accounts");
-        if (response.status === 401) {
-          window.location.replace("/login");
-          return;
-        }
-        if (response.ok) {
-          const result: GetEmailAccountsResponse = await response.json();
-          setData(result);
-        }
-      } catch (error) {
-        console.error("Error fetching accounts:", error);
-      } finally {
-        setIsLoading(false);
+  const refreshAccounts = useCallback(async () => {
+    try {
+      // Not using SWR here because this will lead to a circular provider tree.
+      const response = await fetch(
+        `/api/user/email-accounts?refreshedAt=${Date.now()}`,
+        { cache: "no-store" },
+      );
+      if (response.status === 401) {
+        window.location.replace("/login");
+        return null;
       }
-    }
+      if (!response.ok) return null;
 
-    fetchAccounts();
+      const result: GetEmailAccountsResponse = await response.json();
+      setData(result);
+      return result;
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshAccounts();
+  }, [refreshAccounts]);
 
   useEffect(() => {
     if (emailAccountId) {
@@ -92,6 +105,7 @@ export function EmailAccountProvider({
         userEmail: emailAccount?.email ?? "",
         provider: emailAccount?.account?.provider ?? "",
         providerRateLimit: emailAccount?.providerRateLimit ?? null,
+        refreshAccounts,
       }}
     >
       {children}

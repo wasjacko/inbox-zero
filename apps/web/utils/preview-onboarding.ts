@@ -36,6 +36,20 @@ export function getPreviewOnboardingDestination(connectedChannels: string[]) {
     : "/setup?onboarding=complete";
 }
 
+export function getVerifiedMailboxChannels(
+  emailAccounts: { account: { provider: string } }[],
+) {
+  return Array.from(
+    new Set(
+      emailAccounts.flatMap(({ account }) => {
+        if (account.provider === "google") return ["gmail"];
+        if (account.provider === "microsoft") return ["outlook"];
+        return [];
+      }),
+    ),
+  );
+}
+
 export function getPreviewConnectedChannels(storage: Pick<Storage, "getItem">) {
   const value = storage.getItem(PREVIEW_CONNECTED_CHANNELS_KEY);
   if (!value) return [];

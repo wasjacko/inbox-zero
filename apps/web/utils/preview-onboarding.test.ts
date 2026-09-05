@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getPreviewConnectedChannels,
   getPreviewOnboardingDestination,
+  getVerifiedMailboxChannels,
   PREVIEW_CONNECTED_CHANNELS_EVENT,
   PREVIEW_CONNECTED_CHANNELS_KEY,
   savePreviewConnectedChannels,
@@ -45,5 +46,16 @@ describe("preview onboarding connections", () => {
     expect(getPreviewOnboardingDestination([])).toBe(
       "/setup?onboarding=complete",
     );
+  });
+
+  it("only confirms mailbox channels returned by the server", () => {
+    expect(
+      getVerifiedMailboxChannels([
+        { account: { provider: "google" } },
+        { account: { provider: "microsoft" } },
+        { account: { provider: "google" } },
+      ]),
+    ).toEqual(["gmail", "outlook"]);
+    expect(getVerifiedMailboxChannels([])).toEqual([]);
   });
 });

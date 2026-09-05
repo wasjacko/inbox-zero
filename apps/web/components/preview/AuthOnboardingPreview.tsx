@@ -25,12 +25,14 @@ import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { Button } from "@/components/ui/button";
 import { toastError } from "@/components/Toast";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useAccount } from "@/providers/EmailAccountProvider";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { cn } from "@/utils";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { sendVerificationEmail, signIn, signUp } from "@/utils/auth-client";
 import {
   getPreviewOnboardingDestination,
+  getVerifiedMailboxChannels,
   grantPreviewOnboardingAccess,
   savePreviewConnectedChannels,
   startPreviewOnboarding,
@@ -853,16 +855,47 @@ type MobileOnboardingState = {
 function useOnboardingChannelConnections() {
   const searchParams = useSearchParams();
   const { mutate: mutateAccounts } = useAccounts();
+  const { refreshAccounts } = useAccount();
   const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
   const [connectingChannels, setConnectingChannels] = useState<string[]>([]);
+
+  const refreshConnectedChannels = useCallback(
+    async (expectedChannel: string) => {
+      const accounts = await refreshAccounts();
+      if (!accounts) throw new Error("Unable to refresh accounts");
+      await mutateAccounts(accounts, { revalidate: false });
+
+      const verifiedChannels = getVerifiedMailboxChannels(
+        accounts.emailAccounts,
+      );
+
+      setConnectedChannels(verifiedChannels);
+      return verifiedChannels.includes(expectedChannel);
+    },
+    [mutateAccounts, refreshAccounts],
+  );
 
   useEffect(() => {
     const channel = searchParams.get("channelConnected");
     if (!channel || !searchParams.get("success")) return;
-    setConnectedChannels((current) =>
-      current.includes(channel) ? current : [...current, channel],
-    );
-  }, [searchParams]);
+
+    refreshConnectedChannels(channel)
+      .then((isConnected) => {
+        if (isConnected) return;
+        toastError({
+          title: "Connexion non terminée",
+          description:
+            "Le canal n’a pas été enregistré. Autorisez-le à nouveau pour continuer.",
+        });
+      })
+      .catch(() => {
+        toastError({
+          title: "Vérification impossible",
+          description:
+            "Nous n’avons pas pu confirmer le canal. Réessayez dans quelques instants.",
+        });
+      });
+  }, [refreshConnectedChannels, searchParams]);
 
   useEffect(() => {
     const handleOAuthCompletion = async (event: MessageEvent) => {
@@ -889,27 +922,26 @@ function useOnboardingChannelConnections() {
         return;
       }
 
-      if (channel) {
-        setConnectedChannels((current) =>
-          current.includes(channel) ? current : [...current, channel],
-        );
-      }
-
       try {
-        const response = await fetch(
-          `/api/user/email-accounts?connectedAt=${Date.now()}`,
-          { cache: "no-store" },
-        );
-        if (!response.ok) throw new Error("Unable to refresh accounts");
-        await mutateAccounts(await response.json(), { revalidate: false });
+        if (!channel || !(await refreshConnectedChannels(channel))) {
+          toastError({
+            title: "Connexion non terminée",
+            description:
+              "Le canal n’a pas été enregistré. Autorisez-le à nouveau pour continuer.",
+          });
+        }
       } catch {
-        await mutateAccounts();
+        toastError({
+          title: "Vérification impossible",
+          description:
+            "Nous n’avons pas pu confirmer le canal. Réessayez dans quelques instants.",
+        });
       }
     };
 
     window.addEventListener("message", handleOAuthCompletion);
     return () => window.removeEventListener("message", handleOAuthCompletion);
-  }, [mutateAccounts]);
+  }, [refreshConnectedChannels]);
 
   const connectChannel = async (channel: string) => {
     if (
