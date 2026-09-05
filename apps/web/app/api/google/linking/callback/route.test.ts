@@ -119,7 +119,8 @@ describe("google linking callback route", () => {
         refresh_token: "refresh-token",
         expiry_date: 1_700_000_000_000,
         id_token: "id-token",
-        scope: "openid email profile",
+        scope:
+          "openid email profile https://www.googleapis.com/auth/gmail.modify",
         token_type: "Bearer",
       },
     });
@@ -138,6 +139,23 @@ describe("google linking callback route", () => {
     prisma.account.update.mockResolvedValue({
       id: "account-123",
     } as Awaited<ReturnType<typeof prisma.account.update>>);
+  });
+
+  it.each([
+    null,
+    undefined,
+    "openid email profile",
+  ])("rejects Gmail linking without mailbox consent (%s)", async (scope) => {
+    mockGetToken.mockResolvedValue({
+      tokens: { access_token: "identity-token", scope },
+    });
+    const response = await GET(
+      createRequest("http://localhost:3000/api/google/linking/callback"),
+    );
+    expect(response.headers.get("location")).toContain("error=link_failed");
+    expect(prisma.account.create).not.toHaveBeenCalled();
+    expect(prisma.account.update).not.toHaveBeenCalled();
+    expect(mockFetchGoogleOpenIdProfile).not.toHaveBeenCalled();
   });
 
   it("updates an existing same-user Google account in emulation instead of creating a duplicate", async () => {
@@ -160,7 +178,8 @@ describe("google linking callback route", () => {
         providerAccountId: "new-provider-account-id",
         access_token: "access-token",
         refresh_token: "refresh-token",
-        scope: "openid email profile",
+        scope:
+          "openid email profile https://www.googleapis.com/auth/gmail.modify",
       }),
     });
     expect(prisma.account.create).not.toHaveBeenCalled();

@@ -26,6 +26,7 @@ import {
 } from "@/utils/redis/oauth-code";
 import { isDuplicateError } from "@/utils/prisma-helpers";
 import { SafeError } from "@/utils/error";
+import { hasGmailMailboxScope } from "@/utils/gmail/scopes";
 
 export const GET = withError("google/linking/callback", async (request) => {
   const actorUserId = (await auth(request.headers))?.user.id ?? null;
@@ -97,6 +98,11 @@ export const GET = withError("google/linking/callback", async (request) => {
 
   try {
     const { tokens } = await googleAuth.getToken(code);
+    if (!hasGmailMailboxScope(tokens.scope)) {
+      throw new SafeError(
+        "Veuillez autoriser l’accès à Gmail pour connecter votre messagerie.",
+      );
+    }
     const payload = await getGoogleProfilePayload({
       googleAuth,
       tokens,

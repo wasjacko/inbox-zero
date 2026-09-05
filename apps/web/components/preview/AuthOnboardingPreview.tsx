@@ -1901,7 +1901,7 @@ function ConnectChannelsStep({
     <>
       <StepHeading
         title="Connectez vos outils, on s’occupe du reste"
-        description="C’est ici que vous autorisez Freescale à accéder à vos emails. Rien n’est lu avant votre accord."
+        description="Votre connexion à Freescale sert à vous identifier. Pour connecter Gmail, cliquez sur Autoriser puis acceptez sur Google l’accès à vos messages : lecture de l’historique, organisation et envoi de réponses."
       />
       <div className="space-y-3">
         {channels.map((channel) => {

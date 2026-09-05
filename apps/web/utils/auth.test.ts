@@ -389,14 +389,18 @@ describe("handleLinkAccount", () => {
     expect(clearAccountDisconnectedErrorIfResolved).not.toHaveBeenCalled();
   });
 
-  it("does not treat an identity-only Google sign-in as a connected inbox", async () => {
+  it.each([
+    null,
+    undefined,
+    "openid,email,profile",
+  ])("does not connect Gmail without mailbox permissions (%s)", async (scope) => {
     await expect(
       handleLinkAccount({
         id: "account_1",
         userId: "user_1",
         providerId: "google",
         accessToken: "identity_access_token",
-        scope: "openid,email,profile",
+        scope,
       } as any),
     ).resolves.toBeUndefined();
 
@@ -411,6 +415,7 @@ describe("handleLinkAccount", () => {
         userId: "user_1",
         providerId: "google",
         accessToken: null,
+        scope: "https://www.googleapis.com/auth/gmail.modify",
       } as any),
     ).rejects.toThrow("Missing access token during account linking.");
 
@@ -445,6 +450,7 @@ describe("handleLinkAccount", () => {
           userId: "new_user",
           providerId: "google",
           accessToken: "access_token",
+          scope: "https://www.googleapis.com/auth/gmail.modify",
         } as any),
       ).rejects.toMatchObject({ message: "email_already_linked" });
 

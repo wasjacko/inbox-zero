@@ -50,9 +50,7 @@ async function getEmailAccounts({ userId }: { userId: string }) {
   const connectedEmailAccounts = emailAccounts.flatMap((emailAccount) => {
     const { scope, ...account } = emailAccount.account;
     const isIdentityOnlyGoogleAccount =
-      account.provider === "google" &&
-      scope !== null &&
-      !hasGmailMailboxScope(scope);
+      account.provider === "google" && !hasGmailMailboxScope(scope);
 
     return isIdentityOnlyGoogleAccount ? [] : [{ ...emailAccount, account }];
   });

@@ -338,6 +338,8 @@ export const betterAuthConfig = betterAuth({
     account: {
       create: {
         after: async (account: Account) => {
+          // Only the explicit Gmail linking callback may connect a mailbox.
+          if (isGoogleProvider(account.providerId)) return;
           await handleLinkAccount(account);
         },
       },
@@ -348,6 +350,7 @@ export const betterAuthConfig = betterAuth({
           if (isGoogleIdentityOnlyScope(account.scope)) return false;
         },
         after: async (account: Account) => {
+          if (isGoogleProvider(account.providerId)) return;
           await handleLinkAccount(account);
         },
       },
@@ -603,7 +606,7 @@ function shouldLinkEmailAccount(account: Account) {
   if (isGoogleProvider(account.providerId)) {
     // A Google identity is not a connected inbox. Gmail becomes connected only
     // after the user explicitly grants mailbox access from the connection step.
-    return account.scope == null || hasGmailMailboxScope(account.scope);
+    return hasGmailMailboxScope(account.scope);
   }
 
   return isMicrosoftProvider(account.providerId);
