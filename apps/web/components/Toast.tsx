@@ -11,10 +11,15 @@ export function toastSuccess(options: {
   });
 }
 
-export function toastError(options: { title?: string; description: string }) {
+export function toastError(options: {
+  title?: string;
+  description: string;
+  action?: { label: string; onClick: () => void };
+}) {
   return toast.error(options.title || "Erreur", {
     description: options.description,
     duration: 10_000,
+    action: options.action,
   });
 }
 

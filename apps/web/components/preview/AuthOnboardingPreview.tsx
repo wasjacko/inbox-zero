@@ -167,23 +167,16 @@ function useFreescaleAuthentication(mode: AuthMode) {
             });
 
       if (mode === "signup" && isUserAlreadyExistsError(result.error)) {
-        const signInResult = await signIn.email({
-          email: normalizedEmail,
-          password,
-          callbackURL: "/welcome-redirect?intent=login",
-          rememberMe: true,
+        toastError({
+          title: "Adresse déjà utilisée",
+          description:
+            "Cette adresse e-mail existe déjà dans nos bases de données.",
+          action: {
+            label: "Se connecter",
+            onClick: () => redirectToSafeUrl("/login"),
+          },
         });
-
-        if (signInResult.error) {
-          setError(
-            "Ce compte existe déjà. Connectez-vous avec son mot de passe habituel ou utilisez Google.",
-          );
-          setLoading(null);
-          return;
-        }
-
-        router.push("/welcome-redirect?intent=login");
-        router.refresh();
+        setLoading(null);
         return;
       }
 

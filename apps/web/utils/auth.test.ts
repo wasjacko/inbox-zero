@@ -83,6 +83,35 @@ describe("betterAuthConfig", () => {
     ).toBeUndefined();
   });
 
+  it("rejects a password sign-up when the email already exists", async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: "user-1" } as any);
+
+    await expect(
+      (betterAuthConfig as any).options.hooks.before({
+        path: "/sign-up/email",
+        body: { email: " Existing@Example.com " },
+      }),
+    ).rejects.toMatchObject({
+      body: { code: "USER_ALREADY_EXISTS" },
+    });
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: "existing@example.com" },
+      select: { id: true },
+    });
+  });
+
+  it("allows a password sign-up when the email is available", async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(
+      (betterAuthConfig as any).options.hooks.before({
+        path: "/sign-up/email",
+        body: { email: "new@example.com" },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("routes onboarding email links to confirmation before redeeming them", async () => {
     const redirect = vi.fn(() => new Error("redirect"));
     await expect(

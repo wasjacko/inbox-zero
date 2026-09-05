@@ -358,6 +358,22 @@ export const betterAuthConfig = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (context) => {
+      if (context.path === "/sign-up/email") {
+        const email = context.body?.email;
+        if (typeof email === "string") {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: email.trim().toLowerCase() },
+            select: { id: true },
+          });
+          if (existingUser) {
+            throw APIError.from("UNPROCESSABLE_ENTITY", {
+              code: "USER_ALREADY_EXISTS",
+              message: "Cette adresse e-mail existe déjà.",
+            });
+          }
+        }
+      }
+
       // Mail gateways open links automatically. Only the confirmation page's
       // explicit verification request should redeem an email token.
       if (
