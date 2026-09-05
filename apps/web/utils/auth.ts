@@ -230,6 +230,12 @@ export const betterAuthConfig = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     requireEmailVerification: true,
+    onExistingUserSignUp: async ({ user }): Promise<void> => {
+      if (user.emailVerified) return;
+      await betterAuthConfig.api.sendVerificationEmail({
+        body: { email: user.email, callbackURL: "/onboarding" },
+      });
+    },
   },
   emailVerification: {
     sendOnSignUp: true,

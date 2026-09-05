@@ -31,6 +31,7 @@ vi.mock("better-auth", () => {
     betterAuth: vi.fn((options: unknown) => ({
       api: {
         getSession: vi.fn(),
+        sendVerificationEmail: vi.fn().mockResolvedValue({ status: true }),
       },
       options,
     })),
@@ -72,6 +73,26 @@ vi.mock("@/utils/error", () => ({
 }));
 
 describe("betterAuthConfig", () => {
+  it("resends verification when an unverified user retries signup", async () => {
+    const auth = betterAuthConfig as any;
+    auth.api.sendVerificationEmail.mockClear();
+    await auth.options.emailAndPassword.onExistingUserSignUp({
+      user: { email: "pending@example.com", emailVerified: false },
+    });
+    expect(auth.api.sendVerificationEmail).toHaveBeenCalledWith({
+      body: { email: "pending@example.com", callbackURL: "/onboarding" },
+    });
+  });
+
+  it("does not send verification to an already verified account", async () => {
+    const auth = betterAuthConfig as any;
+    auth.api.sendVerificationEmail.mockClear();
+    await auth.options.emailAndPassword.onExistingUserSignUp({
+      user: { email: "verified@example.com", emailVerified: true },
+    });
+    expect(auth.api.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
   it("does not trust Microsoft for implicit social account linking", () => {
     expect(
       (betterAuthConfig as any).options.account.accountLinking.trustedProviders,
