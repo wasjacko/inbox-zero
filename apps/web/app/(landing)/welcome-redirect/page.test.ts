@@ -100,7 +100,6 @@ describe("WelcomeRedirectPage", () => {
       where: { id: "user-1" },
       select: {
         completedOnboardingAt: true,
-        createdAt: true,
         premiumId: true,
       },
     });
@@ -179,7 +178,7 @@ describe("WelcomeRedirectPage", () => {
     });
   });
 
-  it("skips onboarding for an older existing Google account", async () => {
+  it("keeps an older incomplete Google account in onboarding", async () => {
     mocks.findUser.mockResolvedValue({
       completedOnboardingAt: null,
       createdAt: new Date("2025-01-01T00:00:00.000Z"),
@@ -190,17 +189,13 @@ describe("WelcomeRedirectPage", () => {
       WelcomeRedirectPage({
         searchParams: Promise.resolve({ intent: "signup" }),
       }),
-    ).rejects.toThrow("account-redirect:/chat");
+    ).rejects.toThrow("redirect:/onboarding");
 
-    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith("/chat", {
-      notice: "existing-account",
-      onboarding: "complete",
-      postOnboardingSort: "1",
-    });
+    expect(mocks.redirectToEmailAccountPath).not.toHaveBeenCalled();
     expect(mocks.findPremium).not.toHaveBeenCalled();
   });
 
-  it("restores an existing account from the login screen", async () => {
+  it("keeps an incomplete account from the login screen in onboarding", async () => {
     mocks.findUser.mockResolvedValue({
       completedOnboardingAt: null,
       createdAt: new Date("2025-01-01T00:00:00.000Z"),
@@ -211,12 +206,8 @@ describe("WelcomeRedirectPage", () => {
       WelcomeRedirectPage({
         searchParams: Promise.resolve({ intent: "login" }),
       }),
-    ).rejects.toThrow("account-redirect:/chat");
+    ).rejects.toThrow("redirect:/onboarding");
 
-    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith("/chat", {
-      notice: "existing-account",
-      onboarding: "complete",
-      postOnboardingSort: "1",
-    });
+    expect(mocks.redirectToEmailAccountPath).not.toHaveBeenCalled();
   });
 });

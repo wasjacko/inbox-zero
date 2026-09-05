@@ -168,7 +168,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
         const signInResult = await signIn.email({
           email: normalizedEmail,
           password,
-          callbackURL: "/chat?notice=existing-account",
+          callbackURL: "/welcome-redirect?intent=login",
           rememberMe: true,
         });
 
@@ -180,7 +180,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
           return;
         }
 
-        router.push("/chat?notice=existing-account");
+        router.push("/welcome-redirect?intent=login");
         router.refresh();
         return;
       }

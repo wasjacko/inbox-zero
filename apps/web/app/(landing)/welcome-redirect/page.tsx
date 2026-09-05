@@ -18,7 +18,6 @@ export default async function WelcomeRedirectPage(props: {
     where: { id: session.user.id },
     select: {
       completedOnboardingAt: true,
-      createdAt: true,
       premiumId: true,
     },
   });
@@ -28,14 +27,13 @@ export default async function WelcomeRedirectPage(props: {
   if (searchParams.force) redirect("/onboarding");
   const existingAccountNotice =
     (searchParams.intent === "signup" || searchParams.intent === "login") &&
-    (Boolean(user.completedOnboardingAt) ||
-      user.createdAt.getTime() < Date.now() - 2 * 60 * 1000)
+    user.completedOnboardingAt
       ? "existing-account"
       : undefined;
 
-  // Google signs in an existing identity even when the user started from the
-  // sign-up screen. Returning users must recover their existing workspace and
-  // connected channels instead of being sent through first-run onboarding.
+  // Google can sign in an existing identity even when the user started from
+  // the sign-up screen. Only completed users should recover the app directly:
+  // incomplete users still need the onboarding that connects their channels.
   if (existingAccountNotice) {
     await redirectToEmailAccountPath("/chat", {
       notice: existingAccountNotice,
