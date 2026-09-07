@@ -58,7 +58,7 @@ export default async function LandingPage() {
       {/* The HTML is a versioned, local artifact from the Freescale repository. */}
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: trusted local landing markup */}
       <div dangerouslySetInnerHTML={{ __html: landing.body }} />
-      <script src="/home/script.js?v=1202" defer />
+      <script src="/home/script.js?v=1203" defer />
     </>
   );
 }

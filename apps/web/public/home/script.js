@@ -1,3 +1,31 @@
+/* Ensure Back from authentication cannot restore a stale pre-deploy landing. */
+(function () {
+  const RETURN_REFRESH_KEY = "freescale:refresh-landing-on-return";
+
+  document.addEventListener("click", function (event) {
+    const target = event.target;
+    const link = target && target.closest ? target.closest('a[href^="/login"]') : null;
+    if (link) sessionStorage.setItem(RETURN_REFRESH_KEY, "1");
+  });
+
+  function refreshAfterAuthReturn() {
+    if (sessionStorage.getItem(RETURN_REFRESH_KEY) !== "1") return;
+    if (window.location.pathname !== "/") return;
+    sessionStorage.removeItem(RETURN_REFRESH_KEY);
+    window.location.reload();
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    const navigation = performance.getEntriesByType
+      ? performance.getEntriesByType("navigation")[0]
+      : null;
+    if (event.persisted || (navigation && navigation.type === "back_forward")) {
+      refreshAfterAuthReturn();
+    }
+  });
+  window.addEventListener("popstate", refreshAfterAuthReturn);
+})();
+
 // Minimal mobile menu toggle
 const burger = document.querySelector(".nav__burger");
 const links = document.querySelector(".nav__links");
