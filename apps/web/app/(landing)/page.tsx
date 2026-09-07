@@ -42,6 +42,7 @@ export default async function LandingPage() {
       {/* Anna's document includes critical, page-specific CSS in its head. */}
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: trusted local landing styles */}
       <style dangerouslySetInnerHTML={{ __html: landing.styles }} />
+      <style>{LANDING_INTEGRATION_STYLES}</style>
       <link
         rel="preload"
         as="image"
@@ -61,6 +62,14 @@ export default async function LandingPage() {
     </>
   );
 }
+
+const LANDING_INTEGRATION_STYLES = `
+  /* Keep the headline readable if its optional word-reveal animation starts late. */
+  .headline .hl-word {
+    opacity: 1;
+    transform: none;
+  }
+`;
 
 function getLandingDocument() {
   const document = readFileSync(
