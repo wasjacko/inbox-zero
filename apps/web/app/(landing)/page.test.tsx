@@ -32,6 +32,7 @@ describe("NewLanding", () => {
     expect(page).toBeTruthy();
     expect(markup).toContain(".fx-hero-chip");
     expect(markup).toContain(".headline .hl-word");
+    expect(markup).toContain("--hb: 0px !important");
     expect(markup).toContain('src="/home/script.js?v=1204"');
     expect(mocks.redirectToEmailAccountPath).not.toHaveBeenCalled();
   });

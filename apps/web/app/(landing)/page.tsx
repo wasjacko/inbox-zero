@@ -69,6 +69,16 @@ const LANDING_INTEGRATION_STYLES = `
     opacity: 1;
     transform: none;
   }
+
+  /* The imported scroll reveal can be restored by browser history in its fully
+     blurred state. Keep the primary hero immediately sharp on every visit. */
+  .hero {
+    --hb: 0px !important;
+  }
+
+  .hero::before {
+    opacity: 0 !important;
+  }
 `;
 
 function getLandingDocument() {
