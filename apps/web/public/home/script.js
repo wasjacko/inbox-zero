@@ -2054,7 +2054,7 @@ if (burger) {
     '    <h3 class="cc-banner__title">Cookies <em>essentiels.</em></h3>',
     '  </div>',
     '  <p class="cc-banner__txt">',
-    '    Freescale n\'utilise que des cookies nécessaires au fonctionnement du site. Aucun tracker publicitaire. <a href="confidentialite.html">En savoir plus</a>.',
+    '    Freescale n\'utilise que des cookies nécessaires au fonctionnement du site. Aucun tracker publicitaire. <a href="/home/confidentialite.html">En savoir plus</a>.',
     '  </p>',
     '  <div class="cc-banner__actions">',
     '    <button type="button" class="cc-banner__btn cc-banner__btn--ghost" data-cc="refuse">Refuser</button>',
