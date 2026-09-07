@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   findUser: vi.fn(),
+  findEmailAccount: vi.fn(),
   findPremium: vi.fn(),
   redirectToEmailAccountPath: vi.fn(
     (path: string, _searchParams?: Record<string, string>) => {
@@ -26,6 +28,10 @@ vi.mock("@/utils/prisma", () => ({
     user: {
       findUnique: (...args: Parameters<typeof mocks.findUser>) =>
         mocks.findUser(...args),
+    },
+    emailAccount: {
+      findFirst: (...args: Parameters<typeof mocks.findEmailAccount>) =>
+        mocks.findEmailAccount(...args),
     },
     premium: {
       findUnique: (...args: Parameters<typeof mocks.findPremium>) =>
@@ -59,6 +65,7 @@ describe("WelcomeRedirectPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue({ user: { id: "user-1" } });
+    mocks.findEmailAccount.mockResolvedValue(null);
   });
 
   it("sends completed web users to AI home with the cleanup prompt", async () => {
@@ -158,36 +165,32 @@ describe("WelcomeRedirectPage", () => {
     expect(mocks.redirectToEmailAccountPath).not.toHaveBeenCalled();
   });
 
-  it("notifies a returning user who chose Google from sign-up", async () => {
+  it("asks for confirmation when an existing Google user chose sign-up", async () => {
     mocks.findUser.mockResolvedValue({
       completedOnboardingAt: new Date("2026-01-01T00:00:00.000Z"),
-      createdAt: new Date("2025-01-01T00:00:00.000Z"),
       premiumId: "premium-1",
     });
 
-    await expect(
-      WelcomeRedirectPage({
-        searchParams: Promise.resolve({ intent: "signup" }),
-      }),
-    ).rejects.toThrow("account-redirect:/chat");
-
-    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith("/chat", {
-      notice: "existing-account",
-      onboarding: "complete",
-      postOnboardingSort: "1",
+    const page = await WelcomeRedirectPage({
+      searchParams: Promise.resolve({ intent: "signup-existing" }),
     });
+    const markup = renderToStaticMarkup(page);
+
+    expect(markup).toContain("Ce compte existe déjà");
+    expect(markup).toContain("Oui, me connecter");
+    expect(markup).toContain("/welcome-redirect?intent=login");
+    expect(mocks.redirectToEmailAccountPath).not.toHaveBeenCalled();
   });
 
-  it("keeps an older incomplete Google account in onboarding", async () => {
+  it("keeps a genuinely new Google account in onboarding", async () => {
     mocks.findUser.mockResolvedValue({
       completedOnboardingAt: null,
-      createdAt: new Date("2025-01-01T00:00:00.000Z"),
       premiumId: null,
     });
 
     await expect(
       WelcomeRedirectPage({
-        searchParams: Promise.resolve({ intent: "signup" }),
+        searchParams: Promise.resolve({ intent: "signup-new" }),
       }),
     ).rejects.toThrow("redirect:/onboarding");
 
@@ -195,10 +198,31 @@ describe("WelcomeRedirectPage", () => {
     expect(mocks.findPremium).not.toHaveBeenCalled();
   });
 
-  it("keeps an incomplete account from the login screen in onboarding", async () => {
+  it("sends a returning login with a connected mailbox directly to the app", async () => {
     mocks.findUser.mockResolvedValue({
       completedOnboardingAt: null,
       createdAt: new Date("2025-01-01T00:00:00.000Z"),
+      premiumId: null,
+    });
+    mocks.findEmailAccount.mockResolvedValue({ id: "email-account-1" });
+
+    await expect(
+      WelcomeRedirectPage({
+        searchParams: Promise.resolve({ intent: "login" }),
+      }),
+    ).rejects.toThrow("account-redirect:/chat");
+
+    expect(mocks.findEmailAccount).toHaveBeenCalledWith({
+      where: { userId: "user-1" },
+      select: { id: true },
+    });
+    expect(mocks.redirectToEmailAccountPath).toHaveBeenCalledWith("/chat");
+    expect(mocks.findPremium).not.toHaveBeenCalled();
+  });
+
+  it("keeps a login without a connected mailbox in onboarding", async () => {
+    mocks.findUser.mockResolvedValue({
+      completedOnboardingAt: null,
       premiumId: null,
     });
 

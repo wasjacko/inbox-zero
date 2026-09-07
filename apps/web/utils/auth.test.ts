@@ -164,6 +164,14 @@ describe("betterAuthConfig", () => {
     ).toEqual(["google", "apple"]);
   });
 
+  it("prevents social login from silently creating a new account", () => {
+    const providers = (betterAuthConfig as any).options.socialProviders;
+
+    for (const provider of Object.values(providers) as any[]) {
+      expect(provider.disableImplicitSignUp).toBe(true);
+    }
+  });
+
   it("only links social identities to verified password accounts", () => {
     expect(
       (betterAuthConfig as any).options.account.accountLinking

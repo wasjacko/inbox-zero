@@ -86,6 +86,9 @@ const googleSocialProvider =
         scope: ["openid", "email", "profile"],
         accessType: "offline" as const,
         prompt: "select_account consent" as const,
+        // Login identifies an existing Freescale user. Account creation must
+        // be requested explicitly from the sign-up screen.
+        disableImplicitSignUp: true,
         disableIdTokenSignIn: true,
         // For preview deployments, redirect through staging (which proxies back to preview URL)
         ...(env.OAUTH_PROXY_URL && {
@@ -100,6 +103,7 @@ const microsoftSocialProvider =
         clientSecret: env.MICROSOFT_CLIENT_SECRET!,
         scope: [...OUTLOOK_SCOPES],
         tenantId: env.MICROSOFT_TENANT_ID,
+        disableImplicitSignUp: true,
         disableIdTokenSignIn: true,
         ...(env.OAUTH_PROXY_URL && {
           redirectURI: `${env.OAUTH_PROXY_URL}/api/auth/callback/microsoft`,
@@ -115,6 +119,7 @@ const appleSocialProvider = appleLoginEnabled
         return clientSecret;
       },
       appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER,
+      disableImplicitSignUp: true,
       mapProfileToUser: async (profile: AppleProfile) => {
         if (profile.email) return {};
 
@@ -156,6 +161,7 @@ const genericOauthConfig: GenericOAuthConfig[] = [
           pkce: true,
           accessType: "offline" as const,
           prompt: "select_account consent" as const,
+          disableImplicitSignUp: true,
           ...(env.OAUTH_PROXY_URL && {
             redirectURI: `${env.OAUTH_PROXY_URL}/api/auth/oauth2/callback/google`,
           }),
@@ -173,6 +179,7 @@ const genericOauthConfig: GenericOAuthConfig[] = [
           scopes: [...OUTLOOK_SCOPES],
           pkce: true,
           prompt: "consent" as const,
+          disableImplicitSignUp: true,
           ...(env.OAUTH_PROXY_URL && {
             redirectURI: `${env.OAUTH_PROXY_URL}/api/auth/oauth2/callback/microsoft`,
           }),

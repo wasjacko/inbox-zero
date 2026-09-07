@@ -115,12 +115,22 @@ type AuthLoading = "google" | "email" | "verification" | null;
 
 function useFreescaleAuthentication(mode: AuthMode) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState<AuthLoading>(null);
   const [error, setError] = useState<string | null>(null);
   const [verificationEmail, setVerificationEmail] = useState<string | null>(
     null,
   );
   const [verificationResent, setVerificationResent] = useState(false);
+
+  useEffect(() => {
+    const oauthError = searchParams.get("error")?.toLowerCase();
+    if (mode === "login" && oauthError === "signup_disabled") {
+      setError(
+        "Aucun compte Freescale n’est associé à ce compte Google. Créez d’abord un compte.",
+      );
+    }
+  }, [mode, searchParams]);
 
   const continueWithGoogle = async () => {
     setLoading("google");
@@ -130,8 +140,13 @@ function useFreescaleAuthentication(mode: AuthMode) {
       if (mode === "signup") startPreviewOnboarding(window.localStorage);
       await signIn.social({
         provider: "google",
-        callbackURL: `/welcome-redirect?intent=${mode}`,
-        errorCallbackURL: "/login?error=oauth",
+        requestSignUp: mode === "signup",
+        callbackURL:
+          mode === "signup"
+            ? "/welcome-redirect?intent=signup-existing"
+            : "/welcome-redirect?intent=login",
+        newUserCallbackURL: "/welcome-redirect?intent=signup-new",
+        errorCallbackURL: `/login?mode=${mode}`,
       });
     } catch (authError) {
       setError(getFreescaleAuthError(authError));
