@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freescale — Gérez votre relation client sans effort</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <meta name="description" content="Tes clients t'écrivent sur Gmail, Insta, WhatsApp, LinkedIn — toi tu réponds depuis une seule inbox. Mue rédige tes réponses et extrait tes tâches. L'inbox unifié des freelances créatifs." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400;1,14..32,500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.typekit.net/rbx1gft.css" />
+  <link rel="stylesheet" href="styles.css?v=1257" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- ambient background layers -->
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-lines" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- multi-layer progressive blur behind the nav (blur ramps up toward the top) -->
+  <div class="nav-blur" aria-hidden="true">
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+  </div>
+
+  <!-- ───────────────────────── NAVBAR ───────────────────────── -->
+  <header class="nav" id="nav">
+    <a class="brand" href="#" aria-label="Freescale home">
+      <span class="brand__name">Freescale</span>
+    </a>
+
+    <nav class="nav__links" aria-label="Navigation principale">
+      <a href="produit.html">Produit</a>
+      <a href="a-propos.html">À propos</a>
+      <a href="tarifs.html">Tarifs</a>
+      <a href="contact.html">Contact</a>
+      <a href="archive.html">Archive</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a href="/app" class="btn btn--ghost">Connexion</a>
+      <a href="/app" class="btn-cta btn-cta--mini">
+        <span class="btn-cta__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="btn-cta__label">
+          <span class="btn-cta__word">Commencer</span>
+          <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+        </span>
+      </a>
+    </div>
+
+    <button class="nav__burger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <!-- ───────────────────────── HERO ───────────────────────── -->
+  <main>
+    <section class="hero">
+    <!-- LEFT : copy -->
+    <section class="hero__copy">
+      <h1 class="headline">
+        <span class="line line--serif">Tes clients t'écrivent sur 5 apps.</span>
+        <span class="line line--bold">Toi tu réponds depuis une.</span>
+      </h1>
+
+      <p class="subtext reveal" style="--i:4">
+        Gmail, Insta, WhatsApp, LinkedIn — tous tes messages clients dans une inbox unique.<br />
+        Mue rédige tes réponses et extrait tes tâches.
+      </p>
+
+      <div class="cta-row reveal" style="--i:5">
+        <a href="/app" class="btn-cta btn-cta--glow">
+          <span class="btn-cta__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="btn-cta__label">
+            <span class="btn-cta__word">Commencer</span>
+            <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+          </span>
+        </a>
+        <a href="#features" class="btn-demo">
+          <span class="btn-demo__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+          <span class="btn-demo__label">Regarder la démo</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- RIGHT : visual -->
+    <section class="hero__visual">
+      <img src="assets/hero-woman.png?v=2" alt="Une freelance qui regarde vers l'avenir" class="hero__woman" />
+    </section>
+
+    </section>
+
+
+    <section class="feature" id="features">
+      <!-- En-tête de section : icône + titre 2 lignes au-dessus du mockup -->
+      <header class="feature__head">
+        <img class="feature__icon" src="assets/icon-freescale-rgb.svg" alt="" />
+        <h2 class="feature__title">
+          <span class="line line--serif">Tout ton travail, tous tes clients,</span>
+          <span class="line line--bold">propulsés par l'IA</span>
+        </h2>
+      </header>
+      <div class="screen">
+      <div class="inbox inbox--shot">
+        <!-- Screenshot réel du produit (vue Canaux) — remplace le mockup HTML -->
+        <img class="inbox__shot" src="assets/screen-canaux.png?v=1" alt="Interface Freescale — vue Canaux avec messages Gmail unifiés" />
+        <!-- Dock invisible : 3 slots où les icônes Gmail/Insta/WhatsApp viennent atterrir au scroll.
+             Position calquée sur la zone Gmail/Ajouter-un-canal du top bar du screenshot. -->
+        <div class="appbar__chans inbox__docktarget" aria-hidden="true">
+          <span class="ctile ctile--slot" data-chan="whatsapp"></span>
+          <span class="ctile ctile--slot" data-chan="insta"></span>
+          <span class="ctile ctile--slot" data-chan="gmail"></span>
+          <!-- ref invisible : rowCenterY se cale dessus (JS cherche .ctile:not(.ctile--slot)) -->
+          <span class="ctile ctile--ref" aria-hidden="true"></span>
+        </div>
+      </div>
+      <!-- Ancien mockup HTML (désactivé au profit du screenshot réel) -->
+      <template class="inbox__legacy" hidden>
+        <header class="appbar">
+          <div class="appbar__brand">
+            <img class="appbar__mark" src="assets/logo-freescale.svg" alt="" />
+            <span class="appbar__name">Freescale</span>
+          </div>
+          <div class="appbar__right">
+            <div class="appbar__chans" aria-hidden="true">
+              <span class="ctile ctile--slot" data-chan="gmail"></span>
+              <span class="ctile ctile--video"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="12" height="12" rx="3" fill="#fff"/><path d="M15 10.5 21 7v10l-6-3.5z" fill="#fff"/><circle cx="8.5" cy="12" r="2.4" fill="#7b5cff"/></svg></span>
+              <span class="ctile ctile--slot" data-chan="insta"></span>
+              <span class="ctile ctile--slot" data-chan="whatsapp"></span>
+              <span class="ctile ctile--li"><svg viewBox="0 0 24 24" fill="#fff"><path d="M6.94 8.5H4.2V19h2.74V8.5ZM5.57 4.2a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2ZM19.8 19h-2.74v-5.13c0-1.22-.02-2.8-1.7-2.8-1.7 0-1.97 1.33-1.97 2.7V19H10.7V8.5h2.63v1.44h.04c.37-.7 1.26-1.43 2.6-1.43 2.78 0 3.83 1.83 3.83 4.2V19Z"/></svg></span>
+              <span class="ctile ctile--slack"><svg viewBox="0 0 24 24"><path fill="#36C5F0" d="M9 3.2a1.8 1.8 0 1 0 0 3.6h1.8V5A1.8 1.8 0 0 0 9 3.2Z"/><path fill="#2EB67D" d="M20.8 9a1.8 1.8 0 1 0-3.6 0v1.8H19A1.8 1.8 0 0 0 20.8 9Z"/><path fill="#ECB22E" d="M15 20.8a1.8 1.8 0 1 0 0-3.6h-1.8V19A1.8 1.8 0 0 0 15 20.8Z"/><path fill="#E01E5A" d="M3.2 15a1.8 1.8 0 1 0 3.6 0v-1.8H5A1.8 1.8 0 0 0 3.2 15Z"/></svg></span>
+            </div>
+            <button class="appbar__iconbtn" aria-label="Réglages">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.6.74 1.05 1.51 1.05H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="appbar__mue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 4H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3v3.5L11.5 17H20a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>
+              Mue
+            </button>
+          </div>
+        </header>
+
+        <div class="appbody">
+          <!-- sidebar -->
+          <aside class="appside">
+            <nav class="appnav">
+              <a class="appnav__item is-active">
+                <svg class="appnav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 7 3 3 4-4"/><path d="m3 16 3 3 4-4"/><path d="M13 7h8M13 17h8"/></svg>
+                <span>Tâches</span><span class="appnav__count">6</span>
+              </a>
+              <a class="appnav__item">
+                <svg class="appnav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13 6 5h12l2 8v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+                <span>Inbox</span><span class="appnav__count">36</span>
+              </a>
+              <a class="appnav__item">
+                <svg class="appnav__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>
+                <span>Calendar</span>
+              </a>
+              <a class="appnav__item">
+                <svg class="appnav__ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.5 4.5 3.5 7.5 8 8-4.5.8-7.5 3.5-8 8-.5-4.5-3.5-7.5-8-8 4.5-.8 7.5-3.5 8-8Z"/></svg>
+                <span>AI Knowledge</span>
+              </a>
+            </nav>
+            <div class="appside__user">
+              <span class="appside__avatar" style="--c:#3a3f4a">WA</span>
+              <span class="appside__name">Wacil AIT</span>
+            </div>
+          </aside>
+
+          <!-- main -->
+          <main class="appmain">
+            <div class="muebanner">
+              <div class="muebanner__txt">
+                <h3 class="muebanner__title">Transformez vos messages récents en tâches avec Mue</h3>
+                <p class="muebanner__sub">Mue scanne automatiquement vos conversations en attente sur tous vos canaux (Gmail, Slack, WhatsApp…) pour y détecter des actions clés et vous suggérer de les ajouter comme tâches en un clic !</p>
+              </div>
+              <button class="muebanner__btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.5 4.5 3.5 7.5 8 8-4.5.8-7.5 3.5-8 8-.5-4.5-3.5-7.5-8-8 4.5-.8 7.5-3.5 8-8Z"/></svg> Suggérer des tâches avec Mue</button>
+            </div>
+
+            <section class="tgroup">
+              <div class="tgroup__head"><svg class="tgroup__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg> À FAIRE <span class="tgroup__count">3</span></div>
+              <ul class="tlist">
+                <li class="trow">
+                  <span class="tcheck" aria-hidden="true"></span>
+                  <span class="trow__title">Envoyer la V2 des maquettes à Sarah</span>
+                  <span class="trow__person"><span class="cdot cdot--wa"></span>Sarah Lemoine</span>
+                  <span class="trow__due trow__due--today"><svg class="trow__cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg> Aujourd'hui</span>
+                </li>
+                <li class="trow">
+                  <span class="tcheck" aria-hidden="true"></span>
+                  <span class="trow__title">Planifier le call e-commerce avec Luc</span>
+                  <span class="trow__person"><span class="cdot cdot--gm"></span>Luc Mercier</span>
+                  <span class="trow__due"><svg class="trow__cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg> 16 juin</span>
+                </li>
+                <li class="trow">
+                  <span class="tcheck" aria-hidden="true"></span>
+                  <span class="trow__title">Préparer le brief de la refonte landing page</span>
+                  <span class="trow__person"></span>
+                  <span class="trow__due"><svg class="trow__cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg> Cette semaine</span>
+                </li>
+                <li class="trow trow--add">
+                  <span class="tadd" aria-hidden="true">+</span>
+                  <span class="trow__placeholder">Ajouter une tâche… (Entrée)</span>
+                </li>
+              </ul>
+            </section>
+
+
+            <section class="tgroup">
+              <div class="tgroup__head"><svg class="tgroup__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg> EN COURS <span class="tgroup__count">2</span></div>
+              <ul class="tlist">
+                <li class="trow">
+                  <span class="tcheck" aria-hidden="true"></span>
+                  <span class="trow__title">Signer + renvoyer le contrat ITWA <span class="trow__sub">1/2</span></span>
+                  <span class="trow__person"><span class="cdot cdot--gm"></span>Thomas Aubry</span>
+                  <span class="trow__due"><svg class="trow__cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg> 15 juin</span>
+                </li>
+                <li class="trow">
+                  <span class="tcheck" aria-hidden="true"></span>
+                  <span class="trow__title">Valider le devis de Capucine</span>
+                  <span class="trow__person"><span class="cdot cdot--li"></span>Capucine Roy</span>
+                  <span class="trow__due trow__due--late"><svg class="trow__cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg> En retard · 2 j</span>
+                </li>
+              </ul>
+            </section>
+          </main>
+        </div>
+      </template>
+      <!-- /Ancien mockup -->
+      <div class="dock" aria-hidden="true">
+        <figure class="fly" data-target="gmail" data-hx=".82" data-hy=".44" data-rx="-16" data-ry="-24" data-rz="8"><img src="assets/icon-gmail.png" alt="" /></figure>
+        <figure class="fly" data-target="insta" data-hx=".85" data-hy=".66" data-rx="21" data-ry="-31" data-rz="-13"><img src="assets/icon-instagram.png" alt="" /></figure>
+        <figure class="fly" data-target="whatsapp" data-hx=".53" data-hy=".60" data-rx="17" data-ry="27" data-rz="-8"><img src="assets/icon-whatsapp.png" alt="" /></figure>
+      </div>
+      </div><!-- /.screen -->
+    </section>
+
+
+    <!-- ── Sprawl : framing du problème, 3 nœuds + 3 stats (style "context lost") ── -->
+    <section class="sprawl" aria-label="Pourquoi tes journées explosent">
+      <header class="sprawl__head">
+        <h2 class="sprawl__title">
+          60% de ton contexte client se perd
+          <span class="sprawl__italic">entre tes apps.</span>
+        </h2>
+        <p class="sprawl__sub">L'éclatement de tes canaux casse ton fil. Et tue ta journée.</p>
+      </header>
+
+      <!-- Visualisation : 3 nœuds entremêlés (image statique) -->
+      <div class="sprawl__viz sprawl__viz--img" aria-hidden="true">
+        <img class="sprawl__pic" src="assets/sprawl-knots.webp" alt="" loading="lazy" />
+      </div>
+
+    </section>
+
+    <!-- ── Centra : une seule app, pour chaque métier (style Monday tabs) ── -->
+    <section class="centra" aria-label="Une seule app pour chaque métier freelance">
+      <header class="centra__head">
+        <h2 class="centra__title">Une seule app, <em>pour chaque métier freelance.</em></h2>
+      </header>
+
+      <div class="centra__tabs" role="tablist" aria-label="Métiers">
+        <button type="button" role="tab" class="ctab is-active" data-tab="designer" aria-selected="true">
+          <svg class="ctab__ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.51-.2-.98-.52-1.34-.32-.35-.48-.79-.48-1.24 0-.98.79-1.77 1.77-1.77H16a5 5 0 0 0 5-5c0-4.42-4.03-8-9-8Zm-5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm4 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm4 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <span>Designer</span>
+        </button>
+        <button type="button" role="tab" class="ctab" data-tab="dev" aria-selected="false">
+          <svg class="ctab__ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8 8-5 4 5 4M16 8l5 4-5 4M14 4l-4 16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Développeur·se</span>
+        </button>
+        <button type="button" role="tab" class="ctab" data-tab="nocode" aria-selected="false">
+          <svg class="ctab__ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="8" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="4" width="8" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="13" width="8" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="13" width="8" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span>No-code</span>
+        </button>
+        <button type="button" role="tab" class="ctab" data-tab="data" aria-selected="false">
+          <svg class="ctab__ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20V10m5 10V4m5 16v-8m5 8V8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span>Data</span>
+        </button>
+        <button type="button" role="tab" class="ctab" data-tab="growth" aria-selected="false">
+          <svg class="ctab__ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 17 9 11l4 4 8-8M14 5h7v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Growth</span>
+        </button>
+      </div>
+
+      <div class="centra__grid">
+        <!-- Showcase principal : carte gradient + mockup intégré -->
+        <article class="centra__main">
+          <div class="centra__copy">
+            <div class="centra__brand">
+              <span class="centra__brand-mark" aria-hidden="true">
+                <img src="assets/face-freescale.svg" alt="" />
+              </span>
+              <strong>freescale</strong>&nbsp;<span class="centra__brand-role" data-fill="role">designer</span>
+            </div>
+            <h3 class="centra__main-title" data-fill="title">Des retours clients enfin exploitables.</h3>
+            <p class="centra__main-text" data-fill="text">Tes clients commentent sur Figma, t'écrivent sur WhatsApp, valident en visio puis ajoutent un détail par mail. Freescale rassemble les feedbacks, repère les vraies décisions et transforme les retours dispersés en prochaines actions claires.</p>
+            <a href="/app" class="btn-cta-plain centra__cta">Commencer <span aria-hidden="true">→</span></a>
+          </div>
+
+          <!-- Mockup intégré : un fil + brouillon Mue + tâche extraite -->
+          <div class="centra__mockup" aria-hidden="true">
+            <img class="centra__shot" data-fill-src="shot" src="assets/shot-tasks.png" alt="" />
+          </div>
+        </article>
+
+        <!-- Side : métrique + témoignage -->
+        <aside class="centra__side">
+          <div class="centra__metric">
+            <div class="centra__logo">
+              <span class="centra__logo-mark" aria-hidden="true">✦</span>
+              <span class="centra__logo-name" data-fill="clientBrand">Maison Oria</span>
+            </div>
+            <p class="centra__metric-big"><strong data-fill="metric">+3 h récupérées</strong></p>
+            <p class="centra__metric-sub" data-fill="metricSub">par semaine sur la consolidation des retours</p>
+          </div>
+          <figure class="centra__quote">
+            <blockquote data-fill="quote">« Avant Freescale, je passais mes fins de journée à relire Figma, WhatsApp et mes mails pour être sûre de ne rien oublier. Maintenant, les prochaines actions ressortent toutes seules. »</blockquote>
+            <figcaption>
+              <span class="centra__qavatar" style="--c:#F9A8D4" data-fill="quoteInitials">CD</span>
+              <div>
+                <strong data-fill="quoteName">Camille D.</strong>
+                <em data-fill="quoteRole">Product Designer freelance</em>
+              </div>
+            </figcaption>
+          </figure>
+        </aside>
+      </div>
+    </section>
+
+
+    <!-- ── Darkblock : wrapper qui s'étend en pleine largeur au scroll,
+         contient Anywhere + Reach comme un bloc noir cohérent ── -->
+    <div class="darkblock">
+    <!-- ── Anywhere : bannière sombre "la meilleure IA c'est la tienne" ── -->
+    <section class="anywhere" aria-label="Ton IA, disponible partout">
+      <div class="anywhere__inner">
+        <div class="anywhere__brand">
+          <img src="assets/icon-freescale-rgb.svg" alt="" class="anywhere__logo" />
+          <span class="anywhere__wordmark">freescale</span>
+        </div>
+        <h2 class="anywhere__title">Tous tes messages clients dans une inbox unique. Et Mue, l'IA qui <em>rédige tes réponses</em> et sort tes tâches du chaos.</h2>
+        <div class="anywhere__platforms">
+          <span class="anywhere__label">Disponible partout</span>
+
+          <!-- Desktop : macOS + Windows avec variantes de download -->
+          <ul class="anywhere__list anywhere__list--desktop" role="list">
+            <li class="anywhere__item">
+              <div class="anywhere__btn anywhere__btn--multi">
+                <div class="anywhere__btn-head">
+                  <svg class="anywhere__btn-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.03c-.02-2.75 2.24-4.07 2.34-4.14-1.28-1.87-3.27-2.12-3.98-2.15-1.69-.17-3.31.99-4.17.99-.87 0-2.2-.97-3.61-.94-1.85.03-3.57 1.08-4.52 2.73-1.95 3.38-.5 8.37 1.4 11.12.94 1.35 2.03 2.85 3.45 2.8 1.4-.06 1.92-.9 3.6-.9s2.16.9 3.61.87c1.5-.03 2.44-1.37 3.34-2.72 1.06-1.56 1.49-3.09 1.51-3.16-.03-.02-2.91-1.12-2.94-4.5zM14.7 4.02c.77-.94 1.29-2.24 1.14-3.54-1.11.05-2.45.74-3.24 1.67-.72.83-1.35 2.16-1.18 3.42 1.24.1 2.5-.62 3.28-1.55z"/></svg>
+                  <div class="anywhere__btn-headtxt">
+                    <span class="anywhere__btn-name">macOS</span>
+                    <span class="anywhere__btn-format">.dmg · 12.0+</span>
+                  </div>
+                </div>
+                <div class="anywhere__variants">
+                  <a class="anywhere__variant" href="/download/macos-arm" aria-label="Télécharger Freescale pour macOS Apple Silicon">
+                    <span class="anywhere__variant-label">Apple&nbsp;Silicon</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                  <a class="anywhere__variant" href="/download/macos-intel" aria-label="Télécharger Freescale pour macOS Intel">
+                    <span class="anywhere__variant-label">Intel</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                </div>
+              </div>
+            </li>
+            <li class="anywhere__item">
+              <div class="anywhere__btn anywhere__btn--multi">
+                <div class="anywhere__btn-head">
+                  <svg class="anywhere__btn-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7.3H3V5.5zm0 13v-6.3h7.5V19.5L3 18.5zm8.5-14L21 3v9H11.5V4.5zm0 15.5V13.3H21V21l-9.5-1z"/></svg>
+                  <div class="anywhere__btn-headtxt">
+                    <span class="anywhere__btn-name">Windows</span>
+                    <span class="anywhere__btn-format">.exe · 10+</span>
+                  </div>
+                </div>
+                <div class="anywhere__variants">
+                  <a class="anywhere__variant" href="/download/windows-x64" aria-label="Télécharger Freescale pour Windows x64">
+                    <span class="anywhere__variant-label">x64</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                  <a class="anywhere__variant" href="/download/windows-arm" aria-label="Télécharger Freescale pour Windows ARM">
+                    <span class="anywhere__variant-label">ARM</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                </div>
+              </div>
+            </li>
+          </ul>
+
+          <!-- Mobile : iOS + Android uniquement -->
+          <ul class="anywhere__list anywhere__list--mobile" role="list">
+            <li>
+              <a class="anywhere__btn" href="https://apps.apple.com" aria-label="Télécharger Freescale sur l'App Store">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 17a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
+                <span>iOS</span>
+                <span class="anywhere__btn-sub">App Store</span>
+              </a>
+            </li>
+            <li>
+              <a class="anywhere__btn" href="https://play.google.com" aria-label="Télécharger Freescale sur Google Play">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.55 8.6l1.66-2.87a.5.5 0 0 0-.87-.5L16.6 8.14a11 11 0 0 0-9.2 0L5.66 5.23a.5.5 0 0 0-.87.5L6.45 8.6A9.5 9.5 0 0 0 2 15.5v.5h20v-.5A9.5 9.5 0 0 0 17.55 8.6zM7 13a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm10 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1z"/></svg>
+                <span>Android</span>
+                <span class="anywhere__btn-sub">Google Play</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Reach : deux mains qui se rejoignent au scroll (référence Sistine) ── -->
+    <section class="reach" aria-label="L'humain et l'IA se rencontrent">
+      <div class="reach__stage">
+        <img class="reach__hand reach__hand--l" src="assets/hand-left.png" alt="" />
+        <img class="reach__hand reach__hand--r" src="assets/hand-right.png" alt="" />
+        <div class="reach__caption">
+          <h2>Toi <em>et</em> Mue.</h2>
+          <p>Ton geste, augmenté par l'IA. Toujours signé de ta main.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Agents : 5 usages Mue à gauche + screenshot annoté à droite (inspiré Monday CRM) ── -->
+    <section class="agents" aria-label="Ce que Mue fait pour toi">
+      <div class="agents__inner">
+        <ul class="agents__list" role="list">
+          <li class="agent" data-shot="shot-clients.png">
+            <span class="agent__icon agent__icon--rose" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg>
+            </span>
+            <span class="agent__label">Ne rate plus jamais un devis</span>
+          </li>
+          <li class="agent" data-shot="shot-analytics.png">
+            <span class="agent__icon agent__icon--blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+            </span>
+            <span class="agent__label">Maximise l'impact de tes relances</span>
+          </li>
+          <li class="agent is-active" data-shot="shot-inbox.png">
+            <span class="agent__icon agent__icon--teal" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 10h6M7 14h10"/></svg>
+            </span>
+            <span class="agent__label">Accélère ta cadence de réponse</span>
+          </li>
+          <li class="agent" data-shot="shot-tasks.png">
+            <span class="agent__icon agent__icon--gold" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </span>
+            <span class="agent__label">Résous chaque demande plus vite</span>
+          </li>
+          <li class="agent" data-shot="shot-calendar.png">
+            <span class="agent__icon agent__icon--green" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6 3 12l5 6M16 6l5 6-5 6M14 4 10 20"/></svg>
+            </span>
+            <span class="agent__label">Pilote tes projets de haut niveau</span>
+          </li>
+        </ul>
+
+        <div class="agents__demo" aria-hidden="true">
+          <span class="agents__tag agents__tag--1">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.7 7.3L21 11l-7.3 1.7L12 20l-1.7-7.3L3 11l7.3-1.7L12 2z"/></svg>
+            <span class="agents__tag-txt">Agent facilitateur de conversation</span>
+          </span>
+          <span class="agents__tag agents__tag--2">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.7 7.3L21 11l-7.3 1.7L12 20l-1.7-7.3L3 11l7.3-1.7L12 2z"/></svg>
+            <span class="agents__tag-txt">Résumé du fil client par Mue</span>
+          </span>
+          <span class="agents__tag agents__tag--3">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.7 7.3L21 11l-7.3 1.7L12 20l-1.7-7.3L3 11l7.3-1.7L12 2z"/></svg>
+            <span class="agents__tag-txt">Assistant IA de rédaction de mails</span>
+          </span>
+          <img class="agents__shot" src="assets/shot-inbox.png" alt="" />
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ── Kickoff : dernière section du darkblock, gros titre + CTA blanc pilule ── -->
+    <section class="kickoff" aria-label="Commencer avec Freescale">
+      <div class="kickoff__inner">
+        <h2 class="kickoff__title">La seule IA qui connaît<br /><em>vraiment</em> ton métier.</h2>
+        <div class="kickoff__ctas">
+          <a href="/app" class="btn-cta kickoff__cta">
+            <span class="btn-cta__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="btn-cta__label">
+              <span class="btn-cta__word">Commencer</span>
+              <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+            </span>
+          </a>
+          <a href="produit.html" class="kickoff__more">En savoir plus</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Canaux : marquee horizontal infini des outils connectables ── -->
+    <section class="chans" aria-label="Outils qu'on connecte">
+      <!-- Marquee : le track contient 2 fois la liste pour boucler sans coupure -->
+      <div class="chans__marquee" role="list" aria-label="Logos des outils supportés">
+        <div class="chans__track">
+          <!-- Liste 1 -->
+          <span class="chans__logo" role="listitem">
+            <img src="assets/icon-gmail.png" alt="Gmail" loading="lazy" />
+            <span>Gmail</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <span class="chans__svg" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#0078D4"><path d="M21.5 4.5h-8v3l-2-1.2-9 5.4v6l9 4.8 2-1.2v3h8c.55 0 1-.45 1-1v-18c0-.55-.45-1-1-1zM10 14.4l-6.5-3.9V10l6.5-3.9V14.4zm11-.4h-6v-2h6v2zm0-4h-6v-2h6v2z"/></svg>
+            </span>
+            <span>Outlook</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <img src="assets/icon-instagram.png" alt="Instagram" loading="lazy" />
+            <span>Instagram</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <img src="assets/icon-whatsapp.png" alt="WhatsApp" loading="lazy" />
+            <span>WhatsApp</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <span class="chans__svg chans__svg--li" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M6.94 8.5H4.2V19h2.74V8.5ZM5.57 4.2a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2ZM19.8 19h-2.74v-5.13c0-1.22-.02-2.8-1.7-2.8-1.7 0-1.97 1.33-1.97 2.7V19H10.7V8.5h2.63v1.44h.04c.37-.7 1.26-1.43 2.6-1.43 2.78 0 3.83 1.83 3.83 4.2V19Z"/></svg>
+            </span>
+            <span>LinkedIn</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <span class="chans__svg" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path fill="#36C5F0" d="M9 3.2a1.8 1.8 0 1 0 0 3.6h1.8V5A1.8 1.8 0 0 0 9 3.2Z"/><path fill="#2EB67D" d="M20.8 9a1.8 1.8 0 1 0-3.6 0v1.8H19A1.8 1.8 0 0 0 20.8 9Z"/><path fill="#ECB22E" d="M15 20.8a1.8 1.8 0 1 0 0-3.6h-1.8V19A1.8 1.8 0 0 0 15 20.8Z"/><path fill="#E01E5A" d="M3.2 15a1.8 1.8 0 1 0 3.6 0v-1.8H5A1.8 1.8 0 0 0 3.2 15Z"/></svg>
+            </span>
+            <span>Slack</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <span class="chans__svg chans__svg--dc" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09a.09.09 0 0 0-.07-.03c-1.5.26-2.93.71-4.27 1.33a.07.07 0 0 0-.03.03C1.97 9.4 1.22 13.36 1.59 17.28a.09.09 0 0 0 .08.11c1.83 1.34 3.6 2.15 5.34 2.69a.09.09 0 0 0 .1-.03c.41-.56.78-1.15 1.09-1.77a.09.09 0 0 0-.05-.12c-.58-.22-1.14-.49-1.68-.79a.09.09 0 0 1-.01-.15c.11-.08.23-.17.34-.26a.09.09 0 0 1 .09-.01c3.53 1.61 7.35 1.61 10.84 0a.09.09 0 0 1 .09.01c.11.09.22.18.34.27a.09.09 0 0 1-.01.15c-.54.32-1.1.58-1.69.8a.09.09 0 0 0-.05.12c.32.62.69 1.21 1.09 1.76a.09.09 0 0 0 .1.03c1.75-.54 3.52-1.35 5.35-2.69a.09.09 0 0 0 .04-.11c.45-4.53-.74-8.46-3.13-11.95a.07.07 0 0 0-.03-.03zM8.52 14.85c-1.04 0-1.89-.95-1.89-2.12 0-1.18.85-2.13 1.89-2.13s1.91.96 1.89 2.13c0 1.18-.85 2.12-1.89 2.12zm6.97 0c-1.04 0-1.89-.95-1.89-2.12 0-1.18.85-2.13 1.89-2.13s1.91.96 1.89 2.13c0 1.18-.84 2.12-1.89 2.12z"/></svg>
+            </span>
+            <span>Discord</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <span class="chans__svg chans__svg--tg" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M21.85 4.27c-.13-.18-.34-.27-.55-.27-.12 0-.24.03-.36.07L3.05 11.1c-.62.24-.69 1.1-.11 1.43l4.41 2.5 2.06 6.45c.11.34.43.55.77.55.21 0 .41-.08.56-.23l2.62-2.7 4.85 3.55c.16.12.36.18.55.18.36 0 .67-.24.77-.59l3.16-16.42c.06-.34-.06-.7-.34-.95zm-3.18 14.32-5.32-3.9c-.2-.15-.49-.13-.67.06l-2.07 2.13.6-2.83 8.34-7.66c.15-.14.05-.39-.15-.39-.06 0-.13.02-.18.06l-9.94 6.5-3.78-2.14 14.96-5.66-1.79 13.83z"/></svg>
+            </span>
+            <span>Telegram</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <span class="chans__svg chans__svg--ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#5B6275" stroke-width="1.7"><path d="M7 17a4 4 0 1 1 .9-7.9A5 5 0 0 1 17.5 11a3.5 3.5 0 0 1-.5 6.95"/></svg>
+            </span>
+            <span>iCloud Mail</span>
+          </span>
+          <span class="chans__logo" role="listitem">
+            <span class="chans__svg chans__svg--im" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#5B6275" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+            </span>
+            <span>IMAP</span>
+          </span>
+
+          <!-- Liste 2 : DUPLICATA exact pour boucle sans saut (aria-hidden) -->
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <img src="assets/icon-gmail.png" alt="" loading="lazy" />
+            <span>Gmail</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <span class="chans__svg" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#0078D4"><path d="M21.5 4.5h-8v3l-2-1.2-9 5.4v6l9 4.8 2-1.2v3h8c.55 0 1-.45 1-1v-18c0-.55-.45-1-1-1zM10 14.4l-6.5-3.9V10l6.5-3.9V14.4zm11-.4h-6v-2h6v2zm0-4h-6v-2h6v2z"/></svg>
+            </span>
+            <span>Outlook</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <img src="assets/icon-instagram.png" alt="" loading="lazy" />
+            <span>Instagram</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <img src="assets/icon-whatsapp.png" alt="" loading="lazy" />
+            <span>WhatsApp</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <span class="chans__svg chans__svg--li" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M6.94 8.5H4.2V19h2.74V8.5ZM5.57 4.2a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2ZM19.8 19h-2.74v-5.13c0-1.22-.02-2.8-1.7-2.8-1.7 0-1.97 1.33-1.97 2.7V19H10.7V8.5h2.63v1.44h.04c.37-.7 1.26-1.43 2.6-1.43 2.78 0 3.83 1.83 3.83 4.2V19Z"/></svg>
+            </span>
+            <span>LinkedIn</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <span class="chans__svg" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path fill="#36C5F0" d="M9 3.2a1.8 1.8 0 1 0 0 3.6h1.8V5A1.8 1.8 0 0 0 9 3.2Z"/><path fill="#2EB67D" d="M20.8 9a1.8 1.8 0 1 0-3.6 0v1.8H19A1.8 1.8 0 0 0 20.8 9Z"/><path fill="#ECB22E" d="M15 20.8a1.8 1.8 0 1 0 0-3.6h-1.8V19A1.8 1.8 0 0 0 15 20.8Z"/><path fill="#E01E5A" d="M3.2 15a1.8 1.8 0 1 0 3.6 0v-1.8H5A1.8 1.8 0 0 0 3.2 15Z"/></svg>
+            </span>
+            <span>Slack</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <span class="chans__svg chans__svg--dc" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09a.09.09 0 0 0-.07-.03c-1.5.26-2.93.71-4.27 1.33a.07.07 0 0 0-.03.03C1.97 9.4 1.22 13.36 1.59 17.28a.09.09 0 0 0 .08.11c1.83 1.34 3.6 2.15 5.34 2.69a.09.09 0 0 0 .1-.03c.41-.56.78-1.15 1.09-1.77a.09.09 0 0 0-.05-.12c-.58-.22-1.14-.49-1.68-.79a.09.09 0 0 1-.01-.15c.11-.08.23-.17.34-.26a.09.09 0 0 1 .09-.01c3.53 1.61 7.35 1.61 10.84 0a.09.09 0 0 1 .09.01c.11.09.22.18.34.27a.09.09 0 0 1-.01.15c-.54.32-1.1.58-1.69.8a.09.09 0 0 0-.05.12c.32.62.69 1.21 1.09 1.76a.09.09 0 0 0 .1.03c1.75-.54 3.52-1.35 5.35-2.69a.09.09 0 0 0 .04-.11c.45-4.53-.74-8.46-3.13-11.95a.07.07 0 0 0-.03-.03zM8.52 14.85c-1.04 0-1.89-.95-1.89-2.12 0-1.18.85-2.13 1.89-2.13s1.91.96 1.89 2.13c0 1.18-.85 2.12-1.89 2.12zm6.97 0c-1.04 0-1.89-.95-1.89-2.12 0-1.18.85-2.13 1.89-2.13s1.91.96 1.89 2.13c0 1.18-.84 2.12-1.89 2.12z"/></svg>
+            </span>
+            <span>Discord</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <span class="chans__svg chans__svg--tg" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M21.85 4.27c-.13-.18-.34-.27-.55-.27-.12 0-.24.03-.36.07L3.05 11.1c-.62.24-.69 1.1-.11 1.43l4.41 2.5 2.06 6.45c.11.34.43.55.77.55.21 0 .41-.08.56-.23l2.62-2.7 4.85 3.55c.16.12.36.18.55.18.36 0 .67-.24.77-.59l3.16-16.42c.06-.34-.06-.7-.34-.95zm-3.18 14.32-5.32-3.9c-.2-.15-.49-.13-.67.06l-2.07 2.13.6-2.83 8.34-7.66c.15-.14.05-.39-.15-.39-.06 0-.13.02-.18.06l-9.94 6.5-3.78-2.14 14.96-5.66-1.79 13.83z"/></svg>
+            </span>
+            <span>Telegram</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <span class="chans__svg chans__svg--ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#5B6275" stroke-width="1.7"><path d="M7 17a4 4 0 1 1 .9-7.9A5 5 0 0 1 17.5 11a3.5 3.5 0 0 1-.5 6.95"/></svg>
+            </span>
+            <span>iCloud Mail</span>
+          </span>
+          <span class="chans__logo" role="listitem" aria-hidden="true">
+            <span class="chans__svg chans__svg--im" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#5B6275" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+            </span>
+            <span>IMAP</span>
+          </span>
+        </div>
+      </div>
+
+      <p class="chans__foot">Un canal te manque ? <a href="mailto:hello@freescale.app">Dis-le-nous</a> — on l'ajoute.</p>
+    </section>
+    </div>
+    <!-- /darkblock -->
+
+    <!-- Process — 4 étapes : comment ça marche & pourquoi ta vie de freelance change -->
+
+
+
+
+
+
+    <!-- ── Témoignages : 3 citations des premières testeuses (beta privée) ── -->
+    <section class="testi" aria-label="Témoignages de la beta privée">
+      <div class="testi__inner">
+        <header class="testi__head">
+          <span class="pill">Beta privée · ce qu'elles en disent</span>
+          <h2 class="testi__title">Les premières à l'avoir testée. <em>Et qui ne reviennent pas en arrière.</em></h2>
+        </header>
+        <div class="testi__grid">
+          <figure class="testi__card">
+            <div class="testi__stars" aria-label="5 sur 5">★★★★★</div>
+            <blockquote>« J'ai arrêté de rater des DM Insta. Mes clientes m'écrivent là-bas, je vois tout dans Freescale avec leurs mails. Le brouillon de Mue est souvent bon direct. »</blockquote>
+            <figcaption>
+              <span class="testi__avatar" style="--c:#F9A8D4">SM</span>
+              <span>
+                <strong>Sarah M.</strong>
+                <em>Designer freelance · Paris</em>
+              </span>
+            </figcaption>
+          </figure>
+          <figure class="testi__card">
+            <div class="testi__stars" aria-label="5 sur 5">★★★★★</div>
+            <blockquote>« Avant : 5 apps, 47 onglets, et toujours un message oublié. Maintenant : une fenêtre, j'ai retrouvé mes vendredis après-midi. »</blockquote>
+            <figcaption>
+              <span class="testi__avatar" style="--c:#A5B4FC">LK</span>
+              <span>
+                <strong>Léo K.</strong>
+                <em>Développeur indé · Lyon</em>
+              </span>
+            </figcaption>
+          </figure>
+          <figure class="testi__card">
+            <div class="testi__stars" aria-label="5 sur 5">★★★★★</div>
+            <blockquote>« Les tâches qui sortent toutes seules des conversations, c'est ce qui change tout. Plus besoin de tenir une todo à part. »</blockquote>
+            <figcaption>
+              <span class="testi__avatar" style="--c:#FCD34D">CR</span>
+              <span>
+                <strong>Capucine R.</strong>
+                <em>Consultante marketing · Bordeaux</em>
+              </span>
+            </figcaption>
+          </figure>
+        </div>
+        <p class="testi__foot">3 testeuses · 1 mois d'utilisation moyenne · cohorte beta privée Q2 2026.</p>
+      </div>
+    </section>
+
+
+
+
+
+    <!-- ── Teams : awards + 3 vidéos témoignage (style ClickUp/Monday) ── -->
+    <section class="teams" aria-label="Ils ont adopté Freescale">
+      <div class="teams__inner">
+        <header class="teams__head">
+          <h2 class="teams__title">Adopté par les premiers freelances<br /><em>de la beta.</em></h2>
+          <img class="teams__awards" src="assets/awards.svg" alt="Awards Freescale" loading="lazy" />
+        </header>
+        <div class="teams__grid">
+          <article class="tvid">
+            <video class="tvid__video" src="assets/testi-1.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
+            <div class="tvid__gradient" aria-hidden="true"></div>
+            <div class="tvid__overlay">
+              <blockquote class="tvid__quote">« J'ai gagné mes soirées. Mue gère les relances, moi je crée. »</blockquote>
+              <div class="tvid__author">
+                <strong>Léa Moreau</strong>
+                <em>Copywriter freelance</em>
+              </div>
+            </div>
+          </article>
+
+          <article class="tvid">
+            <video class="tvid__video" src="assets/testi-2.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
+            <div class="tvid__gradient" aria-hidden="true"></div>
+            <div class="tvid__overlay">
+              <blockquote class="tvid__quote">« Cinq apps devenues une. Mes clients me trouvent réactif comme jamais. »</blockquote>
+              <div class="tvid__author">
+                <strong>Julien P.</strong>
+                <em>Motion designer freelance</em>
+              </div>
+            </div>
+          </article>
+
+          <article class="tvid">
+            <video class="tvid__video" src="assets/testi-3.mp4" muted loop playsinline preload="metadata" aria-hidden="true"></video>
+            <div class="tvid__gradient" aria-hidden="true"></div>
+            <div class="tvid__overlay">
+              <blockquote class="tvid__quote">« Freescale a remplacé mon Notion, mes post-its, mes 4 boîtes mail. »</blockquote>
+              <div class="tvid__author">
+                <strong>Nora H.</strong>
+                <em>Consultante indépendante</em>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Comparaison : Freescale vs alternatives (objection handling) ── -->
+    <section class="compare" aria-label="Comparaison avec les alternatives">
+      <div class="compare__inner">
+        <header class="compare__head">
+          <span class="pill">Pourquoi pas autre chose ?</span>
+          <h2 class="compare__title">Tu as déjà essayé. <em>Tu sais pourquoi ça n'a pas tenu.</em></h2>
+          <p class="compare__lede">Front, Superhuman, Notion + Zapier, Gmail… chacun couvre un bout. Freescale est le seul à tout couvrir <strong>sans t'obliger à jongler</strong>.</p>
+        </header>
+
+        <div class="compare__tablewrap">
+          <table class="compare__table">
+            <thead>
+              <tr>
+                <th scope="col" class="compare__corner"><span class="compare__corner-hint">Ce qui compte pour un freelance</span></th>
+                <th scope="col" class="compare__own">
+                  <div class="compare__brand compare__brand--own">
+                    <img src="assets/icon-freescale-rgb.svg" alt="" class="compare__logo" />
+                    <span>Freescale</span>
+                    <em class="compare__brand-badge">Recommandé</em>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div class="compare__brand">
+                    <span class="compare__logos-pair" aria-hidden="true">
+                      <img src="assets/logo-front.png" alt="" />
+                      <img src="assets/logo-missive.png" alt="" />
+                    </span>
+                    <span>Front / Missive</span>
+                    <em>Pour équipes support</em>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div class="compare__brand">
+                    <span class="compare__logo compare__logo--img" aria-hidden="true">
+                      <img src="assets/logo-superhuman.avif" alt="" />
+                    </span>
+                    <span>Superhuman</span>
+                    <em>Email only</em>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div class="compare__brand">
+                    <span class="compare__logos-pair" aria-hidden="true">
+                      <img src="assets/logo-notion.png" alt="" />
+                      <img src="assets/logo-zapier.svg" alt="" />
+                    </span>
+                    <span>Notion + Zapier</span>
+                    <em>À bricoler soi-même</em>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div class="compare__brand">
+                    <span class="compare__logo compare__logo--img" aria-hidden="true">
+                      <img src="assets/logo-gmail.webp" alt="" />
+                    </span>
+                    <span>Gmail + post-its</span>
+                    <em>Système D</em>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row"><span class="compare__feat">Tous tes canaux clients au même endroit</span></th>
+                <td class="compare__own"><span class="compare__dot compare__dot--yes" aria-label="Oui">✓</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="compare__feat">IA qui rédige tes réponses (dans ton ton)</span></th>
+                <td class="compare__own"><span class="compare__dot compare__dot--yes">✓</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="compare__feat">Extraction auto des tâches & deadlines</span></th>
+                <td class="compare__own"><span class="compare__dot compare__dot--yes">✓</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="compare__feat">Pensé pour le freelance solo</span></th>
+                <td class="compare__own"><span class="compare__dot compare__dot--yes">✓</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+                <td><span class="compare__dot compare__dot--half">~</span></td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="compare__feat">Setup en moins de 5 minutes</span></th>
+                <td class="compare__own"><span class="compare__dot compare__dot--yes">✓</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+                <td><span class="compare__dot compare__dot--yes">✓</span></td>
+                <td><span class="compare__dot compare__dot--no">✗</span></td>
+                <td><span class="compare__dot compare__dot--yes">✓</span></td>
+              </tr>
+              <tr>
+                <th scope="row"><span class="compare__feat">Prix pour un freelance</span></th>
+                <td class="compare__own compare__own--price"><strong>≤ 15€</strong></td>
+                <td><strong>59€+</strong></td>
+                <td><strong>30$+</strong></td>
+                <td><strong>~25€</strong></td>
+                <td><strong>Gratuit</strong></td>
+              </tr>
+              <tr class="compare__score">
+                <th scope="row">Bilan</th>
+                <td class="compare__own"><span class="compare__badge compare__badge--win">6/6 ✓</span></td>
+                <td><span class="compare__badge">1/6</span></td>
+                <td><span class="compare__badge">2/6</span></td>
+                <td><span class="compare__badge">0/6</span></td>
+                <td><span class="compare__badge">1/6</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="compare__foot">Le seul outil qui coche <strong>tout ce qui compte pour toi</strong> — pas pour une équipe support de 20 personnes.</p>
+      </div>
+    </section>
+
+    <!-- ── Trust band : signaux confiance avant le pricing ── -->
+    <section class="trust2" aria-label="Sécurité et confidentialité">
+      <div class="trust2__inner">
+        <h3 class="trust2__title">Tes échanges clients restent <em>tes</em> échanges.</h3>
+        <ul class="trust2__list" role="list">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>
+            <span><strong>Chiffrement TLS + repos.</strong> Tes messages sont chiffrés en transit et stockés sécurisés.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-7-4-7-12V5l7-3 7 3v5c0 8-7 12-7 12z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span><strong>RGPD conforme.</strong> Tes données sont hébergées dans l'Union européenne.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.5 9.5h15M4.5 14.5h15M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            <span><strong>Aucun entraînement IA</strong> sur tes échanges. Mue lit, ne mémorise pas pour autrui.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/><path d="m4 8 4-4M4 16l4 4M20 8l-4-4M20 16l-4 4"/></svg>
+            <span><strong>Export complet</strong> à tout moment. Tes données ne sont jamais prisonnières.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── FAQ : onglets + accordéon + carte contact ── -->
+    <section class="faq" id="faqs" aria-label="Questions fréquentes">
+      <div class="faq__inner">
+        <span class="pill">FAQ</span>
+        <h2 class="faq__title">Des <em>questions ?</em></h2>
+
+        <div class="faq__tabs" role="tablist" aria-label="Catégories">
+          <button type="button" class="faq__tab is-on" data-cat="general">Général</button>
+          <button type="button" class="faq__tab" data-cat="mue">Mue &amp; IA</button>
+          <button type="button" class="faq__tab" data-cat="tarifs">Tarifs</button>
+          <button type="button" class="faq__tab" data-cat="secu">Sécurité</button>
+        </div>
+
+        <div class="faq__list">
+          <details class="faq__item" data-cat="general" open>
+            <summary>C'est quoi, Freescale, en une phrase ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Une boîte de réception unique qui réunit WhatsApp, Instagram et Gmail — avec une IA, Mue, qui rédige tes réponses et organise tes tâches.</p>
+          </details>
+          <details class="faq__item" data-cat="general">
+            <summary>Pour qui c'est fait ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Pour les freelances et indépendants qui jonglent entre plusieurs canaux clients : créatifs, développeurs, consultants, coachs…</p>
+          </details>
+          <details class="faq__item" data-cat="general">
+            <summary>Est-ce que mes clients doivent changer leurs habitudes ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Non. Tes clients continuent de t'écrire où ils veulent — toi, tu réponds depuis un seul endroit.</p>
+          </details>
+          <details class="faq__item" data-cat="general">
+            <summary>Combien de temps pour tout brancher ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Moins de deux minutes par canal. Tu connectes ton compte, et c'est tout.</p>
+          </details>
+          <details class="faq__item" data-cat="mue">
+            <summary>Mue répond à ma place ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Mue prépare des brouillons dans ton ton. Rien ne part sans ta validation — tu restes aux commandes.</p>
+          </details>
+          <details class="faq__item" data-cat="mue">
+            <summary>Et si la réponse proposée est à côté ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Tu corriges d'un mot et Mue reformule aussitôt. Elle apprend de chaque ajustement.</p>
+          </details>
+          <details class="faq__item" data-cat="mue">
+            <summary>Mue écrit dans quelle langue ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>La tienne. Français, anglais… Mue reprend ton vocabulaire et ton niveau de formalité.</p>
+          </details>
+          <details class="faq__item" data-cat="tarifs">
+            <summary>Il y a un plan gratuit ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Oui — le plan Solo est gratuit, sans carte bancaire, pour connecter ton premier canal.</p>
+          </details>
+          <details class="faq__item" data-cat="tarifs">
+            <summary>Je peux changer de forfait quand je veux ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>À tout moment, en un clic. Sans engagement, sans frais cachés.</p>
+          </details>
+          <details class="faq__item" data-cat="tarifs">
+            <summary>Une réduction à l'année ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Oui : deux mois offerts sur tous les forfaits annuels.</p>
+          </details>
+          <details class="faq__item" data-cat="secu">
+            <summary>Où vont mes données ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Hébergées en Europe, chiffrées en transit et au repos. Tes conversations restent les tiennes.</p>
+          </details>
+          <details class="faq__item" data-cat="secu">
+            <summary>Quelqu'un lit mes messages ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Seule Mue y accède, pour préparer tes brouillons. Aucun humain ne lit tes conversations.</p>
+          </details>
+          <details class="faq__item" data-cat="secu">
+            <summary>Je peux tout supprimer ?<span class="faq__x" aria-hidden="true"></span></summary>
+            <p>Oui. Tu exportes ou supprimes ton compte et tes données à tout moment, en deux clics.</p>
+          </details>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Impactful : bandeau sombre en clôture (inspiré Superhuman) ── -->
+    <section class="impactful" aria-label="Reprends ta relation client en main">
+      <div class="impactful__inner">
+        <div class="impactful__badge" aria-hidden="true">
+          <img src="assets/icon-freescale-rgb.svg" alt="" />
+        </div>
+        <h2 class="impactful__title">Sois plus concentré, plus réactif, <em>plus toi.</em></h2>
+        <a href="/app" class="btn-cta impactful__btn">
+          <span class="btn-cta__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="btn-cta__label">
+            <span class="btn-cta__word">Commencer</span>
+            <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+          </span>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Footer : gradient bg + carte foncée 5 colonnes + wordmark freescale italique ── -->
+  <footer class="ftr" aria-label="Pied de page">
+    <div class="ftr__inner">
+      <div class="ftr__card">
+        <div class="ftr__top">
+          <a href="#" class="ftr__brand" aria-label="Freescale">
+            <img src="assets/icon-freescale-rgb.svg" alt="" />
+          </a>
+        </div>
+        <nav class="ftr__cols" aria-label="Liens du pied de page">
+          <div class="ftr__col">
+            <h3>Société</h3>
+            <ul>
+              <li><a href="a-propos.html">À propos</a></li>
+              <li><a href="#">Carrières</a></li>
+              <li><a href="#">Presse</a></li>
+              <li><a href="#">Partenaires</a></li>
+              <li><a href="contact.html">Contact</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Produit</h3>
+            <ul>
+              <li><a href="produit.html">Fonctionnalités</a></li>
+              <li><a href="produit.html">Canaux supportés</a></li>
+              <li><a href="produit.html">Mue (IA)</a></li>
+              <li><a href="tarifs.html">Tarifs</a></li>
+              <li><a href="#">Sécurité</a></li>
+              <li><a href="#">Changelog</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Ressources</h3>
+            <ul>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Guides freelance</a></li>
+              <li><a href="#">Centre d'aide</a></li>
+              <li><a href="#">API</a></li>
+              <li><a href="#faqs">FAQ</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Mentions légales</h3>
+            <ul>
+              <li><a href="#">Politique de confidentialité</a></li>
+              <li><a href="#">Conditions générales (CGU)</a></li>
+              <li><a href="#">Conditions de vente (CGV)</a></li>
+              <li><a href="#">Cookies</a></li>
+              <li><a href="#">RGPD</a></li>
+              <li><a href="#">Accord de traitement des données</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Communauté</h3>
+            <ul>
+              <li><a href="#">Discord</a></li>
+              <li><a href="#">Twitter / X</a></li>
+              <li><a href="#">LinkedIn</a></li>
+              <li><a href="#">Instagram</a></li>
+              <li><a href="#">YouTube</a></li>
+            </ul>
+          </div>
+        </nav>
+        <div class="ftr__bottom">
+          <button type="button" class="ftr__lang" aria-label="Langue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            FR
+          </button>
+        </div>
+      </div>
+      <div class="ftr__wordmark" aria-hidden="true">freescale</div>
+    </div>
+  </footer>
+
+  <script src="script.js?v=1159"></script>
+  <script type="module" src="three-icons.js?v=8"></script>
+</body>
+</html>

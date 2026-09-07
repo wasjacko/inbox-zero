@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact, Freescale</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <meta name="description" content="Une question, un retour, une envie de tester ? On répond en moins de 24h. Écrivez-nous." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400;1,14..32,500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.typekit.net/rbx1gft.css" />
+  <link rel="stylesheet" href="styles.css?v=1257" />
+  <style>
+    /* Page Contact, deux colonnes : formulaire + panneau infos */
+    .ct { padding: 130px 24px 100px; position: relative; z-index: 2; }
+    .ct__inner { max-width: calc(var(--shell) - 48px); margin: 0 auto; }
+
+    .ct__head { text-align: center; margin-bottom: 64px; }
+    .ct__head .fx-eyebrow { margin: 0 auto 20px; }
+    .ct__head .fx-h2 { max-width: 720px; margin: 0 auto 16px; }
+    .ct__head .fx-lede { max-width: 560px; margin: 0 auto; }
+
+    .ct__grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+    @media (max-width: 900px) { .ct__grid { grid-template-columns: 1fr; } }
+
+    /* ── Card formulaire ── */
+    .ct-form {
+      background: #fff;
+      border: 1px solid rgba(20,22,30,.06);
+      border-radius: 22px;
+      padding: 36px;
+      box-shadow: 0 1px 2px rgba(20,22,30,.04), 0 12px 28px -20px rgba(20,22,30,.12);
+    }
+    .ct-form__title {
+      font-family: var(--sans); font-weight: 700;
+      font-size: 1.3rem; color: #0C1E5A;
+      letter-spacing: -.015em; margin: 0 0 8px;
+    }
+    .ct-form__hint {
+      font-size: .88rem; color: #6b7385; margin: 0 0 28px;
+    }
+    .ct-form__row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 560px) { .ct-form__row { grid-template-columns: 1fr; } }
+    .ct-field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .ct-field:last-of-type { margin-bottom: 0; }
+    .ct-field label {
+      font-size: .82rem; font-weight: 600; color: #0C1E5A;
+      letter-spacing: .01em;
+    }
+    .ct-field input,
+    .ct-field select,
+    .ct-field textarea {
+      font-family: var(--sans); font-size: .95rem; color: #14151a;
+      padding: 12px 14px;
+      border: 1px solid rgba(20,22,30,.12);
+      border-radius: 10px;
+      background: #fbfcfd;
+      outline: none;
+      transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .ct-field input:focus,
+    .ct-field select:focus,
+    .ct-field textarea:focus {
+      border-color: #0C1E5A;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(12,30,90,.08);
+    }
+    .ct-field textarea { min-height: 130px; resize: vertical; line-height: 1.5; }
+    .ct-form__submit { margin-top: 22px; display: inline-flex; }
+    .ct-form__legal {
+      margin: 14px 0 0; font-size: .74rem; color: #8b93a4; line-height: 1.5;
+    }
+
+    /* ── Card infos side ── */
+    .ct-side { display: flex; flex-direction: column; gap: 14px; }
+    .ct-side__card {
+      background: #fff;
+      border: 1px solid rgba(20,22,30,.06);
+      border-radius: 22px;
+      padding: 26px;
+      display: flex; align-items: flex-start; gap: 16px;
+      box-shadow: 0 1px 2px rgba(20,22,30,.04);
+      text-decoration: none; color: inherit;
+      transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+    }
+    a.ct-side__card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(199,184,246,.4);
+      box-shadow: 0 1px 2px rgba(20,22,30,.05), 0 16px 32px -20px rgba(199,184,246,.35);
+    }
+    .ct-side__ic {
+      width: 40px; height: 40px; flex: none;
+      border-radius: 999px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background:
+        linear-gradient(#fff, #fff) padding-box,
+        var(--cta-grad) border-box;
+      background-size: auto, 240% 240%;
+      border: 1.5px solid transparent;
+      color: #0C1E5A;
+      animation: freescaleGradShift 7s ease-in-out infinite;
+    }
+    .ct-side__ic svg { width: 18px; height: 18px; display: block; }
+    .ct-side__body { flex: 1; }
+    .ct-side__lbl {
+      font-size: .74rem; font-weight: 600; color: #6b7385;
+      text-transform: uppercase; letter-spacing: .08em; margin: 0 0 6px;
+    }
+    .ct-side__val {
+      font-family: var(--sans); font-weight: 600; color: #0C1E5A;
+      font-size: 1rem; margin: 0 0 4px; letter-spacing: -.005em;
+    }
+    .ct-side__val a { color: inherit; text-decoration: none; }
+    .ct-side__val a:hover { color: #1E40FF; }
+    .ct-side__desc {
+      font-size: .84rem; color: #6b7385; line-height: 1.5; margin: 0;
+    }
+
+    @media (max-width: 900px) {
+      .ct { padding: 90px 18px 70px; }
+      .ct-form { padding: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-lines" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="nav-blur" aria-hidden="true">
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+  </div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Freescale home">
+      <img class="brand__logo" src="assets/logo-freescale-header.svg" alt="Freescale" />
+    </a>
+    <nav class="nav__links" aria-label="Navigation principale">
+      <a href="index.html#demo">Démo</a>
+      <div class="nav__dl">
+        <button type="button" class="nav__dl-trigger" aria-expanded="false" aria-haspopup="true">
+          Download
+          <svg class="nav__dl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav__dl-menu" role="menu">
+          <a class="nav__dl-item" href="download-mobile.html#mobile" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
+            </span>
+            iOS &amp; Android
+          </a>
+          <a class="nav__dl-item" href="download-mobile.html#desktop" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </span>
+            macOS &amp; Windows &amp; Linux
+          </a>
+          <a class="nav__dl-item" href="/login" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            </span>
+            Web app
+          </a>
+        </div>
+      </div>
+      <a href="tarifs.html">Tarifs</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav__actions">
+      <a href="/login" class="btn btn--ghost">Connexion</a>
+      <a href="/login?mode=signup" class="btn-cta btn-cta--mini">
+        <span class="btn-cta__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="btn-cta__label">
+          <span class="btn-cta__word">Commencer</span>
+          <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+        </span>
+      </a>
+    </div>
+    <button class="nav__burger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <main>
+    <section class="ct" aria-label="Contact">
+      <div class="ct__inner">
+
+        <header class="ct__head">
+          <span class="fx-eyebrow">Contact</span>
+          <h1 class="fx-h2">On répond <em>en moins de 24h.</em></h1>
+          <p class="fx-lede">Une question, un retour, une envie de tester Freescale, écrivez-nous. C'est l'équipe qui répond, pas un bot.</p>
+        </header>
+
+        <div class="ct__grid">
+
+          <!-- Formulaire -->
+          <form class="ct-form" method="post" action="mailto:hello@freescale.app">
+            <h2 class="ct-form__title">Envoyez-nous un message</h2>
+            <p class="ct-form__hint">Réponse sous 24h ouvrées, du lundi au vendredi.</p>
+
+            <div class="ct-form__row">
+              <div class="ct-field">
+                <label for="ct-name">Prénom</label>
+                <input id="ct-name" name="name" type="text" placeholder="Anna-Yumi" required />
+              </div>
+              <div class="ct-field">
+                <label for="ct-email">Email</label>
+                <input id="ct-email" name="email" type="email" placeholder="vous@example.com" required />
+              </div>
+            </div>
+
+            <div class="ct-field">
+              <label for="ct-topic">Sujet</label>
+              <select id="ct-topic" name="topic">
+                <option>Question sur le produit</option>
+                <option>Question sur les tarifs</option>
+                <option>Demande de démo</option>
+                <option>Partenariat / presse</option>
+                <option>Rejoindre l'équipe</option>
+                <option>Autre</option>
+              </select>
+            </div>
+
+            <div class="ct-field">
+              <label for="ct-msg">Message</label>
+              <textarea id="ct-msg" name="message" placeholder="Dites-nous en quelques mots ce dont vous avez besoin." required></textarea>
+            </div>
+
+            <button type="submit" class="btn-simple ct-form__submit">
+              <span class="btn-simple__label">Envoyer</span>
+            </button>
+            <p class="ct-form__legal">En envoyant ce message, vous acceptez que vos données soient traitées uniquement pour vous répondre. Aucune newsletter, aucun démarchage.</p>
+          </form>
+
+          <!-- Infos side -->
+          <aside class="ct-side">
+
+            <a class="ct-side__card" href="mailto:hello@freescale.app">
+              <span class="ct-side__ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+              </span>
+              <div class="ct-side__body">
+                <p class="ct-side__lbl">Email</p>
+                <p class="ct-side__val">hello@freescale.app</p>
+                <p class="ct-side__desc">Le canal préféré. On lit tout, on répond à tout.</p>
+              </div>
+            </a>
+
+            <div class="ct-side__card">
+              <span class="ct-side__ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <div class="ct-side__body">
+                <p class="ct-side__lbl">Bureau</p>
+                <p class="ct-side__val">Paris, France</p>
+                <p class="ct-side__desc">Un bureau à Paris, ouvert aux visites.</p>
+              </div>
+            </div>
+
+            <div class="ct-side__card">
+              <span class="ct-side__ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              </span>
+              <div class="ct-side__body">
+                <p class="ct-side__lbl">Disponibilité</p>
+                <p class="ct-side__val">Lundi → Vendredi · 9h–19h</p>
+                <p class="ct-side__desc">Fuseau CET (Paris). Réponse email sous 24h ouvrées.</p>
+              </div>
+            </div>
+
+          </aside>
+
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="ftr" aria-label="Pied de page">
+    <div class="ftr__inner">
+      <div class="ftr__card">
+        <div class="ftr__top">
+          <a href="index.html" class="ftr__brand" aria-label="Freescale">
+            <img src="assets/logo-freescale-footer.svg" alt="Freescale" />
+          </a>
+          <p class="ftr__tag">L'inbox unifiée des freelances multi-clients. Construit à Paris.</p>
+        </div>
+        <nav class="ftr__cols" aria-label="Liens du pied de page">
+          <div class="ftr__col">
+            <h3>Freescale</h3>
+            <ul>
+              <li><a href="contact.html">Contact</a></li>
+              <li><a href="#">Nous rejoindre</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Produit</h3>
+            <ul>
+              <li><a href="index.html#demo">Démo</a></li>
+              <li><a href="tarifs.html">Tarifs</a></li>
+              <li><a href="download-mobile.html#mobile">iOS &amp; Android</a></li>
+              <li><a href="download-mobile.html#desktop">macOS &amp; Windows &amp; Linux</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Légal</h3>
+            <ul>
+              <li><a href="#">Confidentialité</a></li>
+              <li><a href="#">CGU</a></li>
+              <li><a href="#">CGV</a></li>
+              <li><a href="#">RGPD</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Suivre</h3>
+            <ul>
+              <li><a href="#">LinkedIn</a></li>
+              <li><a href="#">Instagram</a></li>
+              <li><a href="#">YouTube</a></li>
+            </ul>
+          </div>
+        </nav>
+        <div class="ftr__bottom">
+          <button type="button" class="ftr__lang" aria-label="Langue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            FR
+          </button>
+          <p class="ftr__copyright">© 2026 Freescale · Tous droits réservés</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js?v=1201"></script>
+</body>
+</html>

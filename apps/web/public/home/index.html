@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freescale, Votre activité, enfin au clair</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <meta name="description" content="Freescale centralise vos échanges clients, prépare vos réponses et vous aide à avancer sans perdre le contexte. Le copilote IA des freelances intellectuels multi-clients : conseil, marketing, design." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://use.typekit.net" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400;1,14..32,500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.typekit.net/rbx1gft.css" />
+  <link rel="stylesheet" href="styles.css?v=1306" />
+
+  <!-- Preload critique : hero image + logo header (visibles above-the-fold) -->
+  <link rel="preload" as="image" href="assets/hero-woman.webp?v=2" fetchpriority="high" />
+  <link rel="preload" as="image" href="assets/logo-freescale-header.svg?v=3" />
+
+  <style>
+    .fx-section { position: relative; z-index: 2; padding: 110px 24px; }
+    .fx-section__inner { max-width: 1180px; margin: 0 auto; }
+    .fx-eyebrow { display: inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(59,107,255,.10); color: #3b6bff; font-size: .76rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 20px; }
+    .fx-h2 { font-family: var(--sans); font-weight: 700; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.03em; line-height: 1.1; color: #0C1E5A; margin: 0 0 18px; }
+    .fx-h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A; }
+    .fx-h2 em .fx-word { color: #0C1E5A; }
+    .fx-lede { max-width: 620px; font-size: 1.06rem; color: #5b6275; line-height: 1.55; margin: 0 0 40px; }
+    .fx-center { text-align: center; }
+    .fx-center .fx-lede { margin-left: auto; margin-right: auto; }
+
+    .fx-hero-chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 8px 12px; background: #fff; border: 1px solid rgba(20,22,30,.08); border-radius: 999px; margin-bottom: 24px; box-shadow: 0 4px 14px -6px rgba(20,22,30,.12); font-size: .85rem; color: #5b6275; font-weight: 500; transition: box-shadow .35s ease, transform .35s ease; }
+    .fx-hero-chip:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -10px rgba(20,22,30,.18); }
+    .fx-hero-chip__stack { display: inline-flex; }
+    .fx-hero-chip__stack img { width: 22px; height: 22px; border-radius: 6px; margin-left: -6px; background: #fff; box-shadow: 0 0 0 1.5px #fff; transition: transform .45s cubic-bezier(.34,1.56,.64,1), margin-left .45s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease; will-change: transform, margin-left; cursor: default; }
+    .fx-hero-chip__stack img:first-child { margin-left: 0; }
+    .fx-hero-chip:hover .fx-hero-chip__stack img { margin-left: 2px; }
+    .fx-hero-chip:hover .fx-hero-chip__stack img:first-child { margin-left: 0; }
+    .fx-hero-chip:hover .fx-hero-chip__stack img:nth-child(1) { transform: translateY(-3px) rotate(-6deg); transition-delay: 0ms; }
+    .fx-hero-chip:hover .fx-hero-chip__stack img:nth-child(2) { transform: translateY(-3px) rotate(4deg); transition-delay: 40ms; }
+    .fx-hero-chip:hover .fx-hero-chip__stack img:nth-child(3) { transform: translateY(-3px) rotate(-3deg); transition-delay: 80ms; }
+    .fx-hero-chip:hover .fx-hero-chip__stack img:nth-child(4) { transform: translateY(-3px) rotate(5deg); transition-delay: 120ms; }
+    .fx-hero-chip:hover .fx-hero-chip__stack img:nth-child(5) { transform: translateY(-3px) rotate(-4deg); transition-delay: 160ms; }
+    .fx-hero-chip__stack img:hover { transform: translateY(-6px) scale(1.25) !important; box-shadow: 0 0 0 1.5px #fff, 0 8px 16px -6px rgba(20,22,30,.35); z-index: 2; position: relative; }
+
+    /* STEPS */
+    .fx-steps { background: transparent; padding: 110px 24px; position: relative; }
+    .fx-steps__head { text-align: center; max-width: 720px; margin: 0 auto 60px; position: relative; z-index: 5; }
+    .fx-steps__head .fx-lede { margin-left: auto; margin-right: auto; }
+    .fx-steps__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: 1180px; margin: 0 auto; }
+    .fx-step { background: linear-gradient(180deg, #FFFFFF 0%, #F9F9F9 100%); border: 1px solid #F7F7F7; border-radius: 28px; padding: 12px; }
+    .fx-step__inner { position: relative; background: #fff; border: 1px solid rgba(231,231,231,.5); border-radius: 20px; padding: 28px 22px 22px; box-shadow: 0 3px 12.9px 0 rgba(151,151,151,.08); height: 100%; }
+    /* Label discret "Étape 0X" en haut à droite */
+    .fx-step__label {
+      position: absolute;
+      top: 20px;
+      right: 22px;
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: .68rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #0C1E5A;
+      opacity: .35;
+      pointer-events: none;
+    }
+    /* Icône : cercle blanc + anneau gradient + drop-shadow doux */
+    .fx-step__icon {
+      width: 56px; height: 56px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background:
+        linear-gradient(#fff, #fff) padding-box,
+        var(--cta-grad) border-box;
+      background-size: auto, 240% 240%;
+      border: 1.5px solid transparent;
+      color: #0C1E5A;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 20px -10px rgba(30, 64, 255, .35);
+      animation: freescaleGradShift 7s ease-in-out infinite;
+    }
+    .fx-step__icon svg { width: 28px; height: 28px; display: block; }
+    .fx-step__title { font-family: var(--sans); font-weight: 600; font-size: 1.1rem; letter-spacing: -.015em; color: #0C1E5A; margin: 0 0 8px; }
+    .fx-step__desc { font-size: .9rem; color: #5b6275; line-height: 1.5; margin: 0; }
+
+
+    /* SPLIT */
+    .fx-split { background: #fff; padding: 100px 24px; }
+    .fx-split--alt { background: var(--bg); }
+    .fx-split__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: center; max-width: 1180px; margin: 0 auto; }
+    .fx-split--reverse .fx-split__col--v { order: -1; }
+    .fx-split__col ul { list-style: none; padding: 0; margin: 24px 0 0; display: flex; flex-direction: column; gap: 14px; }
+    .fx-split__col li { display: flex; gap: 12px; font-size: .98rem; color: #303540; line-height: 1.5; }
+    .fx-split__col li::before { content: ""; flex: none; width: 20px; height: 20px; margin-top: 1px; background: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg' fill='none'%3E%3Cpath d='M5 12l5 5L20 7' stroke='%233b6bff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+    .fx-shot { background: linear-gradient(160deg, #f4f6fa 0%, #e8ecf3 100%); border: 1px solid rgba(20,22,30,.06); border-radius: 24px; padding: 16px; box-shadow: 0 30px 60px -30px rgba(20,22,30,.16); overflow: hidden; position: relative; aspect-ratio: 4/3; display: grid; place-items: center; }
+
+    /* Dashboard mockup (Accueil IA) */
+    .fx-viz-dash { width: 100%; background: #fff; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+    .fx-viz-dash__hdr { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid rgba(20,22,30,.06); margin-bottom: 6px; }
+    .fx-viz-dash__title { font-size: .95rem; font-weight: 600; color: #0C1E5A; }
+    .fx-viz-dash__pill { font-size: .72rem; color: #6b7285; padding: 4px 10px; background: #f4f5f9; border-radius: 999px; }
+    .fx-viz-dash__row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(20,22,30,.04); }
+    .fx-viz-dash__row:last-child { border-bottom: 0; }
+    .fx-viz-dash__dot { width: 8px; height: 8px; border-radius: 999px; background: linear-gradient(135deg, #E24D6E, #9BB0E5); flex: none; }
+    .fx-viz-dash__lbl { flex: 1; font-size: .88rem; color: #303540; }
+    .fx-viz-dash__meta { font-size: .78rem; color: #8b93a4; }
+    .fx-viz-dash__badge { font-size: .68rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: rgba(226,77,110,.1); color: #b1284f; }
+    .fx-viz-dash__badge--ok { background: rgba(34,168,106,.1); color: #1a7a4b; }
+
+    /* Espaces mockup */
+    .fx-viz-spaces { width: 100%; background: #fff; border-radius: 14px; padding: 20px; }
+    .fx-viz-spaces__hdr { font-size: .76rem; color: #6b7285; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; margin-bottom: 14px; }
+    .fx-viz-spaces__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .fx-viz-spaces__card { padding: 14px 14px 12px; border: 1px solid rgba(20,22,30,.06); border-radius: 12px; background: #fff; }
+    .fx-viz-spaces__card--active { border-color: rgba(59,107,255,.3); background: linear-gradient(180deg, #fff 0%, #f4f7ff 100%); box-shadow: 0 4px 14px -8px rgba(59,107,255,.25); }
+    .fx-viz-spaces__cava { width: 28px; height: 28px; border-radius: 8px; color: #fff; display: grid; place-items: center; font-size: .78rem; font-weight: 700; margin-bottom: 10px; }
+    .fx-viz-spaces__cname { font-size: .88rem; font-weight: 600; color: #0C1E5A; line-height: 1.2; }
+    .fx-viz-spaces__cnote { font-size: .72rem; color: #8b93a4; margin-top: 3px; }
+    .fx-viz-spaces__count { display: inline-block; margin-top: 8px; font-size: .66rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #f0f2f7; color: #5b6275; }
+    .fx-viz-spaces__card--active .fx-viz-spaces__count { background: rgba(59,107,255,.14); color: #3b6bff; }
+
+    /* CRM mockup */
+    .fx-viz-crm { width: 100%; background: #fff; border-radius: 14px; padding: 20px; }
+    .fx-viz-crm__hdr { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid rgba(20,22,30,.06); margin-bottom: 14px; }
+    .fx-viz-crm__ava { width: 44px; height: 44px; border-radius: 999px; background: linear-gradient(135deg, #EE95A5, #9BB0E5); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 1rem; flex: none; }
+    .fx-viz-crm__name { font-size: 1rem; font-weight: 600; color: #0C1E5A; }
+    .fx-viz-crm__role { font-size: .82rem; color: #6b7285; }
+    .fx-viz-crm__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .fx-viz-crm__stat { background: #f8f9fc; border-radius: 10px; padding: 10px 12px; }
+    .fx-viz-crm__stat-val { font-family: var(--sans); font-weight: 700; font-size: 1.1rem; color: #0C1E5A; letter-spacing: -.02em; line-height: 1; }
+    .fx-viz-crm__stat-lbl { font-size: .68rem; color: #8b93a4; margin-top: 4px; font-weight: 500; }
+    .fx-viz-crm__timeline { display: flex; flex-direction: column; gap: 10px; }
+    .fx-viz-crm__evt { display: flex; align-items: center; gap: 10px; font-size: .82rem; color: #303540; }
+    .fx-viz-crm__evt-dot { width: 6px; height: 6px; border-radius: 999px; background: #3b6bff; flex: none; }
+    .fx-viz-crm__evt time { color: #8b93a4; font-size: .74rem; margin-left: auto; }
+
+    /* Nettoyage mockup */
+    .fx-viz-clean { width: 100%; background: #fff; border-radius: 14px; padding: 20px; }
+    .fx-viz-clean__stat { display: flex; align-items: baseline; gap: 8px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(20,22,30,.06); }
+    .fx-viz-clean__num { font-family: var(--sans); font-weight: 700; font-size: 2.2rem; background: var(--cta-grad); background-size: 240% 240%; -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -.03em; line-height: 1; animation: freescaleGradShift 7s ease-in-out infinite; }
+    .fx-viz-clean__txt { font-size: .88rem; color: #5b6275; }
+    .fx-viz-clean__row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed rgba(20,22,30,.06); }
+    .fx-viz-clean__row:last-child { border-bottom: 0; }
+    .fx-viz-clean__logo { width: 28px; height: 28px; border-radius: 8px; background: #f4f5f9; display: grid; place-items: center; font-weight: 700; font-size: .72rem; color: #5b6275; }
+    .fx-viz-clean__from { font-size: .88rem; color: #303540; flex: 1; }
+    .fx-viz-clean__unsub { font-size: .76rem; padding: 4px 10px; border-radius: 999px; background: #f0f2f7; color: #5b6275; font-weight: 500; }
+    .fx-viz-clean__row.is-done .fx-viz-clean__from { text-decoration: line-through; color: #b0b7c3; }
+    .fx-viz-clean__row.is-done .fx-viz-clean__unsub { background: rgba(34,168,106,.14); color: #1a7a4b; }
+
+    /* COMPARE */
+    .fx-compare { background: #fff; padding: 100px 24px; text-align: center; }
+    .fx-compare__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1000px; margin: 40px auto 0; }
+    .fx-comp-card { background: #fff; border: 1px solid rgba(20,22,30,.08); border-radius: 22px; padding: 30px 26px; text-align: left; }
+    .fx-comp-card--own { background: linear-gradient(180deg, #ffffff 0%, #f4f7ff 100%); border-color: rgba(59,107,255,.22); box-shadow: 0 20px 44px -22px rgba(59,107,255,.24); }
+    .fx-comp-card__tag { display: inline-block; font-size: .74rem; font-weight: 600; color: #6b7285; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 14px; }
+    .fx-comp-card--own .fx-comp-card__tag { color: #3b6bff; }
+    .fx-comp-card__name { font-size: 1.15rem; font-weight: 600; color: #0C1E5A; margin: 0 0 6px; }
+    .fx-comp-card__price { font-family: var(--sans); font-weight: 700; font-size: 1.25rem; color: #0C1E5A; letter-spacing: -.02em; margin: 0 0 20px; }
+    .fx-comp-card__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    .fx-comp-card__list li { font-size: .92rem; color: #303540; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+    .fx-comp-card__list li::before { content: "·"; color: #b0b7c3; font-weight: bold; flex: none; }
+    .fx-comp-card--own .fx-comp-card__list li::before { content: "✓"; color: #3b6bff; }
+
+    /* TESTIS */
+    .fx-testi { background: var(--bg); padding: 100px 24px; }
+    .fx-testi__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1180px; margin: 44px auto 0; }
+    .fx-t-card { background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%); border: 1px solid rgba(20,22,30,.06); border-radius: 24px; padding: 28px 26px; text-align: left; }
+    .fx-t-card__quote { font-family: var(--serif); font-style: italic; font-size: 1.05rem; color: #0C1E5A; line-height: 1.5; margin: 0 0 20px; }
+    .fx-t-card__author { display: flex; align-items: center; gap: 10px; }
+    .fx-t-card__ava { width: 36px; height: 36px; border-radius: 999px; color: #fff; display: grid; place-items: center; font-size: .82rem; font-weight: 700; flex: none; }
+    .fx-t-card__ava--a { background: linear-gradient(135deg, #F1B5B0, #E24D6E); }
+    .fx-t-card__ava--b { background: linear-gradient(135deg, #B5CBE5, #9BB0E5); }
+    .fx-t-card__ava--c { background: linear-gradient(135deg, #D8BEDE, #C0B8E0); }
+    .fx-t-card__name { font-size: .9rem; font-weight: 600; color: #0C1E5A; line-height: 1.2; }
+    .fx-t-card__role { font-size: .78rem; color: #6b7285; }
+
+    /* PRIVACY */
+    .fx-privacy { background: #0a0b10; color: #fff; border-radius: 40px 40px 0 0; margin: 0 20px; padding: 110px 40px; }
+    .fx-privacy__inner { max-width: 1180px; margin: 0 auto; }
+    .fx-privacy .fx-eyebrow { background: rgba(255,255,255,.08); color: #a3b8ff; }
+    .fx-privacy .fx-h2 { color: #fff; }
+    .fx-privacy .fx-lede { color: rgba(255,255,255,.65); }
+    .fx-privacy__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 20px; }
+    .fx-promise { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 20px; padding: 26px 22px; }
+    .fx-promise__ic { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: rgba(163,184,255,.14); color: #a3b8ff; margin-bottom: 14px; }
+    .fx-promise__ic svg { width: 20px; height: 20px; }
+    .fx-promise__title { font-size: .96rem; font-weight: 600; color: #fff; margin: 0 0 6px; }
+    .fx-promise__desc { font-size: .84rem; color: rgba(255,255,255,.62); line-height: 1.5; margin: 0; }
+
+    /* PRICING */
+    .fx-pricing { background: #fff; padding: 100px 24px; text-align: center; }
+    .fx-pricing__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto 34px; }
+    .fx-pt { background: linear-gradient(180deg, #FFFFFF 0%, #F9F9F9 100%); border: 1px solid #F7F7F7; border-radius: 24px; padding: 10px; }
+    .fx-pt--featured { background: linear-gradient(180deg, #ffffff 0%, #f4f7ff 100%); border-color: rgba(59,107,255,.14); }
+    .fx-pt__inner { background: #fff; border: 1px solid rgba(231,231,231,.5); border-radius: 16px; padding: 22px 20px; box-shadow: 0 3px 12.9px 0 rgba(151,151,151,.08); }
+    .fx-pt__name { font-size: .78rem; font-weight: 600; color: #6b7285; letter-spacing: .04em; text-transform: uppercase; margin: 0 0 12px; }
+    .fx-pt--featured .fx-pt__name { color: #3b6bff; }
+    .fx-pt__price { font-family: var(--sans); font-weight: 700; font-size: 1.9rem; letter-spacing: -.025em; color: #0C1E5A; line-height: 1; margin: 0; }
+    .fx-pt__price small { font-size: .74rem; font-weight: 500; color: #8b93a4; margin-left: 4px; }
+    .fx-pricing__cta { display: inline-block; padding: 14px 32px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 600; text-decoration: none; font-size: .96rem; }
+
+    /* FAQ */
+    .fx-faq { background: var(--bg); padding: 100px 24px; }
+    .fx-faq__grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 1000px; margin: 40px auto 0; text-align: left; }
+    .fx-faq__item { background: linear-gradient(180deg, #FFFFFF 0%, #F9F9F9 100%); border: 1px solid rgba(20,22,30,.06); border-radius: 20px; padding: 24px; }
+    .fx-faq__q { font-size: 1rem; font-weight: 600; color: #0C1E5A; margin: 0 0 10px; letter-spacing: -.01em; }
+    .fx-faq__a { font-size: .92rem; color: #5b6275; line-height: 1.55; margin: 0; }
+    .fx-faq__a a { color: #3b6bff; text-decoration: underline; }
+
+    /* TRUST / RGPD bandeau 4 cards */
+    .fx-trust { background: transparent; padding: 110px 24px; position: relative; }
+    .fx-trust__title { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: clamp(1.6rem, 3vw, 2.3rem); letter-spacing: -.01em; color: #0C1E5A; text-align: center; margin: 0 auto 48px; max-width: 900px; line-height: 1.25; }
+    .fx-trust__title em { font-family: var(--serif); font-style: italic; background: var(--cta-grad); background-size: 240% 240%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; animation: freescaleGradShift 7s ease-in-out infinite; }
+    .fx-trust__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-width: calc(var(--shell) - 48px); margin: 0 auto; }
+    .fx-trust__card { background: #fff; border: 1px solid rgba(20,22,30,.06); border-radius: 18px; padding: 22px 20px 24px; box-shadow: 0 3px 12px rgba(151,151,151,.05); }
+    .fx-trust__ic {
+      width: 56px; height: 56px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background:
+        linear-gradient(#fff, #fff) padding-box,
+        var(--cta-grad) border-box;
+      background-size: auto, 240% 240%;
+      border: 1.5px solid transparent;
+      color: #0C1E5A;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 20px -10px rgba(30, 64, 255, .35);
+      animation: freescaleGradShift 7s ease-in-out infinite;
+    }
+    .fx-trust__ic svg { width: 28px; height: 28px; display: block; }
+    .fx-trust__name { font-family: var(--sans); font-weight: 600; font-size: 1rem; color: #0C1E5A; margin: 0 0 8px; letter-spacing: -.01em; }
+    .fx-trust__desc { font-size: .9rem; color: #5b6275; line-height: 1.5; margin: 0; }
+    @media (max-width: 900px) {
+      .fx-trust__grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .fx-trust__grid { grid-template-columns: 1fr; }
+    }
+
+    /* FINAL CTA */
+    .fx-final { background: transparent; text-align: center; padding: 120px 24px 130px; }
+    .fx-final__title { font-family: var(--sans); font-weight: 700; font-size: clamp(2.2rem, 5vw, 3.4rem); letter-spacing: -.03em; line-height: 1.1; color: #0C1E5A; margin: 0 0 20px; }
+    .fx-final__title em { font-family: var(--serif); font-style: italic; font-weight: 400; }
+    .fx-final__sub { font-size: 1.08rem; color: #5b6275; margin: 0 0 40px; }
+    .fx-final__meta { margin-top: 24px; font-size: .82rem; color: #8b93a4; }
+
+    @media (max-width: 900px) {
+      .fx-steps__grid { grid-template-columns: 1fr; max-width: 500px; }
+      .fx-split__grid { grid-template-columns: 1fr; gap: 40px; }
+      .fx-split--reverse .fx-split__col--v { order: 0; }
+      .fx-compare__grid { grid-template-columns: 1fr; max-width: 460px; margin-left: auto; margin-right: auto; }
+      .fx-testi__grid { grid-template-columns: 1fr; max-width: 460px; margin-left: auto; margin-right: auto; }
+      .fx-privacy__grid { grid-template-columns: repeat(2, 1fr); }
+      .fx-pricing__grid { grid-template-columns: 1fr; max-width: 400px; }
+      .fx-faq__grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .fx-section, .fx-split, .fx-compare, .fx-testi, .fx-pricing, .fx-faq, .fx-privacy { padding: 70px 16px; }
+      .fx-privacy__grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-lines" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="nav-blur" aria-hidden="true">
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+  </div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Freescale home">
+      <img class="brand__logo" src="assets/logo-freescale-header.svg?v=3" alt="Freescale" />
+    </a>
+    <nav class="nav__links" aria-label="Navigation principale">
+      <a href="index.html#demo">Démo</a>
+      <div class="nav__dl">
+        <button type="button" class="nav__dl-trigger" aria-expanded="false" aria-haspopup="true">
+          Download
+          <svg class="nav__dl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav__dl-menu" role="menu">
+          <a class="nav__dl-item" href="download-mobile.html#mobile" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
+            </span>
+            iOS &amp; Android
+          </a>
+          <a class="nav__dl-item" href="download-mobile.html#desktop" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </span>
+            macOS &amp; Windows &amp; Linux
+          </a>
+          <a class="nav__dl-item" href="/login" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            </span>
+            Web app
+          </a>
+        </div>
+      </div>
+      <a href="tarifs.html">Tarifs</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav__actions">
+      <a href="/login" class="btn btn--ghost">Connexion</a>
+      <a href="/login?mode=signup" class="btn-cta btn-cta--mini">
+        <span class="btn-cta__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="btn-cta__label">
+          <span class="btn-cta__word">Commencer</span>
+          <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+        </span>
+      </a>
+    </div>
+    <button class="nav__burger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero">
+      <section class="hero__copy">
+        <span class="fx-hero-chip">
+          <span class="fx-hero-chip__stack">
+            <img src="assets/tool-gmail.svg" alt="" />
+            <img src="assets/tool-outlook.webp" alt="" />
+            <img src="assets/tool-teams.webp" alt="" />
+            <img src="assets/tool-slack.webp" alt="" />
+            <img src="assets/tool-whatsapp.webp" alt="" />
+          </span>
+          Gmail · Outlook · Teams · Slack · WhatsApp · Telegram
+        </span>
+        <h1 class="headline headline--one">
+          <span class="line line--serif">Votre activité,</span>
+          <span class="line line--bold">enfin au clair.</span>
+        </h1>
+        <p class="subtext">
+          Freescale centralise vos échanges clients, extrait vos tâches, et <strong style="color:#0C1E5A;font-weight:600;">Mue</strong> prépare vos réponses dans votre ton.
+          Récupérez 2 à 3 heures par semaine, sans dégrader le suivi client.
+        </p>
+        <div class="cta-row">
+          <a href="/login?mode=signup" class="btn-simple">
+            <span class="btn-simple__label">Essayer 14 jours</span>
+          </a>
+          <a href="#demo" class="btn-demo">
+            <span class="btn-demo__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+            <span class="btn-demo__label">Voir la démo</span>
+          </a>
+        </div>
+      </section>
+      <section class="hero__visual">
+        <img src="assets/hero-woman.webp?v=2" alt="Une freelance qui regarde vers l'avenir" class="hero__woman" />
+      </section>
+    </section>
+
+    <!-- PRODUCT SHOWCASE -->
+    <section class="feature" id="demo">
+      <header class="feature__head">
+        <h2 class="feature__title">
+          <span class="line line--serif">Un seul espace pour tout votre travail client.</span>
+          <span class="line line--bold">Pensé pour les freelances multi-clients.</span>
+        </h2>
+      </header>
+      <div class="screen">
+        <div class="inbox inbox--shot">
+          <img class="inbox__shot" src="assets/screen-canaux.webp?v=2" alt="Interface Freescale, vue Canaux avec messages unifiés" loading="lazy" />
+          <video class="inbox__video" src="assets/demo-canaux.mp4?v=2" preload="none" playsinline muted poster="assets/screen-canaux.webp?v=2"></video>
+          <!-- Bouton play centré sur le screen (démo vidéo) -->
+          <button type="button" class="inbox__play" aria-label="Lancer la démo vidéo">
+            <span class="inbox__play-halo" aria-hidden="true"></span>
+            <span class="inbox__play-btn" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                <path d="M9 6.5v11l9-5.5z"/>
+              </svg>
+            </span>
+          </button>
+          <div class="appbar__chans inbox__docktarget" aria-hidden="true">
+            <span class="ctile ctile--slot" data-chan="teams"></span>
+            <span class="ctile ctile--slot" data-chan="outlook"></span>
+            <span class="ctile ctile--slot" data-chan="gmail"></span>
+            <span class="ctile ctile--ref" aria-hidden="true"></span>
+          </div>
+        </div>
+        <div class="dock" aria-hidden="true">
+          <figure class="fly" data-target="gmail"   data-hx=".82" data-hy=".44" data-rx="-16" data-ry="-24" data-rz="8"><img src="assets/tool-gmail.svg" alt="" /></figure>
+          <figure class="fly" data-target="outlook" data-hx=".85" data-hy=".66" data-rx="21"  data-ry="-31" data-rz="-13"><img src="assets/tool-outlook.webp" alt="" /></figure>
+          <figure class="fly" data-target="teams"   data-hx=".53" data-hy=".60" data-rx="17"  data-ry="27"  data-rz="-8"><img src="assets/tool-teams.webp" alt="" /></figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEPS 4 étapes -->
+    <section class="fx-steps" aria-label="Configuration en 4 étapes">
+      <div class="fx-steps__head">
+        <span class="fx-eyebrow">Onboarding</span>
+        <h2 class="fx-h2">Configuré en <em>moins de 5 minutes.</em></h2>
+        <p class="fx-lede">Aucune formation, aucune migration. Vous branchez, Mue apprend, tout est prêt.</p>
+      </div>
+      <div class="fx-steps__grid">
+        <div class="fx-step"><div class="fx-step__inner">
+          <span class="fx-step__label">Étape 01</span>
+          <div class="fx-step__icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4v6M21 4v6"/>
+              <path d="M8 10h16v4a8 8 0 0 1-16 0v-4z"/>
+              <path d="M16 22v6"/>
+              <circle cx="16" cy="28" r="2.2" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+          <h3 class="fx-step__title">Ajoutez un canal</h3>
+          <p class="fx-step__desc">Connectez Gmail, Outlook, Teams, Slack, WhatsApp ou Telegram en 2 clics OAuth.</p>
+        </div></div>
+        <div class="fx-step"><div class="fx-step__inner">
+          <span class="fx-step__label">Étape 02</span>
+          <div class="fx-step__icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 10a3 3 0 0 1 3-3h5l3 3h10a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V10z"/>
+              <path d="M4 15h24"/>
+              <circle cx="10" cy="20" r="1.4" fill="currentColor" stroke="none"/>
+              <circle cx="16" cy="20" r="1.4" fill="currentColor" stroke="none"/>
+              <circle cx="22" cy="20" r="1.4" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+          <h3 class="fx-step__title">Créez un espace</h3>
+          <p class="fx-step__desc">Un espace par client ou mission. Vos conversations restent isolées, jamais mélangées.</p>
+        </div></div>
+        <div class="fx-step"><div class="fx-step__inner">
+          <span class="fx-step__label">Étape 03</span>
+          <div class="fx-step__icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="11" r="5"/>
+              <path d="M3 27a9 9 0 0 1 18 0"/>
+              <path d="M23 12h6M26 9v6"/>
+            </svg>
+          </div>
+          <h3 class="fx-step__title">Importez vos contacts</h3>
+          <p class="fx-step__desc">Vos contacts existants sont enrichis automatiquement dans Relations clients.</p>
+        </div></div>
+        <div class="fx-step"><div class="fx-step__inner">
+          <span class="fx-step__label">Étape 04</span>
+          <div class="fx-step__icon" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4l2.4 6.6L25 13l-6.6 2.4L16 22l-2.4-6.6L7 13l6.6-2.4L16 4z"/>
+              <path d="M25 22l1 2.6L28.6 26 26 27l-1 2.6-1-2.6L21.4 26 24 25l1-2.6z"/>
+              <path d="M7 22l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2z"/>
+            </svg>
+          </div>
+          <h3 class="fx-step__title">Activez Mue</h3>
+          <p class="fx-step__desc">Mue lit vos 200 derniers envois pour caler son style. En local, jamais partagé.</p>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- SPLIT 1 : Accueil IA -->
+    <section class="fx-split">
+      <div class="fx-split__grid">
+        <div class="fx-split__col">
+          <span class="fx-eyebrow">Accueil IA</span>
+          <h2 class="fx-h2">Vos messages, <em>déjà triés.</em></h2>
+          <p class="fx-lede">Ouvrez Freescale, vous voyez d'un coup d'œil combien de messages sont arrivés, lesquels attendent une réponse aujourd'hui, et lesquels sont juste du bruit. Mue résume et priorise à votre place.</p>
+          <ul>
+            <li>Vue « Bonjour » : compteur de messages entrants et demandes du jour</li>
+            <li>Brief : Mue résume ce qui compte en 3 lignes</li>
+            <li>Ask Mue : posez-lui une question sur n'importe quel fil</li>
+            <li>Priorisation par urgence et par expéditeur, pas par ordre d'arrivée</li>
+          </ul>
+        </div>
+        <div class="fx-split__col fx-split__col--v">
+          <div class="fx-shot">
+            <div class="fx-viz-dash" aria-hidden="true">
+              <div class="fx-viz-dash__hdr">
+                <span class="fx-viz-dash__title">Bonjour · 22 nouveaux messages</span>
+                <span class="fx-viz-dash__pill">19 à traiter</span>
+              </div>
+              <div class="fx-viz-dash__row"><span class="fx-viz-dash__dot"></span><span class="fx-viz-dash__lbl">Thomas Lascoux, Départ du logement</span><span class="fx-viz-dash__badge">Urgent</span></div>
+              <div class="fx-viz-dash__row"><span class="fx-viz-dash__dot"></span><span class="fx-viz-dash__lbl">Atlassian, Trial Trello expire</span><span class="fx-viz-dash__meta">Hier</span></div>
+              <div class="fx-viz-dash__row"><span class="fx-viz-dash__dot"></span><span class="fx-viz-dash__lbl">Manychat, Paiement échoué</span><span class="fx-viz-dash__badge">Action</span></div>
+              <div class="fx-viz-dash__row"><span class="fx-viz-dash__dot"></span><span class="fx-viz-dash__lbl">Sophie, Validation V2 landing</span><span class="fx-viz-dash__meta">Auj. 14h</span></div>
+              <div class="fx-viz-dash__row"><span class="fx-viz-dash__dot"></span><span class="fx-viz-dash__lbl">AFDAS, Bilan de compétences</span><span class="fx-viz-dash__badge fx-viz-dash__badge--ok">Info</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SPLIT 2 : Canaux -->
+    <section class="fx-split fx-split--alt fx-split--reverse">
+      <div class="fx-split__grid">
+        <div class="fx-split__col">
+          <span class="fx-eyebrow">Canaux &amp; Tâches</span>
+          <h2 class="fx-h2"><span style="white-space:nowrap;">Vos échanges deviennent</span><br /><em style="white-space:nowrap;">des tâches priorisées.</em></h2>
+          <p class="fx-lede">Freescale lit tous vos canaux connectés (Gmail, Outlook, Teams, Slack, WhatsApp, Telegram), en extrait les tâches concrètes et les classe par priorité. Vous ne relisez plus vos fils pour savoir quoi faire.</p>
+          <ul>
+            <li>Un espace par client ou mission, jamais de contextes mélangés</li>
+            <li>Extraction automatique des tâches à partir des messages</li>
+            <li>Priorisation par urgence, expéditeur, deadline</li>
+            <li>Vue Tâches unifiée sur tous vos espaces</li>
+          </ul>
+        </div>
+        <div class="fx-split__col fx-split__col--v">
+          <div class="fx-shot">
+            <div class="fx-viz-spaces" aria-hidden="true">
+              <div class="fx-viz-spaces__hdr">Mes espaces · 4 clients actifs</div>
+              <div class="fx-viz-spaces__grid">
+                <div class="fx-viz-spaces__card fx-viz-spaces__card--active">
+                  <div class="fx-viz-spaces__cava" style="background:linear-gradient(135deg,#EE95A5,#E24D6E);">S</div>
+                  <div class="fx-viz-spaces__cname">Studio Kaba</div>
+                  <div class="fx-viz-spaces__cnote">Brand refresh</div>
+                  <span class="fx-viz-spaces__count">12 nouveaux</span>
+                </div>
+                <div class="fx-viz-spaces__card">
+                  <div class="fx-viz-spaces__cava" style="background:linear-gradient(135deg,#B5CBE5,#9BB0E5);">L</div>
+                  <div class="fx-viz-spaces__cname">Lucie & Co.</div>
+                  <div class="fx-viz-spaces__cnote">E-commerce</div>
+                  <span class="fx-viz-spaces__count">3 messages</span>
+                </div>
+                <div class="fx-viz-spaces__card">
+                  <div class="fx-viz-spaces__cava" style="background:linear-gradient(135deg,#D8BEDE,#C0B8E0);">P</div>
+                  <div class="fx-viz-spaces__cname">Palette</div>
+                  <div class="fx-viz-spaces__cnote">Consulting growth</div>
+                  <span class="fx-viz-spaces__count">1 relance</span>
+                </div>
+                <div class="fx-viz-spaces__card">
+                  <div class="fx-viz-spaces__cava" style="background:linear-gradient(135deg,#F5CDA8,#F0A08E);">N</div>
+                  <div class="fx-viz-spaces__cname">Neige</div>
+                  <div class="fx-viz-spaces__cnote">Ligne éditoriale</div>
+                  <span class="fx-viz-spaces__count">À jour</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DARKBLOCK ORIGINAL : Anywhere + Reach + Agents + Kickoff + Chans (version historique de la landing) -->
+    <div class="darkblock">
+    <!-- ── Anywhere : Mue anim + titre (les téléchargements sont plus bas, après agents) ── -->
+    <section class="anywhere" aria-label="Mue">
+      <div class="anywhere__inner">
+        <div class="anywhere__brand">
+          <video class="anywhere__anim" autoplay muted loop playsinline preload="metadata" aria-label="Animation Mue">
+            <source src="assets/mue-anim.webm?v=7" type="video/webm" />
+          </video>
+        </div>
+        <h2 class="anywhere__title">Mue, l'IA qui <em>rédige vos réponses</em> et sort vos tâches du chaos.</h2>
+      </div>
+    </section>
+
+    <!-- ── Reach : deux mains qui se rejoignent au scroll ── -->
+    <section class="reach" aria-label="L'humain et l'IA se rencontrent">
+      <div class="reach__stage">
+        <img class="reach__hand reach__hand--l" src="assets/hand-left.webp" alt="" loading="lazy" decoding="async" />
+        <img class="reach__hand reach__hand--r" src="assets/hand-right.webp?v=4" alt="" loading="lazy" decoding="async" />
+        <div class="reach__caption">
+          <h2>Vous <em>et</em> Mue.</h2>
+          <p>Votre geste, augmenté par l'IA. Toujours signé de votre main.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Agents : 5 usages Mue + screenshot annoté ── -->
+    <section class="agents" aria-label="Ce que Mue fait pour vous">
+      <div class="agents__inner">
+        <ul class="agents__list" role="list">
+          <li class="agent is-active" data-shot="shot-inbox.png">
+            <span class="agent__icon agent__icon--teal" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 10h6M7 14h10"/></svg>
+            </span>
+            <span class="agent__label">Vos messages triés avant vous</span>
+          </li>
+          <li class="agent" data-shot="shot-analytics.png">
+            <span class="agent__icon agent__icon--rose" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg>
+            </span>
+            <span class="agent__label">Répondez en un clic, pas en 10 minutes</span>
+          </li>
+          <li class="agent" data-shot="shot-tasks.png">
+            <span class="agent__icon agent__icon--blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+            </span>
+            <span class="agent__label">Vos fils convertis en to-do priorisée</span>
+          </li>
+          <li class="agent" data-shot="shot-clients.png">
+            <span class="agent__icon agent__icon--gold" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </span>
+            <span class="agent__label">Aucun silence client ne passe</span>
+          </li>
+          <li class="agent" data-shot="shot-calendar.png">
+            <span class="agent__icon agent__icon--green" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </span>
+            <span class="agent__label">Posez la question, la réponse arrive avec les sources</span>
+          </li>
+        </ul>
+
+        <div class="agents__demo" aria-hidden="true">
+          <span class="agents__tag agents__tag--1">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.7 7.3L21 11l-7.3 1.7L12 20l-1.7-7.3L3 11l7.3-1.7L12 2z"/></svg>
+            <span class="agents__tag-txt">Brief : ce qui compte aujourd'hui</span>
+          </span>
+          <span class="agents__tag agents__tag--2">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.7 7.3L21 11l-7.3 1.7L12 20l-1.7-7.3L3 11l7.3-1.7L12 2z"/></svg>
+            <span class="agents__tag-txt">22 messages · 19 à traiter</span>
+          </span>
+          <span class="agents__tag agents__tag--3">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.7 7.3L21 11l-7.3 1.7L12 20l-1.7-7.3L3 11l7.3-1.7L12 2z"/></svg>
+            <span class="agents__tag-txt">Priorisation par urgence</span>
+          </span>
+          <img class="agents__shot" src="assets/shot-inbox.webp" alt="" loading="lazy" decoding="async" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Kickoff : dernière section du darkblock, gros titre + downloads + CTA blanc pilule ── -->
+    <section class="kickoff" aria-label="Commencer avec Freescale">
+      <div class="kickoff__inner">
+        <h2 class="kickoff__title">Installez-le une fois.<br /><em>Retrouvez tout, partout.</em></h2>
+        <p class="kickoff__sub">Bientôt disponible sur macOS, Windows, Linux, iOS et Android.</p>
+
+        <!-- Téléchargements macOS + Windows placés juste sous le titre -->
+        <div class="anywhere__platforms kickoff__platforms">
+          <ul class="anywhere__list anywhere__list--desktop" role="list">
+            <li class="anywhere__item">
+              <div class="anywhere__btn anywhere__btn--multi">
+                <div class="anywhere__btn-head">
+                  <svg class="anywhere__btn-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.03c-.02-2.75 2.24-4.07 2.34-4.14-1.28-1.87-3.27-2.12-3.98-2.15-1.69-.17-3.31.99-4.17.99-.87 0-2.2-.97-3.61-.94-1.85.03-3.57 1.08-4.52 2.73-1.95 3.38-.5 8.37 1.4 11.12.94 1.35 2.03 2.85 3.45 2.8 1.4-.06 1.92-.9 3.6-.9s2.16.9 3.61.87c1.5-.03 2.44-1.37 3.34-2.72 1.06-1.56 1.49-3.09 1.51-3.16-.03-.02-2.91-1.12-2.94-4.5zM14.7 4.02c.77-.94 1.29-2.24 1.14-3.54-1.11.05-2.45.74-3.24 1.67-.72.83-1.35 2.16-1.18 3.42 1.24.1 2.5-.62 3.28-1.55z"/></svg>
+                  <div class="anywhere__btn-headtxt">
+                    <span class="anywhere__btn-name">macOS</span>
+                    <span class="anywhere__btn-format">.dmg · 12.0+</span>
+                  </div>
+                </div>
+                <div class="anywhere__variants">
+                  <a class="anywhere__variant" href="/download/macos-arm" aria-label="Télécharger Freescale pour macOS Apple Silicon">
+                    <span class="anywhere__variant-label">Apple&nbsp;Silicon</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                  <a class="anywhere__variant" href="/download/macos-intel" aria-label="Télécharger Freescale pour macOS Intel">
+                    <span class="anywhere__variant-label">Intel</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                </div>
+              </div>
+            </li>
+            <li class="anywhere__item">
+              <div class="anywhere__btn anywhere__btn--multi">
+                <div class="anywhere__btn-head">
+                  <svg class="anywhere__btn-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7.3H3V5.5zm0 13v-6.3h7.5V19.5L3 18.5zm8.5-14L21 3v9H11.5V4.5zm0 15.5V13.3H21V21l-9.5-1z"/></svg>
+                  <div class="anywhere__btn-headtxt">
+                    <span class="anywhere__btn-name">Windows</span>
+                    <span class="anywhere__btn-format">.exe · 10+</span>
+                  </div>
+                </div>
+                <div class="anywhere__variants">
+                  <a class="anywhere__variant" href="/download/windows-x64" aria-label="Télécharger Freescale pour Windows x64">
+                    <span class="anywhere__variant-label">x64</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                  <a class="anywhere__variant" href="/download/windows-arm" aria-label="Télécharger Freescale pour Windows ARM">
+                    <span class="anywhere__variant-label">ARM</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                </div>
+              </div>
+            </li>
+            <li class="anywhere__item">
+              <div class="anywhere__btn anywhere__btn--multi">
+                <div class="anywhere__btn-head">
+                  <svg class="anywhere__btn-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2 0-3.6 1.6-3.6 3.6 0 1.1.4 2.1 1.1 2.8-.8.9-1.4 2-1.6 3.3-.3 1.9-1 3.5-1.7 4.6-.5.9-1.1 1.5-1.4 1.9-.4.5-.6 1-.6 1.5 0 1.3 1.1 2.3 2.4 2.3.9 0 1.7-.4 2.2-1.1.2.1.5.1.7.1h4.5c.2 0 .5 0 .7-.1.5.7 1.3 1.1 2.2 1.1 1.3 0 2.4-1 2.4-2.3 0-.5-.2-1-.6-1.5-.3-.4-.9-1-1.4-1.9-.7-1.1-1.4-2.7-1.7-4.6-.2-1.3-.8-2.4-1.6-3.3.7-.7 1.1-1.7 1.1-2.8C15.6 3.6 14 2 12 2zm-1.3 3.2c0-.3.2-.5.5-.5s.5.2.5.5-.2.5-.5.5-.5-.2-.5-.5zm2.6 0c0-.3.2-.5.5-.5s.5.2.5.5-.2.5-.5.5-.5-.2-.5-.5zm-1.3 1.5c.7 0 1.3.5 1.4 1.2h-2.8c.1-.7.7-1.2 1.4-1.2z"/></svg>
+                  <div class="anywhere__btn-headtxt">
+                    <span class="anywhere__btn-name">Linux</span>
+                    <span class="anywhere__btn-format">.AppImage · .deb · .rpm</span>
+                  </div>
+                </div>
+                <div class="anywhere__variants">
+                  <a class="anywhere__variant" href="/download/linux-appimage" aria-label="Télécharger Freescale AppImage">
+                    <span class="anywhere__variant-label">AppImage</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                  <a class="anywhere__variant" href="/download/linux-deb-rpm" aria-label="Télécharger Freescale .deb ou .rpm">
+                    <span class="anywhere__variant-label">.deb / .rpm</span>
+                    <svg class="anywhere__variant-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v14m0 0l-5-5m5 5l5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </a>
+                </div>
+              </div>
+            </li>
+          </ul>
+
+          <ul class="anywhere__list anywhere__list--mobile" role="list">
+            <li>
+              <a class="anywhere__btn" href="https://apps.apple.com" aria-label="Télécharger Freescale sur l'App Store">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 17a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
+                <span>iOS</span>
+                <span class="anywhere__btn-sub">App Store</span>
+              </a>
+            </li>
+            <li>
+              <a class="anywhere__btn" href="https://play.google.com" aria-label="Télécharger Freescale sur Google Play">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.55 8.6l1.66-2.87a.5.5 0 0 0-.87-.5L16.6 8.14a11 11 0 0 0-9.2 0L5.66 5.23a.5.5 0 0 0-.87.5L6.45 8.6A9.5 9.5 0 0 0 2 15.5v.5h20v-.5A9.5 9.5 0 0 0 17.55 8.6zM7 13a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm10 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1z"/></svg>
+                <span>Android</span>
+                <span class="anywhere__btn-sub">Google Play</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Canaux : marquee horizontal infini des outils connectables (les 6 réels de Freescale) ── -->
+    <section class="chans" aria-label="Outils qu'on connecte">
+      <div class="chans__static" role="list" aria-label="Logos des outils supportés">
+        <span class="chans__logo" role="listitem"><img src="assets/tool-gmail.svg" alt="Gmail" loading="lazy" /><span>Gmail</span></span>
+        <span class="chans__logo" role="listitem"><img src="assets/tool-outlook.webp" alt="Outlook" loading="lazy" /><span>Outlook</span></span>
+        <span class="chans__logo" role="listitem"><img src="assets/tool-teams.webp" alt="Microsoft Teams" loading="lazy" /><span>Teams</span></span>
+        <span class="chans__logo" role="listitem"><img src="assets/tool-slack.webp" alt="Slack" loading="lazy" /><span>Slack</span></span>
+        <span class="chans__logo" role="listitem"><img src="assets/tool-whatsapp.webp" alt="WhatsApp" loading="lazy" /><span>WhatsApp</span></span>
+        <span class="chans__logo" role="listitem"><img src="assets/tool-telegram.webp" alt="Telegram" loading="lazy" /><span>Telegram</span></span>
+      </div>
+
+      <p class="chans__foot">Un outil vous manque ? <a href="mailto:hello@freescale.app">Dites-le-nous</a>, on l'ajoute.</p>
+    </section>
+    </div>
+    <!-- /darkblock -->
+
+    <!-- TESTIMONIALS -->
+    <!-- ── Témoignages : 3 citations des premières testeuses (beta privée) ── -->
+    <section class="testi" aria-label="Témoignages de la beta privée">
+      <div class="testi__inner">
+        <header class="testi__head">
+          <span class="fx-eyebrow">Témoignages</span>
+          <h2 class="fx-h2 testi__h2">Les premières à l'avoir testée.<br /><em>Et qui ne reviennent pas en arrière.</em></h2>
+        </header>
+        <div class="testi__grid">
+          <figure class="testi__card">
+            <div class="testi__stars" aria-label="5 sur 5">★★★★★</div>
+            <blockquote>« J'ai arrêté de rater des DM Insta. Mes clientes m'écrivent là-bas, je vois tout dans Freescale avec leurs mails. Le brouillon de Mue est souvent bon direct. »</blockquote>
+            <figcaption>
+              <span class="testi__avatar" style="--c:#F9A8D4">SM</span>
+              <span>
+                <strong>Sarah M.</strong>
+                <em>Designer freelance · Paris</em>
+              </span>
+            </figcaption>
+          </figure>
+          <figure class="testi__card">
+            <div class="testi__stars" aria-label="5 sur 5">★★★★★</div>
+            <blockquote>« Avant : 5 apps, 47 onglets, et toujours un message oublié. Maintenant : une fenêtre, j'ai retrouvé mes vendredis après-midi. »</blockquote>
+            <figcaption>
+              <span class="testi__avatar" style="--c:#A5B4FC">LK</span>
+              <span>
+                <strong>Léo K.</strong>
+                <em>Développeur indé · Lyon</em>
+              </span>
+            </figcaption>
+          </figure>
+          <figure class="testi__card">
+            <div class="testi__stars" aria-label="5 sur 5">★★★★★</div>
+            <blockquote>« Les tâches qui sortent toutes seules des conversations, c'est ce qui change tout. Plus besoin de tenir une todo à part. »</blockquote>
+            <figcaption>
+              <span class="testi__avatar" style="--c:#FCD34D">CR</span>
+              <span>
+                <strong>Capucine R.</strong>
+                <em>Consultante marketing · Bordeaux</em>
+              </span>
+            </figcaption>
+          </figure>
+        </div>
+        <p class="testi__foot">1 mois d'utilisation moyenne.</p>
+      </div>
+    </section>
+
+    <!-- ── Teams : awards + 3 vidéos témoignage (style ClickUp/Monday) ── -->
+    <section class="teams" aria-label="Ils ont adopté Freescale">
+      <div class="teams__inner">
+        <header class="teams__head">
+          <div class="teams__headtxt">
+            <h2 class="fx-h2 teams__h2"><span style="white-space:nowrap;">Adopté par les premiers</span><br /><span style="white-space:nowrap;">freelances</span> <em style="white-space:nowrap;">de la beta.</em></h2>
+          </div>
+          <img class="teams__awards" src="assets/awards.svg" alt="Awards Freescale" loading="lazy" />
+        </header>
+        <div class="teams__grid">
+          <article class="tvid">
+            <video class="tvid__video" src="assets/testi-1.mp4" muted loop playsinline preload="none" aria-hidden="true"></video>
+            <div class="tvid__gradient" aria-hidden="true"></div>
+            <div class="tvid__overlay">
+              <blockquote class="tvid__quote">« J'ai gagné mes soirées. Mue gère les relances, moi je crée. »</blockquote>
+              <div class="tvid__author">
+                <strong>Léa Moreau</strong>
+                <em>Copywriter freelance</em>
+              </div>
+            </div>
+          </article>
+
+          <article class="tvid">
+            <video class="tvid__video" src="assets/testi-2.mp4" muted loop playsinline preload="none" aria-hidden="true"></video>
+            <div class="tvid__gradient" aria-hidden="true"></div>
+            <div class="tvid__overlay">
+              <blockquote class="tvid__quote">« Cinq apps devenues une. Mes clients me trouvent réactif comme jamais. »</blockquote>
+              <div class="tvid__author">
+                <strong>Julien P.</strong>
+                <em>Motion designer freelance</em>
+              </div>
+            </div>
+          </article>
+
+          <article class="tvid">
+            <video class="tvid__video" src="assets/testi-3.mp4" muted loop playsinline preload="none" aria-hidden="true"></video>
+            <div class="tvid__gradient" aria-hidden="true"></div>
+            <div class="tvid__overlay">
+              <blockquote class="tvid__quote">« Freescale a remplacé mon Notion, mes post-its, mes 4 boîtes mail. »</blockquote>
+              <div class="tvid__author">
+                <strong>Nora H.</strong>
+                <em>Consultante indépendante</em>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- SÉCURITÉ / RGPD, bandeau 4 cards horizontal -->
+    <section class="fx-trust" aria-label="Sécurité et confidentialité">
+      <div class="fx-section__inner">
+        <div class="fx-trust__grid">
+          <div class="fx-trust__card">
+            <div class="fx-trust__ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            </div>
+            <h3 class="fx-trust__name">Chiffrement TLS + repos.</h3>
+            <p class="fx-trust__desc">Tes messages sont chiffrés en transit et stockés sécurisés.</p>
+          </div>
+          <div class="fx-trust__card">
+            <div class="fx-trust__ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"/></svg>
+            </div>
+            <h3 class="fx-trust__name">RGPD conforme.</h3>
+            <p class="fx-trust__desc">Tes données sont hébergées dans l'Union européenne.</p>
+          </div>
+          <div class="fx-trust__card">
+            <div class="fx-trust__ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            </div>
+            <h3 class="fx-trust__name">Aucun entraînement IA</h3>
+            <p class="fx-trust__desc">sur tes échanges. Mue lit, ne mémorise pas pour autrui.</p>
+          </div>
+          <div class="fx-trust__card">
+            <div class="fx-trust__ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M6 11l6 6 6-6M5 21h14"/></svg>
+            </div>
+            <h3 class="fx-trust__name">Export complet</h3>
+            <p class="fx-trust__desc">à tout moment. Tes données ne sont jamais prisonnières.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="fx-final" aria-label="Commencer avec Freescale">
+      <div class="fx-section__inner">
+        <h2 class="fx-final__title">Récupérez <em>2 heures par semaine.</em></h2>
+        <p class="fx-final__sub">Essai 14 jours plein accès. Sans carte demandée. Résiliable en 1 clic.</p>
+        <a href="/login?mode=signup" class="btn-simple">
+          <span class="btn-simple__label">Démarrer Freescale</span>
+        </a>
+        <p class="fx-final__meta">Freelance intellectuel multi-clients ? Freescale est fait pour vous.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER, version legacy (index-legacy.html) : grid de colonnes + wordmark géant -->
+  <footer class="ftr" aria-label="Pied de page">
+    <div class="ftr__inner">
+      <div class="ftr__card">
+        <div class="ftr__top">
+          <a href="#" class="ftr__brand" aria-label="Freescale">
+            <img src="assets/logo-freescale-footer.svg" alt="Freescale" />
+          </a>
+        </div>
+        <nav class="ftr__cols" aria-label="Liens du pied de page">
+          <div class="ftr__col">
+            <h3>Freescale</h3>
+            <ul>
+              <li><a href="contact.html">Contact</a></li>
+              <li><a href="#">Nous rejoindre</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Produit</h3>
+            <ul>
+              <li><a href="index.html#demo">Démo</a></li>
+              <li><a href="tarifs.html">Tarifs</a></li>
+              <li><a href="download-mobile.html#mobile">iOS &amp; Android</a></li>
+              <li><a href="download-mobile.html#desktop">macOS &amp; Windows &amp; Linux</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Légal</h3>
+            <ul>
+              <li><a href="confidentialite.html">Confidentialité</a></li>
+              <li><a href="cgu.html">CGU</a></li>
+              <li><a href="cgv.html">CGV</a></li>
+              <li><a href="rgpd.html">RGPD</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Suivre</h3>
+            <ul>
+              <li><a href="#">LinkedIn</a></li>
+              <li><a href="#">Instagram</a></li>
+              <li><a href="#">YouTube</a></li>
+            </ul>
+          </div>
+        </nav>
+        <div class="ftr__bottom">
+          <button type="button" class="ftr__lang" aria-label="Langue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            FR
+          </button>
+          <p class="ftr__copyright">© 2026 Freescale · Tous droits réservés</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js?v=1201" defer></script>
+</body>
+</html>

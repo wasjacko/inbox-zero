@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freescale pour iOS &amp; Android, Téléchargez l'app mobile</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <meta name="description" content="Freescale pour iOS et Android : votre inbox clients dans la poche. Répondez, priorisez, laissez Mue rédiger. Synchronisation instantanée avec votre desktop." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400;1,14..32,500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.typekit.net/rbx1gft.css" />
+  <link rel="stylesheet" href="styles.css?v=1258" />
+  <style>
+    /* Page Download mobile */
+    .dl { padding: 70px 24px 100px; position: relative; z-index: 2; }
+    .dl__inner { max-width: 1080px; margin: 0 auto; }
+
+    /* Hero centré */
+    .dl__hero { text-align: center; margin-bottom: 72px; }
+    .dl__hero .fx-eyebrow { margin: 0 auto 20px; }
+    .dl__hero .fx-h2 { max-width: 820px; margin: 0 auto 20px; }
+    .dl__hero .fx-lede { max-width: 620px; margin: 0 auto 36px; }
+
+    /* Badges stores */
+    .dl__badges { display: inline-flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .dl__badge {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 12px 22px 12px 18px;
+      background: #14151a;
+      color: #fff;
+      border-radius: 14px;
+      text-decoration: none;
+      font-family: var(--sans);
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, background .25s ease;
+      box-shadow: 0 8px 24px -10px rgba(20,22,30,.35);
+    }
+    .dl__badge:hover { transform: translateY(-2px); background: #1e1f28; box-shadow: 0 14px 30px -10px rgba(20,22,30,.45); }
+    .dl__badge svg { width: 26px; height: 26px; flex: none; }
+    .dl__badge-txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.05; }
+    .dl__badge-top { font-size: .68rem; letter-spacing: .08em; opacity: .75; text-transform: uppercase; font-weight: 500; }
+    .dl__badge-name { font-size: 1.08rem; font-weight: 600; letter-spacing: -.005em; }
+
+    /* Mockup hero, écran mobile stylisé */
+    .dl__mockup {
+      max-width: 340px;
+      margin: 64px auto 100px;
+      aspect-ratio: 9 / 19;
+      border-radius: 36px;
+      padding: 8px;
+      background: linear-gradient(160deg, #1a1d24 0%, #0b0d10 100%);
+      box-shadow:
+        0 40px 80px -30px rgba(30,64,255,.35),
+        0 20px 40px -20px rgba(20,22,30,.4);
+      position: relative;
+    }
+    .dl__mockup-screen {
+      width: 100%; height: 100%;
+      border-radius: 30px;
+      background:
+        radial-gradient(400px 300px at 50% 0%, rgba(251,163,196,.18) 0%, transparent 60%),
+        radial-gradient(400px 300px at 100% 100%, rgba(199,184,246,.22) 0%, transparent 60%),
+        #f5f7fb;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      padding: 34px 18px 18px;
+    }
+    .dl__mock-topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 18px;
+    }
+    .dl__mock-brand { font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A; font-size: 1.1rem; }
+    .dl__mock-dot { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #FBA3C4, #C7B8F6); }
+    .dl__mock-title { font-family: var(--sans); font-weight: 700; color: #0C1E5A; font-size: 1.35rem; letter-spacing: -.02em; margin-bottom: 4px; }
+    .dl__mock-sub { font-size: .82rem; color: #6b7385; margin-bottom: 14px; }
+    .dl__mock-msg {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(20,22,30,.06);
+      margin-bottom: 8px;
+    }
+    .dl__mock-ava { width: 28px; height: 28px; border-radius: 50%; flex: none; background: var(--c, #FBA3C4); color: #14151a; display: grid; place-items: center; font-size: .68rem; font-weight: 700; box-shadow: inset 0 0 0 2px #fff; }
+    .dl__mock-body { flex: 1; min-width: 0; }
+    .dl__mock-name { font-size: .74rem; font-weight: 600; color: #0C1E5A; }
+    .dl__mock-line { font-size: .7rem; color: #6b7385; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dl__mock-tag { display: inline-block; margin-top: 6px; padding: 2px 8px; background: rgba(30,64,255,.08); color: #1E40FF; font-size: .58rem; font-weight: 600; border-radius: 999px; letter-spacing: .04em; text-transform: uppercase; }
+
+    /* Row de 3 features avec icônes */
+    .dl__feats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      max-width: 900px;
+      margin: 0 auto 100px;
+    }
+    .dl__feat { text-align: center; }
+    .dl__feat-ic {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background:
+        linear-gradient(#fff, #fff) padding-box,
+        var(--cta-grad) border-box;
+      background-size: auto, 240% 240%;
+      border: 1.5px solid transparent;
+      color: #0C1E5A;
+      margin-bottom: 18px;
+      animation: freescaleGradShift 7s ease-in-out infinite;
+    }
+    .dl__feat-ic svg { width: 24px; height: 24px; display: block; }
+    .dl__feat-title { font-family: var(--sans); font-weight: 700; color: #0C1E5A; font-size: 1.08rem; margin: 0 0 8px; letter-spacing: -.015em; }
+    .dl__feat-desc { color: #5b6275; font-size: .95rem; line-height: 1.55; margin: 0; }
+
+    /* Grid de 6 mockups mobile */
+    .dl__gallery-head { text-align: center; margin-bottom: 44px; }
+    .dl__gallery-head h2 { font-family: var(--sans); font-weight: 700; font-size: clamp(1.7rem, 3vw, 2.1rem); letter-spacing: -.025em; color: #0C1E5A; margin: 0 0 12px; }
+    .dl__gallery-head h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A; }
+    .dl__gallery-head p { max-width: 520px; margin: 0 auto; color: #5b6275; font-size: 1rem; line-height: 1.55; }
+    .dl__gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      max-width: 940px;
+      margin: 0 auto;
+    }
+    .dl__phone {
+      aspect-ratio: 9 / 19;
+      background: linear-gradient(160deg, #1a1d24 0%, #0b0d10 100%);
+      border-radius: 24px;
+      padding: 6px;
+      box-shadow: 0 20px 40px -20px rgba(30,64,255,.25), 0 8px 20px -10px rgba(20,22,30,.2);
+      transition: transform .3s ease, box-shadow .3s ease;
+    }
+    .dl__phone:hover { transform: translateY(-4px); box-shadow: 0 30px 50px -20px rgba(30,64,255,.4), 0 12px 24px -10px rgba(20,22,30,.25); }
+    .dl__phone-screen {
+      width: 100%; height: 100%;
+      border-radius: 18px;
+      background:
+        var(--tint, radial-gradient(320px 240px at 50% 0%, rgba(251,163,196,.2) 0%, transparent 60%)),
+        #f5f7fb;
+      padding: 22px 12px 14px;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .dl__phone-lbl { font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A; font-size: .82rem; text-align: center; margin-bottom: 10px; }
+    .dl__phone-h {
+      font-family: var(--sans); font-weight: 700; color: #0C1E5A;
+      font-size: .95rem; letter-spacing: -.015em; margin: 0 0 12px;
+    }
+    .dl__phone-line { height: 8px; background: rgba(20,22,30,.08); border-radius: 999px; margin: 0 0 6px; }
+    .dl__phone-line--half { width: 60%; }
+    .dl__phone-line--third { width: 40%; }
+    .dl__phone-card {
+      background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(20,22,30,.06);
+    }
+    .dl__phone-dot { width: 8px; height: 8px; border-radius: 999px; background: #1E40FF; display: inline-block; margin-right: 6px; }
+    .dl__phone-mini { font-size: .62rem; color: #6b7385; }
+    .dl__phone-btn { margin-top: auto; padding: 10px; background: linear-gradient(180deg, #4A6DFF 0%, #1E40FF 100%); color: #fff; border-radius: 10px; text-align: center; font-size: .72rem; font-weight: 600; }
+    .dl__phone-check { color: #0C38C9; }
+
+    /* ─── Sections showcase, layout single-column centré ─── */
+    .dl-showcase {
+      padding: 80px 0 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .dl-showcase__body { max-width: 620px; margin-bottom: 60px; }
+    .dl-showcase__body h2 {
+      font-family: var(--sans); font-weight: 700;
+      font-size: clamp(1.8rem, 3.2vw, 2.3rem);
+      letter-spacing: -.025em; line-height: 1.15;
+      color: #0C1E5A; margin: 0 0 16px;
+    }
+    .dl-showcase__body h2 em {
+      font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A;
+    }
+    .dl-showcase__eyebrow {
+      font-size: .72rem; font-weight: 600; color: #1E40FF;
+      text-transform: uppercase; letter-spacing: .1em;
+      margin: 0 0 14px;
+    }
+    .dl-showcase__desc {
+      font-size: 1.02rem; line-height: 1.65; color: #3d4557; margin: 0 0 20px;
+    }
+    .dl-showcase__list { list-style: none; padding: 0; margin: 20px auto 0; max-width: 480px; text-align: left; display: flex; flex-direction: column; gap: 12px; }
+    .dl-showcase__list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: .95rem; color: #3d4557; line-height: 1.5;
+    }
+    .dl-showcase__list li::before {
+      content: ""; width: 18px; height: 18px; flex: none; margin-top: 2px;
+      background: linear-gradient(135deg, #C7B8F6, #1E40FF);
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+              mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+      border-radius: 3px;
+    }
+
+    /* Duo de téléphones inclinés, centrés horizontalement */
+    .dl-showcase__visual {
+      position: relative;
+      perspective: 1800px;
+      width: 100%;
+      max-width: 720px;
+      height: 600px;
+      margin: 0 auto;
+    }
+    .dl-showcase__phone {
+      position: absolute;
+      width: 260px;
+      aspect-ratio: 9 / 19;
+      background: linear-gradient(160deg, #C7B8F6 0%, #8b6ff5 100%);
+      border-radius: 34px;
+      padding: 8px;
+      box-shadow:
+        0 40px 80px -30px rgba(139,111,245,.55),
+        0 20px 40px -20px rgba(20,22,30,.35);
+      transform-style: preserve-3d;
+    }
+    .dl-showcase__phone--a {
+      top: 30px; left: calc(50% - 250px);
+      transform: rotateY(18deg) rotateX(-5deg) rotateZ(-6deg);
+    }
+    .dl-showcase__phone--b {
+      top: 90px; left: calc(50% + 10px);
+      transform: rotateY(-18deg) rotateX(-5deg) rotateZ(6deg);
+    }
+    /* Version simple : un seul téléphone centré, très légèrement incliné */
+    .dl-showcase__visual--single { height: 620px; }
+    .dl-showcase__phone--solo {
+      top: 20px; left: 50%;
+      transform: translateX(-50%) rotateX(-2deg);
+      width: 300px;
+    }
+    .dl-showcase__phone-screen {
+      width: 100%; height: 100%;
+      background: #fff;
+      border-radius: 26px;
+      padding: 26px 16px 14px;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .dl-showcase__phone-topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: .72rem; color: #6b7385; margin-bottom: 16px;
+    }
+    .dl-showcase__phone-h {
+      font-family: var(--sans); font-weight: 700; color: #0C1E5A;
+      font-size: 1.15rem; letter-spacing: -.02em; margin: 0 0 6px;
+    }
+    .dl-showcase__phone-h em {
+      font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A;
+    }
+    .dl-showcase__phone-sub {
+      font-size: .72rem; color: #6b7385; margin: 0 0 12px;
+    }
+    .dl-showcase__phone-card {
+      background: #f5f7fb;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: .74rem;
+      color: #14151a;
+    }
+    .dl-showcase__phone-card strong { color: #0C1E5A; font-weight: 600; display: block; font-size: .78rem; }
+    .dl-showcase__phone-card small { color: #6b7385; font-size: .68rem; display: block; margin-top: 2px; }
+    .dl-showcase__phone-cover {
+      height: 90px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #FBA3C4 0%, #C7B8F6 50%, #A9D8FF 100%);
+    }
+    .dl-showcase__phone-hero {
+      font-family: var(--sans); font-weight: 800; color: #14151a;
+      font-size: 1.05rem; margin: 0 0 8px; letter-spacing: -.02em;
+    }
+    .dl-showcase__phone-line {
+      height: 6px; background: rgba(20,22,30,.06);
+      border-radius: 14px; margin-bottom: 6px;
+    }
+    .dl-showcase__phone-line--half { width: 60%; }
+    .dl-showcase__phone-line--third { width: 45%; }
+    .dl-showcase__phone-tag {
+      display: inline-block; padding: 3px 9px;
+      border-radius: 14px; background: rgba(30,64,255,.08); color: #1E40FF;
+      font-size: .58rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .dl-showcase__phone-btn {
+      margin-top: auto; padding: 10px;
+      background: linear-gradient(180deg, #4A6DFF 0%, #1E40FF 100%);
+      color: #fff; border-radius: 12px; text-align: center;
+      font-size: .74rem; font-weight: 600;
+    }
+
+    /* ─── Version banner en haut de page ─── */
+    .dl__version {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 6px 8px 16px;
+      background: rgba(30,64,255,.06);
+      border: 1px solid rgba(30,64,255,.14);
+      border-radius: 14px;
+      font-size: .82rem; color: #14151a;
+      margin: 0 auto 44px;
+      text-decoration: none;
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .dl__version:hover { background: rgba(30,64,255,.1); border-color: rgba(30,64,255,.24); }
+    .dl__version-tag {
+      padding: 3px 10px; border-radius: 999px;
+      background: #1E40FF; color: #fff;
+      font-size: .68rem; font-weight: 600; letter-spacing: .04em;
+    }
+    .dl__version-arrow { width: 14px; height: 14px; color: #1E40FF; }
+
+    /* ─── Desktop downloads : 3 cards OS ─── */
+    .dl-desktop { padding: 30px 0 100px; }
+    .dl-desktop__head { text-align: center; margin-bottom: 44px; }
+    .dl-desktop__head h2 { font-family: var(--sans); font-weight: 700; font-size: clamp(1.9rem, 3.4vw, 2.5rem); letter-spacing: -.025em; color: #0C1E5A; margin: 0 0 12px; }
+    .dl-desktop__head h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A; }
+    .dl-desktop__head p { max-width: 520px; margin: 0 auto; color: #5b6275; font-size: 1rem; line-height: 1.55; }
+    .dl-desktop__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 960px; margin: 0 auto; }
+    .dl-os {
+      background: #fff;
+      border: 1px solid rgba(20,22,30,.06);
+      border-radius: 22px;
+      padding: 32px 28px 28px;
+      display: flex; flex-direction: column; gap: 16px;
+      box-shadow: 0 1px 2px rgba(20,22,30,.04), 0 12px 28px -20px rgba(20,22,30,.12);
+      transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+    }
+    .dl-os:hover { transform: translateY(-3px); border-color: rgba(199,184,246,.4); box-shadow: 0 1px 2px rgba(20,22,30,.05), 0 20px 40px -20px rgba(199,184,246,.35); }
+    .dl-os__ic {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(#fff, #fff) padding-box, var(--cta-grad) border-box;
+      background-size: auto, 240% 240%;
+      border: 1.5px solid transparent;
+      color: #0C1E5A;
+      animation: freescaleGradShift 7s ease-in-out infinite;
+    }
+    .dl-os__ic svg { width: 22px; height: 22px; display: block; }
+    .dl-os__name { font-family: var(--sans); font-weight: 700; font-size: 1.15rem; color: #0C1E5A; letter-spacing: -.015em; margin: 0; }
+    .dl-os__meta { font-size: .82rem; color: #6b7385; margin: 0; }
+    .dl-os__variants { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+    .dl-os__btn {
+      display: inline-flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(20,22,30,.03);
+      border: 1px solid rgba(20,22,30,.06);
+      border-radius: 12px;
+      color: #0C1E5A; font-size: .88rem; font-weight: 600;
+      text-decoration: none;
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .dl-os__btn:hover { background: rgba(30,64,255,.05); border-color: rgba(30,64,255,.2); }
+    .dl-os__btn small { color: #8b93a4; font-weight: 500; font-size: .74rem; }
+    .dl-os__btn svg { width: 14px; height: 14px; color: #1E40FF; }
+
+    /* ─── Section privacy / sécurité, v2 : plus de relief, halos pastel, badges 2×2 ─── */
+    .dl-priv {
+      position: relative;
+      text-align: center;
+      padding: 96px 32px 88px;
+      background:
+        radial-gradient(600px 300px at 50% -80px, rgba(251,163,196,.14) 0%, transparent 60%),
+        radial-gradient(600px 300px at 50% calc(100% + 80px), rgba(169,216,255,.18) 0%, transparent 60%),
+        #fff;
+      border: 1px solid rgba(20,22,30,.06);
+      border-radius: 32px;
+      max-width: 920px;
+      margin: 100px auto 80px;
+      box-shadow:
+        0 1px 2px rgba(20,22,30,.04),
+        0 28px 70px -30px rgba(30,64,255,.18);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    /* Bordure gradient discrète Free Horizon */
+    .dl-priv::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(140deg, rgba(251,163,196,.4), rgba(199,184,246,.4), rgba(169,216,255,.4));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      pointer-events: none;
+      z-index: 1;
+    }
+    /* Icône bouclier avec halo pulsant + ring cerclé */
+    .dl-priv__ic {
+      position: relative;
+      width: 76px; height: 76px;
+      border-radius: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(#fff, #fff) padding-box, var(--cta-grad) border-box;
+      background-size: auto, 240% 240%;
+      border: 1.5px solid transparent;
+      color: #0C1E5A;
+      margin-bottom: 28px;
+      animation: freescaleGradShift 7s ease-in-out infinite;
+      box-shadow: 0 12px 30px -12px rgba(30,64,255,.4);
+    }
+    /* Halo pulsant derrière l'icône */
+    .dl-priv__ic::before {
+      content: "";
+      position: absolute;
+      inset: -12px;
+      border-radius: 14px;
+      background: radial-gradient(circle, rgba(199,184,246,.35) 0%, transparent 65%);
+      z-index: -1;
+      animation: dlPrivHalo 3.5s ease-in-out infinite;
+    }
+    @keyframes dlPrivHalo {
+      0%, 100% { transform: scale(1); opacity: .8; }
+      50%      { transform: scale(1.15); opacity: 1; }
+    }
+    .dl-priv__ic svg { width: 34px; height: 34px; display: block; }
+    .dl-priv h2 {
+      font-family: var(--sans); font-weight: 700;
+      font-size: clamp(1.9rem, 3.4vw, 2.4rem);
+      letter-spacing: -.028em; color: #0C1E5A;
+      margin: 0 0 16px; line-height: 1.15;
+    }
+    .dl-priv h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A; }
+    .dl-priv p {
+      max-width: 580px; margin: 0 auto 36px;
+      color: #3d4557; font-size: 1.02rem; line-height: 1.7;
+    }
+    /* Badges : grid 2×2, plus lisibles, hover subtle */
+    .dl-priv__badges {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    @media (max-width: 640px) {
+      .dl-priv__badges { grid-template-columns: 1fr; }
+    }
+    .dl-priv__badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 12px 18px;
+      background: #fff;
+      border: 1px solid rgba(30,64,255,.14);
+      border-radius: 14px;
+      font-size: .92rem; font-weight: 500; color: #0C1E5A;
+      text-align: left;
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+      box-shadow: 0 1px 2px rgba(20,22,30,.04);
+    }
+    .dl-priv__badge:hover {
+      transform: translateY(-2px);
+      border-color: rgba(30,64,255,.3);
+      box-shadow: 0 8px 20px -8px rgba(30,64,255,.25);
+    }
+    /* Petit cercle bleu contenant l'icône du badge */
+    .dl-priv__badge-ic {
+      width: 28px; height: 28px; flex: none;
+      border-radius: 8px;
+      background: rgba(30,64,255,.08);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #1E40FF;
+    }
+    .dl-priv__badge-ic svg { width: 15px; height: 15px; }
+    /* fallback si les anciens badges sans wrapper .dl-priv__badge-ic */
+    .dl-priv__badge > svg { width: 16px; height: 16px; color: #1E40FF; }
+
+    /* ─── Section devices finale : gros title + 3 cards OS avec gros boutons ─── */
+    .dl-devices {
+      min-height: 100svh;
+      padding: 80px 0 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 72px;
+    }
+    .dl-devices__head { text-align: center; margin-bottom: 0; position: relative; }
+    .dl-devices__title {
+      font-family: var(--sans); font-weight: 700;
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      letter-spacing: -.03em; line-height: 1.05;
+      color: #0C1E5A;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .dl-devices__title em {
+      font-family: var(--serif); font-style: italic; font-weight: 400;
+      color: #0C1E5A;
+      position: relative;
+    }
+    /* Petit soulignement décoratif sous le em */
+    .dl-devices__title em::after { content: none; }
+    .dl-devices__sub {
+      max-width: 520px;
+      margin: 22px auto 0;
+      font-size: 1.05rem;
+      line-height: 1.55;
+      color: #5b6275;
+      text-align: center;
+    }
+    /* Petite étoile flottante décorative en haut à droite */
+    .dl-devices__spark {
+      position: absolute;
+      top: -30px; right: 15%;
+      color: #1E40FF;
+    }
+    .dl-devices__spark svg { width: 28px; height: 28px; }
+
+    .dl-devices__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; max-width: 1080px; margin: 0 auto; }
+    .dl-device {
+      background: #F7F8FC;
+      border: 1px solid rgba(20,22,30,.05);
+      border-radius: 26px;
+      padding: 36px 32px 32px;
+      display: flex; flex-direction: column; gap: 10px;
+      min-height: 360px;
+      transition: transform .3s ease, box-shadow .3s ease, background .3s ease;
+    }
+    .dl-device:hover { transform: translateY(-3px); background: #fff; box-shadow: 0 20px 40px -20px rgba(30,64,255,.2); }
+    .dl-device__logo {
+      width: 44px; height: 44px;
+      color: #14151a;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 44px;
+    }
+    .dl-device__logo svg,
+    .dl-device__logo img { width: 100%; height: 100%; display: block; object-fit: contain; }
+    .dl-device__lbl {
+      font-size: .95rem; font-weight: 500; color: #14151a;
+      margin: 0 0 6px;
+    }
+    .dl-device__os {
+      font-family: var(--sans); font-weight: 700;
+      font-size: 2.4rem; letter-spacing: -.035em; line-height: 1;
+      color: #14151a; margin: 0 0 auto;
+    }
+    .dl-device__btns { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+    /* Aligné DA .btn-simple : pill bleu uni, hover darken sans lift */
+    .dl-device__btn {
+      position: relative;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 26px;
+      background: linear-gradient(180deg, #607EF6 0%, #4666EE 100%);
+      color: #fff;
+      border: 0;
+      border-radius: 14px;
+      font-family: var(--sans); font-weight: 600; font-size: 1rem;
+      letter-spacing: -.005em;
+      text-decoration: none;
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.28),
+        0 3px 10px -4px rgba(70,102,238,.28);
+      transition:
+        background .25s ease,
+        box-shadow .3s ease;
+    }
+    .dl-device__btn::before { content: none; }
+    .dl-device__btn {
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
+    }
+    .dl-device__btn:hover {
+      transform: scale(1.035);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.3),
+        0 6px 16px -4px rgba(70,102,238,.4);
+    }
+    .dl-device__btn:hover::before { left: 130%; }
+    .dl-device__btn:active { transform: translateY(0); transition-duration: .1s; }
+    .dl-device__btn--split {
+      justify-content: space-between;
+      padding-right: 18px;
+    }
+    /* Variante clair : fond blanc, texte navy, bord fin, ombre douce */
+    .dl-device__btn--light {
+      background: #fff;
+      color: #0C1E5A;
+      border: 1px solid rgba(20,22,30,.1);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.9),
+        0 2px 6px rgba(20,22,30,.05),
+        0 10px 24px -14px rgba(30,64,255,.25);
+    }
+    .dl-device__btn--light::before {
+      background: linear-gradient(115deg, transparent, rgba(30,64,255,.12), transparent);
+    }
+    .dl-device__btn--light:hover {
+      transform: translateY(-2px);
+      background: #fff;
+      border-color: rgba(30,64,255,.25);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,1),
+        0 4px 12px rgba(20,22,30,.08),
+        0 16px 34px -12px rgba(30,64,255,.4);
+    }
+    .dl-device__btn--light small { color: #6b7385; opacity: 1; }
+    .dl-device__btn--light svg { color: #1E40FF; }
+    .dl-device__btn small {
+      font-size: .82rem; opacity: .85; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .dl-device__btn svg { width: 14px; height: 14px; }
+
+    /* ─── Community / socials ─── */
+    .dl-social { text-align: center; padding: 40px 0 80px; }
+    .dl-social h2 { font-family: var(--sans); font-weight: 700; font-size: clamp(1.5rem, 2.6vw, 1.9rem); letter-spacing: -.02em; color: #0C1E5A; margin: 0 0 10px; }
+    .dl-social h2 em { font-family: var(--serif); font-style: italic; font-weight: 400; color: #0C1E5A; }
+    .dl-social p { max-width: 480px; margin: 0 auto 32px; color: #5b6275; font-size: 1rem; line-height: 1.55; }
+    .dl-social__row { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .dl-social__link {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid rgba(20,22,30,.08);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #14151a;
+      text-decoration: none;
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1), color .2s ease, border-color .2s ease;
+    }
+    .dl-social__link:hover { transform: translateY(-2px); color: #1E40FF; border-color: rgba(30,64,255,.3); }
+    .dl-social__link svg { width: 20px; height: 20px; }
+
+    @media (max-width: 900px) {
+      .dl { padding: 100px 18px 70px; }
+      .dl__feats { grid-template-columns: 1fr; gap: 32px; margin-bottom: 60px; }
+      .dl__gallery { grid-template-columns: repeat(2, 1fr); max-width: 500px; }
+      .dl-showcase { gap: 32px; }
+      .dl-showcase__visual { height: 500px; }
+      .dl-desktop__grid { grid-template-columns: 1fr; max-width: 420px; }
+      .dl-priv { padding: 60px 24px; }
+    }
+    @media (max-width: 560px) {
+      .dl__gallery { grid-template-columns: 1fr; max-width: 280px; }
+      .dl-showcase__phone { width: 200px; }
+    }
+
+    /* ── HERO MOBILE : layout AppFlowy, split horizontal texte + phone ── */
+    .dl-hero {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      align-items: center;
+      gap: 60px;
+      max-width: 1180px;
+      margin: 60px auto 100px;
+      padding: 0 24px;
+    }
+    .dl-hero__body { max-width: 540px; }
+    .dl-hero__title {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: clamp(2.4rem, 5vw, 3.6rem);
+      letter-spacing: -.035em;
+      line-height: 1.05;
+      color: #0C1E5A;
+      margin: 0 0 20px;
+    }
+    .dl-hero__title em {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      background: var(--cta-grad);
+      background-size: 240% 240%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      animation: freescaleGradShift 7s ease-in-out infinite;
+    }
+    .dl-hero__sub {
+      font-size: 1.08rem;
+      color: #5b6275;
+      line-height: 1.55;
+      margin: 0 0 32px;
+      max-width: 480px;
+    }
+    .dl-hero__badges {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .dl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-radius: 14px;
+      background: #14151a;
+      color: #fff;
+      text-decoration: none;
+      transition: transform .2s ease, background .2s ease;
+      min-width: 180px;
+    }
+    .dl-badge:hover { transform: translateY(-2px); background: #0C1E5A; }
+    .dl-badge svg { width: 26px; height: 26px; flex: none; }
+    .dl-badge__txt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+    .dl-badge__top { font-size: .7rem; opacity: .8; }
+    .dl-badge__name { font-size: 1.05rem; font-weight: 600; }
+
+    /* Phone mockup à droite */
+    .dl-hero__visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 1400px;
+    }
+    .dl-hero__phone {
+      width: 300px;
+      aspect-ratio: 9/19;
+      border-radius: 42px;
+      padding: 12px;
+      background: linear-gradient(160deg, #FBA3C4 0%, #C7B8F6 50%, #1E40FF 100%);
+      box-shadow:
+        0 40px 90px -30px rgba(30, 64, 255, .35),
+        0 20px 40px -20px rgba(251, 163, 196, .35);
+      transform: rotate(-4deg);
+      transition: transform .5s cubic-bezier(.22, 1, .36, 1);
+    }
+    .dl-hero__phone:hover { transform: rotate(-2deg) translateY(-6px); }
+    .dl-hero__phone-screen {
+      background: #fff;
+      border-radius: 32px;
+      padding: 20px 16px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      .dl-hero {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        margin: 40px auto 70px;
+        text-align: center;
+      }
+      .dl-hero__body { margin: 0 auto; }
+      .dl-hero__sub { margin-left: auto; margin-right: auto; }
+      .dl-hero__badges { justify-content: center; }
+      .dl-hero__phone { transform: rotate(0); width: 260px; }
+    }
+
+    /* ── HERO2 STYLE APPFLOWY : titre centré + underline gradient + CTA + screen ── */
+    .dl-hero2 {
+      max-width: 1180px;
+      margin: 0 auto 160px;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .dl-hero2__head { max-width: 900px; margin: 0 auto 60px; }
+    .dl-hero2__title {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      letter-spacing: -.035em;
+      line-height: 1.05;
+      color: #0C1E5A;
+      margin: 0 0 40px;
+    }
+    /* Em du titre : italique serif, couleur unie #0C1E5A */
+    .dl-hero2__title em {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      color: #0C1E5A;
+    }
+    /* CTA "brand" : rectangle bleu, même design que .p3card__cta--primary (pricing3) */
+    /* Aligné DA site : rectangle arrondi 14px, gradient bleu #607EF6→#4666EE, scale au hover */
+    .dl-cta {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 26px;
+      background: linear-gradient(180deg, #607EF6 0%, #4666EE 100%);
+      color: #fff;
+      border: 0;
+      border-radius: 14px;
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: -.005em;
+      text-decoration: none;
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.24),
+        0 3px 10px -4px rgba(70,102,238,.28);
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
+    }
+    .dl-cta:hover {
+      transform: scale(1.035);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.28),
+        0 6px 16px -4px rgba(70,102,238,.4);
+    }
+    .dl-cta svg { flex: none; }
+    .dl-hero2__meta {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-top: 26px;
+      font-size: .95rem;
+    }
+    .dl-hero2__meta a {
+      color: #1E40FF;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color .18s ease;
+    }
+    .dl-hero2__meta a:hover { color: #0d2ee0; text-decoration: underline; }
+    .dl-hero2__sep { color: rgba(12, 30, 90, .2); }
+
+    /* Screenshot SaaS : centré, ombre colorée, léger radius */
+    .dl-hero2__shot {
+      max-width: 1080px;
+      margin: 0 auto;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow:
+        0 40px 80px -30px rgba(30, 64, 255, .28),
+        0 20px 40px -20px rgba(20, 22, 30, .18);
+      background: #fff;
+    }
+    .dl-hero2__shot img { display: block; width: 100%; height: auto; }
+
+    @media (max-width: 720px) {
+      .dl-hero2 { margin: 20px auto 60px; }
+      .dl-hero2__meta { flex-direction: column; gap: 8px; }
+      .dl-hero2__sep { display: none; }
+      .dl-hero2__cta { padding: 15px 38px; font-size: .95rem; }
+    }
+
+    /* ── SECTION 2 STAY IN SYNC : titre centré + underline + 2 badges + mockup 2 phones ── */
+    .dl-sync {
+      max-width: 1180px;
+      margin: 40px auto 120px;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .dl-sync__head { max-width: 780px; margin: 0 auto 40px; }
+    .dl-sync__title {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      letter-spacing: -.035em;
+      line-height: 1.1;
+      color: #0C1E5A;
+      margin: 0 0 14px;
+    }
+    .dl-sync__title em {
+      font-family: var(--serif);
+      font-style: italic;
+      font-weight: 400;
+      color: #0C1E5A;
+    }
+    .dl-sync__sub {
+      font-size: 1.06rem;
+      color: #5b6275;
+      margin: 0 0 30px;
+    }
+    .dl-sync__badges {
+      display: inline-flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    /* Badges App Store / Google Play : hérités de .dl-cta (pill bleu) */
+    .dl-sync__badges .dl-cta { padding: 15px 34px; }
+
+    .dl-sync__mockup {
+      margin: 20px auto 0;
+      max-width: 780px;
+    }
+    .dl-sync__mockup img {
+      display: block;
+      width: 100%;
+      height: auto;
+      /* Ombre douce bleutée pour ancrer les phones dans la page */
+      filter: drop-shadow(0 40px 60px rgba(30, 64, 255, .18)) drop-shadow(0 20px 30px rgba(20, 22, 30, .12));
+    }
+
+    @media (max-width: 720px) {
+      .dl-sync { margin: 30px auto 80px; }
+      .dl-sync__badges { flex-direction: column; align-items: stretch; max-width: 300px; margin: 0 auto; }
+      .dl-sync__badge { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-lines" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="nav-blur" aria-hidden="true">
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+  </div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Freescale home">
+      <img class="brand__logo" src="assets/logo-freescale-header.svg" alt="Freescale" />
+    </a>
+    <nav class="nav__links" aria-label="Navigation principale">
+      <a href="index.html#demo">Démo</a>
+      <div class="nav__dl">
+        <button type="button" class="nav__dl-trigger" aria-expanded="false" aria-haspopup="true">
+          Download
+          <svg class="nav__dl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav__dl-menu" role="menu">
+          <a class="nav__dl-item" href="download-mobile.html#mobile" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
+            </span>
+            iOS &amp; Android
+          </a>
+          <a class="nav__dl-item" href="download-mobile.html#desktop" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </span>
+            macOS &amp; Windows &amp; Linux
+          </a>
+          <a class="nav__dl-item" href="/login" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            </span>
+            Web app
+          </a>
+        </div>
+      </div>
+      <a href="tarifs.html">Tarifs</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav__actions">
+      <a href="/login" class="btn btn--ghost">Connexion</a>
+      <a href="/login?mode=signup" class="btn-cta btn-cta--mini">
+        <span class="btn-cta__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="btn-cta__label">
+          <span class="btn-cta__word">Commencer</span>
+          <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+        </span>
+      </a>
+    </div>
+    <button class="nav__burger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <main>
+    <section class="dl" aria-label="Freescale mobile pour iOS et Android">
+      <div class="dl__inner">
+
+        <!-- FINAL : Grand titre + 3 cards desktop (dernière section avant le footer) -->
+        <section class="dl-devices" id="desktop" style="scroll-margin-top: 100px;" aria-label="Freescale pour tous vos appareils">
+          <header class="dl-devices__head">
+            <h2 class="dl-devices__title">Freescale sur <em>votre bureau.</em></h2>
+            <p class="dl-devices__sub">Bientôt disponible sur macOS, Windows et Linux.</p>
+          </header>
+
+          <div class="dl-devices__grid">
+
+            <article class="dl-device">
+              <span class="dl-device__logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.03c-.02-2.75 2.24-4.07 2.34-4.14-1.28-1.87-3.27-2.12-3.98-2.15-1.69-.17-3.31.99-4.17.99-.87 0-2.2-.97-3.61-.94-1.85.03-3.57 1.08-4.52 2.73-1.95 3.38-.5 8.37 1.4 11.12.94 1.35 2.03 2.85 3.45 2.8 1.4-.06 1.92-.9 3.6-.9s2.16.9 3.61.87c1.5-.03 2.44-1.37 3.34-2.72 1.06-1.56 1.49-3.09 1.51-3.16-.03-.02-2.91-1.12-2.94-4.5zM14.7 4.02c.77-.94 1.29-2.24 1.14-3.54-1.11.05-2.45.74-3.24 1.67-.72.83-1.35 2.16-1.18 3.42 1.24.1 2.5-.62 3.28-1.55z"/></svg>
+              </span>
+              <p class="dl-device__lbl">Desktop</p>
+              <h3 class="dl-device__os">macOS</h3>
+              <div class="dl-device__btns">
+                <a class="dl-device__btn" href="#">Télécharger Apple Silicon</a>
+                <a class="dl-device__btn" href="#">Télécharger Intel</a>
+              </div>
+            </article>
+
+            <article class="dl-device">
+              <span class="dl-device__logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10.5 4.5v7.3H3V5.5zm0 13v-6.3h7.5V19.5L3 18.5zm8.5-14L21 3v9H11.5V4.5zm0 15.5V13.3H21V21l-9.5-1z"/></svg>
+              </span>
+              <p class="dl-device__lbl">Desktop</p>
+              <h3 class="dl-device__os">Windows</h3>
+              <div class="dl-device__btns">
+                <a class="dl-device__btn" href="#">Télécharger .exe</a>
+              </div>
+            </article>
+
+            <article class="dl-device">
+              <span class="dl-device__logo" aria-hidden="true">
+                <img src="assets/icon-linux.webp" alt="" loading="lazy" decoding="async" />
+              </span>
+              <p class="dl-device__lbl">Desktop</p>
+              <h3 class="dl-device__os">Linux</h3>
+              <div class="dl-device__btns">
+                <a class="dl-device__btn dl-device__btn--split" href="#">Télécharger .AppImage <small>▾</small></a>
+              </div>
+            </article>
+
+          </div>
+        </section>
+
+        <!-- SECTION 2 : Restez synchro en déplacement, style AppFlowy 2 phones -->
+        <section class="dl-sync" id="mobile" style="scroll-margin-top: 100px;" aria-label="Freescale en déplacement">
+          <header class="dl-sync__head">
+            <h2 class="dl-sync__title">Restez synchro <em>en déplacement</em></h2>
+            <p class="dl-sync__sub">Rapide, fluide, élégant.</p>
+            <div class="dl-sync__badges">
+              <a href="#" class="dl-cta" aria-label="Télécharger sur l'App Store">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M17.05 12.03c-.02-2.75 2.24-4.07 2.34-4.14-1.28-1.87-3.27-2.12-3.98-2.15-1.69-.17-3.31.99-4.17.99-.87 0-2.2-.97-3.61-.94-1.85.03-3.57 1.08-4.52 2.73-1.95 3.38-.5 8.37 1.4 11.12.94 1.35 2.03 2.85 3.45 2.8 1.4-.06 1.92-.9 3.6-.9s2.16.9 3.61.87c1.5-.03 2.44-1.37 3.34-2.72 1.06-1.56 1.49-3.09 1.51-3.16-.03-.02-2.91-1.12-2.94-4.5zM14.7 4.02c.77-.94 1.29-2.24 1.14-3.54-1.11.05-2.45.74-3.24 1.67-.72.83-1.35 2.16-1.18 3.42 1.24.1 2.5-.62 3.28-1.55z"/></svg>
+                <span>App Store</span>
+              </a>
+              <a href="#" class="dl-cta" aria-label="Télécharger sur Google Play">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M3.6 2.1c-.4.2-.6.6-.6 1.1v17.6c0 .5.2.9.6 1.1L14.3 12 3.6 2.1zm12.1 10.9L5.5 21.5l11-6.4-2.1-2.1-1.7 1.7 3-2.7zm-1.5-2.9l1.5 2.9 6.2-3.5c1-.6 1-2 0-2.6L15.7 3.4l-1.5 2.9 4.4 2.4-4.4 2.4zM5.5 2.5l10.2 8.5-3-2.7 1.7 1.7 2.1-2.1L5.5 2.5z"/></svg>
+                <span>Google Play</span>
+              </a>
+            </div>
+          </header>
+
+          <div class="dl-sync__mockup">
+            <img src="assets/mobile-phones.webp?v=2" alt="Freescale sur iOS et Android, deux écrans mobiles" loading="lazy" decoding="async" />
+          </div>
+        </section>
+
+        <!-- 6. PRIVACY / SÉCURITÉ -->
+        <section class="dl-priv" aria-label="Confidentialité">
+          <span class="dl-priv__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <h2>Vos échanges vous appartiennent, <em>partout.</em></h2>
+          <p>Que vous soyez sur macOS, iPhone ou Linux, la règle est la même : chiffrement TLS + AES-256, hébergement dans l'Union européenne, aucun entraînement d'IA sur vos contenus. Vos échanges ne sortent jamais du contrôle que vous en avez.</p>
+          <div class="dl-priv__badges">
+            <span class="dl-priv__badge">
+              <span class="dl-priv__badge-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              </span>
+              Chiffrement TLS + AES-256
+            </span>
+            <span class="dl-priv__badge">
+              <span class="dl-priv__badge-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+              </span>
+              Hébergé en Union européenne
+            </span>
+            <span class="dl-priv__badge">
+              <span class="dl-priv__badge-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              </span>
+              Conforme RGPD
+            </span>
+            <span class="dl-priv__badge">
+              <span class="dl-priv__badge-ic" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2"/><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg>
+              </span>
+              Aucun entraînement IA sur vos échanges
+            </span>
+          </div>
+        </section>
+
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="ftr" aria-label="Pied de page">
+    <div class="ftr__inner">
+      <div class="ftr__card">
+        <div class="ftr__top">
+          <a href="index.html" class="ftr__brand" aria-label="Freescale">
+            <img src="assets/logo-freescale-footer.svg" alt="Freescale" />
+          </a>
+          <p class="ftr__tag">L'inbox unifiée des freelances multi-clients. Construit à Paris.</p>
+        </div>
+        <nav class="ftr__cols" aria-label="Liens du pied de page">
+          <div class="ftr__col">
+            <h3>Freescale</h3>
+            <ul>
+              <li><a href="contact.html">Contact</a></li>
+              <li><a href="#">Nous rejoindre</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Produit</h3>
+            <ul>
+              <li><a href="index.html#demo">Démo</a></li>
+              <li><a href="tarifs.html">Tarifs</a></li>
+              <li><a href="download-mobile.html#mobile">iOS &amp; Android</a></li>
+              <li><a href="download-mobile.html#desktop">macOS &amp; Windows &amp; Linux</a></li>
+              <li><a href="download-mobile.html">iOS &amp; Android</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Légal</h3>
+            <ul>
+              <li><a href="confidentialite.html">Confidentialité</a></li>
+              <li><a href="cgu.html">CGU</a></li>
+              <li><a href="cgv.html">CGV</a></li>
+              <li><a href="rgpd.html">RGPD</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Suivre</h3>
+            <ul>
+              <li><a href="#">LinkedIn</a></li>
+              <li><a href="#">Instagram</a></li>
+              <li><a href="#">YouTube</a></li>
+            </ul>
+          </div>
+        </nav>
+        <div class="ftr__bottom">
+          <button type="button" class="ftr__lang" aria-label="Langue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            FR
+          </button>
+          <p class="ftr__copyright">© 2026 Freescale · Tous droits réservés</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js?v=1201"></script>
+</body>
+</html>

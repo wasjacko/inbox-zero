@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tarifs, Freescale</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <meta name="description" content="Tarifs Freescale : 14 jours d'essai gratuit, puis 19€/mois en annuel ou 29€/mois en mensuel. Sans engagement, résiliable en 1 clic." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400;1,14..32,500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.typekit.net/rbx1gft.css" />
+  <link rel="stylesheet" href="styles.css?v=1257" />
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-lines" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="nav-blur" aria-hidden="true">
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+    <div class="nav-blur__l"></div>
+  </div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Freescale home">
+      <img class="brand__logo" src="assets/logo-freescale-header.svg" alt="Freescale" />
+    </a>
+    <nav class="nav__links" aria-label="Navigation principale">
+      <a href="index.html#demo">Démo</a>
+      <div class="nav__dl">
+        <button type="button" class="nav__dl-trigger" aria-expanded="false" aria-haspopup="true">
+          Download
+          <svg class="nav__dl-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav__dl-menu" role="menu">
+          <a class="nav__dl-item" href="download-mobile.html#mobile" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>
+            </span>
+            iOS &amp; Android
+          </a>
+          <a class="nav__dl-item" href="download-mobile.html#desktop" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </span>
+            macOS &amp; Windows &amp; Linux
+          </a>
+          <a class="nav__dl-item" href="/login" role="menuitem">
+            <span class="nav__dl-ic" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            </span>
+            Web app
+          </a>
+        </div>
+      </div>
+      <a href="tarifs.html">Tarifs</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav__actions">
+      <a href="/login" class="btn btn--ghost">Connexion</a>
+      <a href="/login?mode=signup" class="btn-cta btn-cta--mini">
+        <span class="btn-cta__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="btn-cta__label">
+          <span class="btn-cta__word">Commencer</span>
+          <span class="btn-cta__word" aria-hidden="true">Commencer</span>
+        </span>
+      </a>
+    </div>
+    <button class="nav__burger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <main>
+    <!-- ── Pricing v2 : layout 3 cartes + toggle Annuel/Mensuel (inspiré de la réf.) ── -->
+    <section class="pricing3" id="tarifs" aria-label="Tarifs Freescale">
+      <header class="pricing3__head">
+        <h1 class="pricing3__title"><span style="white-space:nowrap;">14 jours pour essayer. <em>Puis vous choisissez.</em></span></h1>
+        <p class="pricing3__sub">Pas de frais cachés. Résiliable à tout moment.</p>
+      </header>
+
+      <!-- Ruban Free Trial : la 14j est offerte sur tous les plans, pas un plan à part -->
+      <div class="pricing3__ribbon" role="note">
+        <span class="pricing3__ribbon-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+        </span>
+        <span class="pricing3__ribbon-txt">
+          <strong>14 jours gratuits</strong> · Plein accès · Sans carte bancaire
+        </span>
+      </div>
+
+      <div class="pricing3__grid pricing3__grid--two">
+        <!-- Mensuel -->
+        <article class="p3card">
+          <div class="p3card__top">
+            <span class="p3card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            </span>
+            <h3 class="p3card__name">Mensuel</h3>
+            <p class="p3card__lede">Flexibilité pour les prospects hésitants. Résiliable à tout moment.</p>
+            <p class="p3card__price">
+              <span class="p3card__price-num">29</span><span class="p3card__price-cur">€</span>
+              <span class="p3card__price-suffix">/mois</span>
+            </p>
+            <p class="p3card__note">Soit 348€/an</p>
+            <a href="/login?mode=signup" class="p3card__cta">Choisir Mensuel</a>
+          </div>
+          <ul class="p3card__feats">
+            <li>Clients illimités</li>
+            <li>Tous les canaux (Gmail, Outlook, Teams, Slack, WhatsApp, Telegram)</li>
+            <li>Ask Mue : historique interrogeable</li>
+            <li>Dashboard de temps gagné</li>
+            <li>Support prioritaire &lt; 24h</li>
+          </ul>
+        </article>
+
+        <!-- Annuel (featured / populaire) -->
+        <article class="p3card p3card--featured">
+          <div class="p3card__top">
+            <span class="p3card__badge">-34 %</span>
+            <span class="p3card__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 4 14h6l-1 7 9-11h-6l1-7Z"/></svg>
+            </span>
+            <h3 class="p3card__name">Annuel</h3>
+            <p class="p3card__lede">Fidélisation et cash flow. La formule qui rembourse ~4 mois par an.</p>
+            <p class="p3card__price">
+              <span class="p3card__price-num">19</span><span class="p3card__price-cur">€</span>
+              <span class="p3card__price-suffix">/mois</span>
+            </p>
+            <p class="p3card__note">Facturé 228€/an, 34% d'économie vs mensuel</p>
+            <a href="/login?mode=signup" class="p3card__cta p3card__cta--primary">Choisir Annuel</a>
+          </div>
+          <p class="p3card__more">Tout Mensuel, plus :</p>
+          <ul class="p3card__feats">
+            <li>4 mois offerts sur l'année (−34%)</li>
+            <li>Prix bloqué à la souscription</li>
+            <li>Facture unique annuelle</li>
+            <li>Accès prioritaire aux nouveautés</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── Calculateur de valeur : combien Freescale vous rapporte ── -->
+    <section class="pcalc" aria-label="Calculez ce que Freescale vous rapporte">
+      <div class="pcalc__inner">
+        <header class="pcalc__head">
+          <span class="fx-eyebrow">Calculateur</span>
+          <h2 class="fx-h2 pcalc__title">Combien Freescale <em>vous rapporte.</em></h2>
+          <p class="pcalc__sub">Deux réglages, un ordre de grandeur. Le reste est du bonus.</p>
+        </header>
+
+        <div class="pcalc__grid">
+          <!-- Inputs -->
+          <div class="pcalc__inputs">
+            <div class="pcalc__field">
+              <label for="pcalc-hours" class="pcalc__label">
+                <span>
+                  <span class="pcalc__ic" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                  </span>
+                  Heures par semaine sur vos emails clients
+                </span>
+                <span class="pcalc__val" id="pcalc-hours-val">6&nbsp;h</span>
+              </label>
+              <input type="range" min="1" max="20" value="6" step="1" id="pcalc-hours" class="pcalc__slider" />
+              <div class="pcalc__scale"><span>1&nbsp;h</span><span>20&nbsp;h</span></div>
+            </div>
+
+            <div class="pcalc__field">
+              <label for="pcalc-rate" class="pcalc__label">
+                <span>
+                  <span class="pcalc__ic" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 7h6a3 3 0 0 1 0 6H8h8"/></svg>
+                  </span>
+                  Votre taux horaire moyen
+                </span>
+                <span class="pcalc__val" id="pcalc-rate-val">80&nbsp;€</span>
+              </label>
+              <input type="range" min="30" max="200" value="80" step="5" id="pcalc-rate" class="pcalc__slider" />
+              <div class="pcalc__scale"><span>30&nbsp;€</span><span>200&nbsp;€</span></div>
+            </div>
+          </div>
+
+          <!-- Output card -->
+          <aside class="pcalc__result" aria-live="polite">
+            <div class="pcalc__result-line">
+              <span class="pcalc__result-lbl">Vous récupérez</span>
+              <span class="pcalc__result-big"><span id="pcalc-hours-saved">12</span>&nbsp;h<span class="pcalc__result-suf">/mois</span></span>
+            </div>
+            <div class="pcalc__result-sep" aria-hidden="true"></div>
+            <div class="pcalc__result-line">
+              <span class="pcalc__result-lbl">Valeur du temps sauvé</span>
+              <span class="pcalc__result-big pcalc__result-big--grad"><span id="pcalc-value">960</span>&nbsp;€<span class="pcalc__result-suf">/mois</span></span>
+            </div>
+            <div class="pcalc__result-sep" aria-hidden="true"></div>
+            <div class="pcalc__result-ratio">
+              Le plan Mensuel se rembourse en <strong><span id="pcalc-days">~1</span>&nbsp;jour</strong>.
+              L'Annuel : <strong>ratio 1:<span id="pcalc-ratio">40</span></strong> sur l'année.
+            </div>
+            <a href="/login?mode=signup" class="btn-simple pcalc__cta">
+              <span class="btn-simple__label">Essayer 14 jours</span>
+            </a>
+            <p class="pcalc__disclaimer">Hypothèse : Freescale récupère ~50% du temps passé sur vos échanges clients (tri, brouillons, extraction de tâches). Chiffre indicatif basé sur les retours des testeuses beta.</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Section 3 : FAQ tarifs (grid 2 col mini-cards en shell) ── -->
+    <section class="pfaq" aria-label="Questions fréquentes sur les tarifs">
+      <div class="pfaq__inner">
+        <h2 class="pfaq__title">Questions sur les tarifs</h2>
+        <div class="pfaq__shell">
+          <dl class="pfaq__grid">
+            <div class="pfaq__item">
+              <dt>Puis-je essayer Freescale gratuitement ?</dt>
+              <dd>Oui, tous les plans incluent 14 jours d'essai gratuit sans carte demandée.</dd>
+            </div>
+            <div class="pfaq__item">
+              <dt>Puis-je changer de plan ?</dt>
+              <dd>Oui, à tout moment. Le changement prend effet immédiatement et la facturation est calculée au prorata.</dd>
+            </div>
+            <div class="pfaq__item">
+              <dt>Quels moyens de paiement acceptez-vous ?</dt>
+              <dd>Toutes les cartes bancaires majeures via Stripe.</dd>
+            </div>
+            <div class="pfaq__item">
+              <dt>Y a-t-il une réduction pour l'annuel ?</dt>
+              <dd>Oui, tu économises jusqu'à 35% en choisissant la facturation annuelle sur n'importe quel plan.</dd>
+            </div>
+            <div class="pfaq__item">
+              <dt>Faites-vous des réductions étudiants ou associations ?</dt>
+              <dd>Oui, envoie-nous un <a href="contact.html">email</a> et nous te préparons un plan avec réduction.</dd>
+            </div>
+            <div class="pfaq__item">
+              <dt>Que se passe-t-il si je résilie ?</dt>
+              <dd>Tu peux résilier à tout moment. Ton abonnement reste actif jusqu'à la fin de la période facturée.</dd>
+            </div>
+            <div class="pfaq__item">
+              <dt>Offrez-vous des remboursements ?</dt>
+              <dd>Oui, si Freescale ne t'apporte pas de valeur, écris-nous sous 14 jours et on te rembourse.</dd>
+            </div>
+            <div class="pfaq__item">
+              <dt>Besoin d'un plan personnalisé ?</dt>
+              <dd>Contacte-nous à <a href="contact.html">contact@freescale.io</a> pour un plan sur-mesure.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+</main>
+
+  <footer class="ftr" aria-label="Pied de page">
+    <div class="ftr__inner">
+      <div class="ftr__card">
+        <div class="ftr__top">
+          <a href="#" class="ftr__brand" aria-label="Freescale">
+            <img src="assets/logo-freescale-footer.svg" alt="Freescale" />
+          </a>
+        </div>
+        <nav class="ftr__cols" aria-label="Liens du pied de page">
+          <div class="ftr__col">
+            <h3>Freescale</h3>
+            <ul>
+              <li><a href="contact.html">Contact</a></li>
+              <li><a href="#">Nous rejoindre</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Produit</h3>
+            <ul>
+              <li><a href="index.html#demo">Démo</a></li>
+              <li><a href="tarifs.html">Tarifs</a></li>
+              <li><a href="download-mobile.html#mobile">iOS &amp; Android</a></li>
+              <li><a href="download-mobile.html#desktop">macOS &amp; Windows &amp; Linux</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Légal</h3>
+            <ul>
+              <li><a href="#">Confidentialité</a></li>
+              <li><a href="#">CGU</a></li>
+              <li><a href="#">CGV</a></li>
+              <li><a href="#">RGPD</a></li>
+            </ul>
+          </div>
+          <div class="ftr__col">
+            <h3>Suivre</h3>
+            <ul>
+              <li><a href="#">LinkedIn</a></li>
+              <li><a href="#">Instagram</a></li>
+              <li><a href="#">YouTube</a></li>
+            </ul>
+          </div>
+        </nav>
+        <div class="ftr__bottom">
+          <button type="button" class="ftr__lang" aria-label="Langue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+            FR
+          </button>
+          <p class="ftr__copyright">© 2026 Freescale · Tous droits réservés</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js?v=1201" defer></script>
+  <script>
+    /* Toggle Annuel / Mensuel : swap data-annual / data-monthly */
+    (function initPricingToggle(){
+      var btns = document.querySelectorAll(".p3tg");
+      if (!btns.length) return;
+      function apply(cycle){
+        btns.forEach(function(b){
+          var on = b.getAttribute("data-cycle") === cycle;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        document.querySelectorAll("[data-" + cycle + "]").forEach(function(el){
+          el.textContent = el.getAttribute("data-" + cycle);
+        });
+      }
+      btns.forEach(function(b){
+        b.addEventListener("click", function(){ apply(b.getAttribute("data-cycle")); });
+      });
+    })();
+  </script>
+  <script>
+    // Toggle Annuel/Mensuel, swap prices via data-annual / data-monthly
+    (function () {
+      var tabs = document.querySelectorAll('.pricing2__toggle .ptg');
+      var nums = document.querySelectorAll('.p2card__price-num');
+      if (!tabs.length || !nums.length) return;
+      function setCycle(cycle) {
+        tabs.forEach(function (t) {
+          var on = t.dataset.cycle === cycle;
+          t.classList.toggle('is-on', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        nums.forEach(function (n) {
+          var v = n.dataset[cycle];
+          if (v) n.textContent = v;
+        });
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () { setCycle(t.dataset.cycle); });
+      });
+    })();
+  </script>
+  <script>
+    /* Calculateur de valeur : 2 sliders → h/mois récupérées + €/mois valeur + ROI */
+    (function initPricingCalculator(){
+      var hoursEl = document.getElementById('pcalc-hours');
+      var rateEl  = document.getElementById('pcalc-rate');
+      if (!hoursEl || !rateEl) return;
+
+      var hoursVal = document.getElementById('pcalc-hours-val');
+      var rateVal  = document.getElementById('pcalc-rate-val');
+      var savedEl  = document.getElementById('pcalc-hours-saved');
+      var valueEl  = document.getElementById('pcalc-value');
+      var daysEl   = document.getElementById('pcalc-days');
+      var ratioEl  = document.getElementById('pcalc-ratio');
+
+      var MONTHLY = 29;
+      var YEARLY  = 228;
+      var RECOVERY = 0.5;  // Freescale récupère ~50% du temps
+
+      function fillSlider(el){
+        var min = +el.min, max = +el.max, val = +el.value;
+        var pct = ((val - min) / (max - min)) * 100;
+        el.style.setProperty('--fill', pct + '%');
+      }
+
+      function fmt(n){ return n.toLocaleString('fr-FR'); }
+
+      function bump(el){
+        if (!el) return;
+        el.classList.remove('is-bumping');
+        void el.offsetWidth;
+        el.classList.add('is-bumping');
+      }
+
+      var bigHours = savedEl && savedEl.parentElement;
+      var bigValue = valueEl && valueEl.parentElement;
+
+      function update(source){
+        var hoursPerWeek = +hoursEl.value;
+        var rate         = +rateEl.value;
+        var hoursSavedPerMonth = Math.round(hoursPerWeek * 4.33 * RECOVERY);
+        var valuePerMonth      = Math.round(hoursSavedPerMonth * rate);
+        var daysToPayback      = Math.max(1, Math.round(MONTHLY / (valuePerMonth / 30)));
+        var yearlyRatio        = Math.round((valuePerMonth * 12) / YEARLY);
+
+        hoursVal.textContent = hoursPerWeek + ' h';
+        rateVal.textContent  = rate + ' €';
+        savedEl.textContent  = hoursSavedPerMonth;
+        valueEl.textContent  = fmt(valuePerMonth);
+        daysEl.textContent   = daysToPayback === 1 ? '~1' : daysToPayback;
+        ratioEl.textContent  = yearlyRatio;
+
+        fillSlider(hoursEl);
+        fillSlider(rateEl);
+
+        if (source === 'hours') bump(hoursVal);
+        if (source === 'rate')  bump(rateVal);
+        if (source) { bump(bigHours); bump(bigValue); }
+      }
+
+      hoursEl.addEventListener('input', function(){ update('hours'); });
+      rateEl.addEventListener('input',  function(){ update('rate');  });
+      update();
+    })();
+  </script>
+</body>
+</html>
