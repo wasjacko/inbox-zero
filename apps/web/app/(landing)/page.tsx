@@ -18,6 +18,8 @@ export default async function LandingPage() {
     await redirectToEmailAccountPath("/chat");
   }
 
+  const landing = getLandingDocument();
+
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -37,6 +39,9 @@ export default async function LandingPage() {
       />
       <link rel="stylesheet" href="https://use.typekit.net/rbx1gft.css" />
       <link rel="stylesheet" href="/home/styles.css?v=1306" />
+      {/* Anna's document includes critical, page-specific CSS in its head. */}
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: trusted local landing styles */}
+      <style dangerouslySetInnerHTML={{ __html: landing.styles }} />
       <link
         rel="preload"
         as="image"
@@ -51,39 +56,50 @@ export default async function LandingPage() {
 
       {/* The HTML is a versioned, local artifact from the Freescale repository. */}
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: trusted local landing markup */}
-      <div dangerouslySetInnerHTML={{ __html: getLandingBody() }} />
-      <script src="/home/script.js?v=1201" defer />
+      <div dangerouslySetInnerHTML={{ __html: landing.body }} />
+      <script src="/home/script.js?v=1202" defer />
     </>
   );
 }
 
-function getLandingBody() {
+function getLandingDocument() {
   const document = readFileSync(
     path.join(process.cwd(), "public", "home", "index.html"),
     "utf8",
   );
   const body = document.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1];
+  const styles = Array.from(
+    document.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi),
+    (match) => match[1],
+  ).join("\n");
 
   if (!body) {
     throw new Error("The Freescale landing document has no body element");
   }
 
-  return body
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replaceAll('src="assets/', 'src="/home/assets/')
-    .replaceAll('poster="assets/', 'poster="/home/assets/')
-    .replaceAll('href="index.html', 'href="/')
-    .replaceAll('href="tarifs.html', 'href="/home/tarifs.html')
-    .replaceAll('href="contact.html', 'href="/home/contact.html')
-    .replaceAll(
-      'href="download-mobile.html',
-      'href="/home/download-mobile.html',
-    )
-    .replaceAll(
-      'href="confidentialite.html',
-      'href="/home/confidentialite.html',
-    )
-    .replaceAll('href="cgu.html', 'href="/home/cgu.html')
-    .replaceAll('href="cgv.html', 'href="/home/cgv.html')
-    .replaceAll('href="rgpd.html', 'href="/home/rgpd.html');
+  if (!styles) {
+    throw new Error("The Freescale landing document has no critical styles");
+  }
+
+  return {
+    styles,
+    body: body
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replaceAll('src="assets/', 'src="/home/assets/')
+      .replaceAll('poster="assets/', 'poster="/home/assets/')
+      .replaceAll('href="index.html', 'href="/')
+      .replaceAll('href="tarifs.html', 'href="/home/tarifs.html')
+      .replaceAll('href="contact.html', 'href="/home/contact.html')
+      .replaceAll(
+        'href="download-mobile.html',
+        'href="/home/download-mobile.html',
+      )
+      .replaceAll(
+        'href="confidentialite.html',
+        'href="/home/confidentialite.html',
+      )
+      .replaceAll('href="cgu.html', 'href="/home/cgu.html')
+      .replaceAll('href="cgv.html', 'href="/home/cgv.html')
+      .replaceAll('href="rgpd.html', 'href="/home/rgpd.html'),
+  };
 }

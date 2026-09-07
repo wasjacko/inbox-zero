@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
@@ -26,8 +27,11 @@ describe("NewLanding", () => {
 
   it("keeps the public landing page for signed-out visitors", async () => {
     const page = await NewLanding();
+    const markup = renderToStaticMarkup(page);
 
     expect(page).toBeTruthy();
+    expect(markup).toContain(".fx-hero-chip");
+    expect(markup).toContain('src="/home/script.js?v=1202"');
     expect(mocks.redirectToEmailAccountPath).not.toHaveBeenCalled();
   });
 
