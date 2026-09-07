@@ -1,17 +1,35 @@
 /* Ensure Back from authentication cannot restore a stale pre-deploy landing. */
 (function () {
   const RETURN_REFRESH_KEY = "freescale:refresh-landing-on-return";
+  const resettingScroll = sessionStorage.getItem(RETURN_REFRESH_KEY) === "resetting";
+
+  if (resettingScroll) {
+    history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    requestAnimationFrame(function () {
+      window.scrollTo(0, 0);
+      requestAnimationFrame(function () {
+        window.scrollTo(0, 0);
+        sessionStorage.removeItem(RETURN_REFRESH_KEY);
+        history.scrollRestoration = "auto";
+      });
+    });
+  }
 
   document.addEventListener("click", function (event) {
     const target = event.target;
     const link = target && target.closest ? target.closest('a[href^="/login"]') : null;
-    if (link) sessionStorage.setItem(RETURN_REFRESH_KEY, "1");
+    if (link) {
+      sessionStorage.setItem(RETURN_REFRESH_KEY, "pending");
+      history.scrollRestoration = "manual";
+    }
   });
 
   function refreshAfterAuthReturn() {
-    if (sessionStorage.getItem(RETURN_REFRESH_KEY) !== "1") return;
+    if (sessionStorage.getItem(RETURN_REFRESH_KEY) !== "pending") return;
     if (window.location.pathname !== "/") return;
-    sessionStorage.removeItem(RETURN_REFRESH_KEY);
+    sessionStorage.setItem(RETURN_REFRESH_KEY, "resetting");
+    window.scrollTo(0, 0);
     window.location.reload();
   }
 
