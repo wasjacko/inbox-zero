@@ -288,10 +288,11 @@ export const betterAuthConfig = betterAuth({
       token: "sessionToken",
       expiresAt: "expires",
     },
+    // Always resolve sessions from the database. A signed cookie cache could
+    // otherwise keep a deleted test user authenticated for up to five minutes
+    // after its User and Session rows have been removed.
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // 5 minutes — normal sign-out clears the cache cookie immediately;
-      // this TTL only limits exposure for stolen-token scenarios
+      enabled: false,
     },
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24 * 3, // 1 day (every 1 day the session expiration is updated)
