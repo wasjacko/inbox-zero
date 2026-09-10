@@ -92,6 +92,8 @@ import { toastError } from "@/components/Toast";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { prefixPath } from "@/utils/path";
 import { PREVIEW_POST_ONBOARDING_SORT_PARAM } from "@/utils/preview-onboarding";
+import { useMessagingChannels } from "@/hooks/useMessagingChannels";
+import { useSlackConnect } from "@/hooks/useSlackConnect";
 
 const CrispWithNoSSR = dynamic(() => import("@/components/CrispChat"));
 
@@ -2661,21 +2663,34 @@ function PreviewCommandCenter() {
 }
 
 function ConnectedChannels() {
+  const { emailAccountId } = useAccount();
   const accountChannels = usePreviewConnectedChannels();
+  const { data: messagingChannels, mutate: mutateMessagingChannels } =
+    useMessagingChannels(emailAccountId);
   const [connected, setConnected] = useState<ChannelId[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<ChannelId | null>(null);
   const [step, setStep] = useState<"select" | "confirm" | "success">("select");
   const [isConnecting, setIsConnecting] = useState(false);
+  const { connect: connectSlack, connecting: connectingSlack } =
+    useSlackConnect({
+      emailAccountId,
+      onConnected: () => mutateMessagingChannels(),
+      openInNewTab: false,
+    });
 
   useEffect(() => {
     if (!accountChannels) return;
+    const messagingIds = (messagingChannels?.channels ?? [])
+      .filter((channel) => channel.isConnected)
+      .map((channel) => channel.provider.toLowerCase())
+      .filter((id): id is ChannelId => channelIds.includes(id as ChannelId));
     setConnected(
-      accountChannels.filter((id): id is ChannelId =>
-        channelIds.includes(id as ChannelId),
+      [...new Set([...accountChannels, ...messagingIds])].filter(
+        (id): id is ChannelId => channelIds.includes(id as ChannelId),
       ),
     );
-  }, [accountChannels]);
+  }, [accountChannels, messagingChannels]);
 
   const visibleConnected = connected.slice(0, 4);
   const hiddenConnectedCount = connected.length - visibleConnected.length;
@@ -2710,6 +2725,12 @@ function ConnectedChannels() {
         });
         setIsConnecting(false);
       }
+      return;
+    }
+
+    if (selected === "slack") {
+      await connectSlack();
+      setIsConnecting(false);
       return;
     }
 
@@ -2874,7 +2895,8 @@ function ConnectedChannels() {
               <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-muted-foreground text-xs">
                 <LockKeyholeIcon className="mt-0.5 size-4 shrink-0" />
                 {selectedChannel.id === "gmail" ||
-                selectedChannel.id === "outlook"
+                selectedChannel.id === "outlook" ||
+                selectedChannel.id === "slack"
                   ? `Vous serez redirigé vers ${selectedChannel.name} pour autoriser la connexion de votre compte.`
                   : "Cette intégration sera disponible lorsqu’elle pourra synchroniser de vraies données."}
               </div>
@@ -2884,7 +2906,10 @@ function ConnectedChannels() {
               <Button onClick={() => setStep("select")} variant="outline">
                 Retour
               </Button>
-              <Button loading={isConnecting} onClick={connectSelectedChannel}>
+              <Button
+                loading={isConnecting || connectingSlack}
+                onClick={connectSelectedChannel}
+              >
                 Connecter {selectedChannel.name}
               </Button>
             </DialogFooter>

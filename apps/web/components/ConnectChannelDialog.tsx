@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeftIcon, CheckIcon, LockKeyholeIcon } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
@@ -16,6 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { redirectToSafeUrl } from "@/utils/redirect";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import { useSlackConnect } from "@/hooks/useSlackConnect";
 
 const channelOptions = [
   {
@@ -30,6 +33,12 @@ const channelOptions = [
     description: "E-mails Microsoft 365 et Outlook.",
     provider: "microsoft",
   },
+  {
+    id: "slack",
+    name: "Slack",
+    description: "Messages et notifications de votre workspace.",
+    provider: null,
+  },
 ] as const;
 
 type Channel = (typeof channelOptions)[number];
@@ -41,8 +50,11 @@ export function ConnectChannelDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { emailAccountId } = useAccount();
   const [selected, setSelected] = useState<Channel | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const { connect: connectSlack, connecting: connectingSlack } =
+    useSlackConnect({ emailAccountId, openInNewTab: false });
 
   const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen);
@@ -57,6 +69,13 @@ export function ConnectChannelDialog({
     setIsConnecting(true);
 
     try {
+      if (selected.id === "slack") {
+        await connectSlack();
+        setIsConnecting(false);
+        return;
+      }
+
+      if (!selected.provider) throw new Error("Missing channel provider");
       const url = await getAccountLinkingUrl(selected.provider, {
         returnTo: `/chat?channelConnected=${selected.id}`,
       });
@@ -111,11 +130,18 @@ export function ConnectChannelDialog({
               <div>
                 <p className="mb-3 font-medium text-sm">Freescale pourra :</p>
                 <ul className="space-y-3 text-sm">
-                  {[
-                    "Importer vos nouvelles conversations dans Canaux",
-                    "Préparer vos briefs à partir de vos vrais échanges",
-                    "Synchroniser les statuts et les notifications",
-                  ].map((permission) => (
+                  {(selected.id === "slack"
+                    ? [
+                        "Recevoir les messages adressés à Mue dans Slack",
+                        "Envoyer vos résumés et rappels dans votre workspace",
+                        "Répondre depuis Slack sans quitter votre équipe",
+                      ]
+                    : [
+                        "Importer vos nouvelles conversations dans Canaux",
+                        "Préparer vos briefs à partir de vos vrais échanges",
+                        "Synchroniser les statuts et les notifications",
+                      ]
+                  ).map((permission) => (
                     <li className="flex items-start gap-3" key={permission}>
                       <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-green-100 text-green-700">
                         <CheckIcon className="size-3" />
@@ -137,7 +163,10 @@ export function ConnectChannelDialog({
               <Button onClick={() => setSelected(null)} variant="outline">
                 Retour
               </Button>
-              <Button loading={isConnecting} onClick={connectSelectedChannel}>
+              <Button
+                loading={isConnecting || connectingSlack}
+                onClick={connectSelectedChannel}
+              >
                 Connecter {selected.name}
               </Button>
             </DialogFooter>
@@ -179,6 +208,10 @@ export function ConnectChannelDialog({
 }
 
 function ChannelLogo({ channel }: { channel: Channel["id"] }) {
+  if (channel === "slack") {
+    return <Image alt="Slack" height={28} src="/images/slack.svg" width={28} />;
+  }
+
   return channel === "gmail" ? (
     <Gmail height={28} width={28} />
   ) : (

@@ -7,13 +7,16 @@ import { captureException, getActionErrorMessage } from "@/utils/error";
 import { toastError, toastSuccess, toastInfo } from "@/components/Toast";
 import { linkSlackWorkspaceAction } from "@/utils/actions/messaging-channels";
 import type { GetSlackAuthUrlResponse } from "@/app/api/slack/auth-url/route";
+import { redirectToSafeUrl } from "@/utils/redirect";
 
 export function useSlackConnect({
   emailAccountId,
   onConnected,
+  openInNewTab = true,
 }: {
   emailAccountId: string;
   onConnected?: () => void;
+  openInNewTab?: boolean;
 }) {
   const [connecting, setConnecting] = useState(false);
   const connectingRef = useRef(false);
@@ -32,7 +35,7 @@ export function useSlackConnect({
         url: "/api/slack/auth-url",
         emailAccountId,
       });
-      if (!res.ok) throw new Error("Failed to get Slack auth URL");
+      if (!res.ok) throw new Error("Impossible de démarrer la connexion Slack");
       const data: GetSlackAuthUrlResponse = await res.json();
 
       if (data.existingWorkspace) {
@@ -69,13 +72,21 @@ export function useSlackConnect({
       }
 
       if (data.url) {
-        window.open(data.url, "_blank", "noopener,noreferrer");
+        if (openInNewTab) {
+          window.open(data.url, "_blank", "noopener,noreferrer");
+        } else {
+          redirectToSafeUrl(data.url, { allowExternal: true });
+        }
       } else {
-        throw new Error("No auth URL returned");
+        throw new Error("Slack n’a renvoyé aucune URL de connexion");
       }
     } catch (error) {
       captureException(error, { extra: { context: "Slack connect" } });
-      toastError({ description: "Failed to connect Slack" });
+      toastError({
+        title: "Impossible de connecter Slack",
+        description:
+          "La connexion Slack n’est pas encore configurée ou a échoué. Réessayez dans quelques instants.",
+      });
     } finally {
       connectingRef.current = false;
       setConnecting(false);
