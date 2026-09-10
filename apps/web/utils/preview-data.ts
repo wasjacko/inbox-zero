@@ -1,7 +1,7 @@
 import { createSearchParams } from "@/utils/url";
 
 export const CHANNELS_THREADS_CACHE_KEY =
-  "/api/threads?type=inbox&limit=50&view=list&includePlans=false";
+  "/api/threads?type=inbox&limit=50&view=list&includePlans=false&excludeFreescaleMuted=true";
 
 export const BULK_UNSUBSCRIBE_THREADS_CACHE_KEY =
   "/api/threads?type=inbox&limit=100&view=list&includePlans=false";
@@ -12,7 +12,7 @@ export const BULK_UNSUBSCRIBE_CACHE_KEY = `/api/user/stats/newsletters?${createS
     filters: ["unhandled", "unsubscribed", "autoArchived", "approved"],
     orderBy: "emails",
     orderDirection: "desc",
-    limit: 50,
     includeMissingUnsubscribe: true,
+    includeProviderFilters: false,
   },
 )}`;

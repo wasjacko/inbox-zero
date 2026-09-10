@@ -33,6 +33,7 @@ const newsletterStatsQuery = z.object({
     .optional()
     .transform((arr) => arr?.filter(Boolean)),
   includeMissingUnsubscribe: z.boolean().optional(),
+  includeProviderFilters: z.boolean().optional(),
   search: z.string().optional(),
 });
 
@@ -66,7 +67,9 @@ async function getEmailMessages(
       limit: options.limit,
       logger,
     }),
-    getEmailFilters(emailProvider, logger),
+    options.includeProviderFilters === false
+      ? Promise.resolve([])
+      : getEmailFilters(emailProvider, logger),
     getNewsletterStatuses({ emailAccountId }),
   ]);
 
@@ -118,6 +121,8 @@ export const GET = withEmailProvider(
       filters: searchParams.get("filters")?.split(",") || [],
       includeMissingUnsubscribe:
         searchParams.get("includeMissingUnsubscribe") === "true",
+      includeProviderFilters:
+        searchParams.get("includeProviderFilters") !== "false",
       search: searchParams.get("search") || undefined,
     });
 

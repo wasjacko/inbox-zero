@@ -8,23 +8,43 @@ import { EMAIL_PROVIDER_RATE_LIMIT_MESSAGE } from "@/utils/error";
 
 const {
   setSenderStatusActionMock,
+  setFreescaleSenderVisibilityActionMock,
+  setFreescaleSendersVisibilityActionMock,
   unsubscribeSenderActionMock,
   decrementCreditMock,
   queueArchiveSendersMock,
   addToArchiveSenderThreadQueueMock,
   toastErrorMock,
   captureExceptionMock,
+  mutateGlobalMock,
+  deleteEmailsMock,
+  fetchAllSenderThreadsMock,
 } = vi.hoisted(() => ({
   setSenderStatusActionMock: vi.fn(),
+  setFreescaleSenderVisibilityActionMock: vi.fn(),
+  setFreescaleSendersVisibilityActionMock: vi.fn(),
   unsubscribeSenderActionMock: vi.fn(),
   decrementCreditMock: vi.fn(),
   queueArchiveSendersMock: vi.fn(),
   addToArchiveSenderThreadQueueMock: vi.fn(),
   toastErrorMock: vi.fn(),
   captureExceptionMock: vi.fn(),
+  mutateGlobalMock: vi.fn(),
+  deleteEmailsMock: vi.fn(),
+  fetchAllSenderThreadsMock: vi.fn(),
 }));
 
+vi.mock("swr", async (importOriginal) => {
+  const original = await importOriginal<typeof import("swr")>();
+  return {
+    ...original,
+    useSWRConfig: () => ({ mutate: mutateGlobalMock }),
+  };
+});
+
 vi.mock("@/utils/actions/unsubscriber", () => ({
+  setFreescaleSenderVisibilityAction: setFreescaleSenderVisibilityActionMock,
+  setFreescaleSendersVisibilityAction: setFreescaleSendersVisibilityActionMock,
   setSenderStatusAction: setSenderStatusActionMock,
   unsubscribeSenderAction: unsubscribeSenderActionMock,
 }));
@@ -40,7 +60,13 @@ vi.mock("@/store/archive-sender-queue", () => ({
   }),
 }));
 
-vi.mock("@/store/archive-queue", () => ({ deleteEmails: vi.fn() }));
+vi.mock("@/store/archive-queue", () => ({
+  deleteEmails: deleteEmailsMock,
+}));
+
+vi.mock("@/store/fetch-sender-threads", () => ({
+  fetchAllSenderThreads: fetchAllSenderThreadsMock,
+}));
 
 vi.mock("@/utils/actions/mail-bulk-action", () => ({
   bulkArchiveAction: vi.fn(),
@@ -72,6 +98,7 @@ vi.mock("sonner", () => ({
     success: vi.fn(),
     error: toastErrorMock,
     loading: vi.fn(),
+    info: vi.fn(),
     promise: vi.fn(),
   },
 }));
@@ -80,6 +107,7 @@ import {
   useApproveButton,
   useAutoArchive,
   useBulkAutoArchive,
+  useBulkDelete,
   useBulkUnsubscribe,
   useUnsubscribe,
 } from "./hooks";
@@ -105,9 +133,13 @@ describe("bulk unsubscribe hooks", () => {
     setSenderStatusActionMock.mockResolvedValue({
       data: { autoArchived: true },
     });
+    setFreescaleSenderVisibilityActionMock.mockResolvedValue({ data: {} });
+    setFreescaleSendersVisibilityActionMock.mockResolvedValue({ data: {} });
     decrementCreditMock.mockResolvedValue(undefined);
     queueArchiveSendersMock.mockResolvedValue(1);
     addToArchiveSenderThreadQueueMock.mockResolvedValue(undefined);
+    mutateGlobalMock.mockResolvedValue(undefined);
+    fetchAllSenderThreadsMock.mockResolvedValue({ threads: [] });
   });
 
   describe("useAutoArchive", () => {
@@ -233,12 +265,7 @@ describe("bulk unsubscribe hooks", () => {
   });
 
   describe("useBulkUnsubscribe", () => {
-    it("stops automatic unsubscribes after a provider rate limit and revalidates once", async () => {
-      unsubscribeSenderActionMock
-        .mockResolvedValueOnce({ data: { unsubscribe: { success: true } } })
-        .mockResolvedValueOnce({
-          serverError: EMAIL_PROVIDER_RATE_LIMIT_MESSAGE,
-        });
+    it("mutes every sender only inside Freescale and refreshes channels", async () => {
       const mutate = vi.fn().mockResolvedValue(undefined);
       const onDeselectItem = vi.fn();
 
@@ -268,19 +295,95 @@ describe("bulk unsubscribe hooks", () => {
         ]);
       });
 
-      expect(unsubscribeSenderActionMock).toHaveBeenCalledTimes(2);
-      expect(queueArchiveSendersMock).toHaveBeenCalledTimes(1);
-      expect(onDeselectItem).toHaveBeenCalledOnce();
-      expect(onDeselectItem).toHaveBeenCalledWith("first@example.com");
+      expect(setFreescaleSendersVisibilityActionMock).toHaveBeenCalledOnce();
+      expect(setFreescaleSendersVisibilityActionMock).toHaveBeenCalledWith(
+        EMAIL_ACCOUNT_ID,
+        {
+          senderEmails: [
+            "first@example.com",
+            "second@example.com",
+            "third@example.com",
+          ],
+          hidden: true,
+        },
+      );
+      expect(setFreescaleSenderVisibilityActionMock).not.toHaveBeenCalled();
+      expect(unsubscribeSenderActionMock).not.toHaveBeenCalled();
+      expect(queueArchiveSendersMock).not.toHaveBeenCalled();
+      expect(onDeselectItem).toHaveBeenCalledTimes(3);
       expect(
         mutate.mock.calls.filter((call) => call.length === 0),
       ).toHaveLength(1);
-      expect(toastErrorMock).toHaveBeenCalledWith(
-        EMAIL_PROVIDER_RATE_LIMIT_MESSAGE,
-        expect.objectContaining({
-          description: "1 of 3 completed; stopped to avoid more requests",
+      const channelsCacheUpdate = mutateGlobalMock.mock.calls.find(
+        (call) => typeof call[1] === "function",
+      );
+      expect(channelsCacheUpdate?.[0]).toEqual([
+        "/api/threads?type=inbox&limit=50&view=list&includePlans=false&excludeFreescaleMuted=true",
+        EMAIL_ACCOUNT_ID,
+      ]);
+      expect(channelsCacheUpdate?.[2]).toEqual({ revalidate: false });
+      expect(
+        channelsCacheUpdate?.[1]({
+          threads: [
+            {
+              id: "hidden-thread",
+              messages: [{ headers: { from: "First <first@example.com>" } }],
+            },
+            {
+              id: "visible-thread",
+              messages: [{ headers: { from: "client@example.com" } }],
+            },
+          ],
+          totalCount: 2,
+        }),
+      ).toEqual({
+        threads: [
+          {
+            id: "visible-thread",
+            messages: [{ headers: { from: "client@example.com" } }],
+          },
+        ],
+        totalCount: 1,
+      });
+      expect(mutateGlobalMock).toHaveBeenCalledWith([
+        "/api/threads?type=inbox&limit=50&view=list&includePlans=false&excludeFreescaleMuted=true",
+        EMAIL_ACCOUNT_ID,
+      ]);
+    });
+  });
+
+  describe("useBulkDelete", () => {
+    it("queues every unique sender thread without waiting on one long server action", async () => {
+      fetchAllSenderThreadsMock
+        .mockResolvedValueOnce({ threads: [{ id: "thread-1" }] })
+        .mockResolvedValueOnce({
+          threads: [{ id: "thread-1" }, { id: "thread-2" }],
+        });
+      const mutate = vi.fn().mockResolvedValue(undefined);
+      const { result } = renderHook(() =>
+        useBulkDelete({
+          mutate,
+          posthog: { capture: vi.fn() } as never,
+          emailAccountId: EMAIL_ACCOUNT_ID,
         }),
       );
+
+      await act(async () => {
+        await result.current.onBulkDelete([
+          getRow({ name: "first@example.com" }),
+          getRow({ name: "second@example.com" }),
+        ]);
+      });
+
+      expect(fetchAllSenderThreadsMock).toHaveBeenCalledTimes(2);
+      expect(deleteEmailsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          threadIds: ["thread-1", "thread-2"],
+          emailAccountId: EMAIL_ACCOUNT_ID,
+          onComplete: expect.any(Function),
+        }),
+      );
+      expect(result.current.isBulkDeleting).toBe(false);
     });
   });
 
@@ -341,14 +444,14 @@ describe("bulk unsubscribe hooks", () => {
         await result.current.onUnsubscribe();
       });
 
-      expect(setSenderStatusActionMock).toHaveBeenCalledWith(EMAIL_ACCOUNT_ID, {
-        senderEmail: SENDER,
-        status: null,
-      });
+      expect(setFreescaleSenderVisibilityActionMock).toHaveBeenCalledWith(
+        EMAIL_ACCOUNT_ID,
+        { senderEmail: SENDER, hidden: false },
+      );
       expect(unsubscribeSenderActionMock).not.toHaveBeenCalled();
     });
 
-    it("blocks the sender when there is no unsubscribe link to use", async () => {
+    it("mutes the sender locally without opening or changing the provider", async () => {
       const { result } = renderHook(() =>
         useUnsubscribe({ item: getRow(), ...sharedHookArgs }),
       );
@@ -357,16 +460,16 @@ describe("bulk unsubscribe hooks", () => {
         await result.current.onUnsubscribe();
       });
 
-      expect(setSenderStatusActionMock).toHaveBeenCalledWith(EMAIL_ACCOUNT_ID, {
-        senderEmail: SENDER,
-        status: NewsletterStatus.AUTO_ARCHIVED,
-        labelId: undefined,
-        labelName: undefined,
-      });
+      expect(setFreescaleSenderVisibilityActionMock).toHaveBeenCalledWith(
+        EMAIL_ACCOUNT_ID,
+        { senderEmail: SENDER, hidden: true },
+      );
       expect(unsubscribeSenderActionMock).not.toHaveBeenCalled();
-      expect(queueArchiveSendersMock).toHaveBeenCalledWith({
-        senders: [SENDER],
-      });
+      expect(queueArchiveSendersMock).not.toHaveBeenCalled();
+      expect(mutateGlobalMock).toHaveBeenCalledWith([
+        "/api/threads?type=inbox&limit=50&view=list&includePlans=false&excludeFreescaleMuted=true",
+        EMAIL_ACCOUNT_ID,
+      ]);
     });
 
     it("does nothing without unsubscribe access", async () => {
@@ -382,32 +485,7 @@ describe("bulk unsubscribe hooks", () => {
         await result.current.onUnsubscribe();
       });
 
-      expect(setSenderStatusActionMock).not.toHaveBeenCalled();
-    });
-
-    it("shows provider rate limits without reporting them as unexpected", async () => {
-      unsubscribeSenderActionMock.mockResolvedValue({
-        serverError: EMAIL_PROVIDER_RATE_LIMIT_MESSAGE,
-      });
-
-      const { result } = renderHook(() =>
-        useUnsubscribe({
-          item: getRow({
-            unsubscribeLink: "https://example.com/unsubscribe",
-          }),
-          ...sharedHookArgs,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.onUnsubscribe();
-      });
-
-      expect(toastErrorMock).toHaveBeenCalledWith(
-        EMAIL_PROVIDER_RATE_LIMIT_MESSAGE,
-      );
-      expect(captureExceptionMock).not.toHaveBeenCalled();
-      expect(queueArchiveSendersMock).not.toHaveBeenCalled();
+      expect(setFreescaleSenderVisibilityActionMock).not.toHaveBeenCalled();
     });
   });
 });

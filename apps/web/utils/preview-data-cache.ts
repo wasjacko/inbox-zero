@@ -29,6 +29,24 @@ export function writePageData(accountId: string, url: string, data: unknown) {
   }
 }
 
+export function clearPageDataEntry(accountId: string, url: string) {
+  if (!accountId || typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(`${PREFIX}${accountId}:${url}`);
+  } catch {
+    // Storage access must never block mailbox actions.
+  }
+}
+
+export function updatePageDataEntry<T>(
+  accountId: string,
+  url: string,
+  update: (current: T) => T,
+) {
+  const current = readPageData<T>(accountId, url);
+  if (current !== undefined) writePageData(accountId, url, update(current));
+}
+
 export function clearPageData() {
   if (typeof window === "undefined") return;
   try {

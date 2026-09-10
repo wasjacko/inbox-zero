@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NewsletterStatus } from "@/generated/prisma/enums";
 import prisma from "@/utils/__mocks__/prisma";
-import { extractEmailOrThrow, upsertSenderRecord } from "./record";
+import {
+  extractEmailOrThrow,
+  upsertSenderRecord,
+  upsertSenderRecords,
+} from "./record";
 
 vi.mock("@/utils/prisma");
 
@@ -65,5 +69,38 @@ describe("sender-record", () => {
     expect(() => extractEmailOrThrow("invalid-email")).toThrow(
       "Invalid sender email address",
     );
+  });
+
+  it("writes a normalized sender batch in one database call", async () => {
+    prisma.$executeRaw.mockResolvedValue(2);
+
+    const result = await upsertSenderRecords({
+      emailAccountId: "email-account-1",
+      senderEmails: [
+        "First <FIRST@example.com>",
+        "second@example.com",
+        "first@example.com",
+      ],
+      changes: { status: NewsletterStatus.UNSUBSCRIBED },
+    });
+
+    expect(result).toEqual({
+      count: 2,
+      senderEmails: ["first@example.com", "second@example.com"],
+    });
+    expect(prisma.$executeRaw).toHaveBeenCalledOnce();
+    expect(prisma.newsletter.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects the whole sender batch before writing when one email is invalid", async () => {
+    await expect(
+      upsertSenderRecords({
+        emailAccountId: "email-account-1",
+        senderEmails: ["first@example.com", "invalid"],
+        changes: { status: NewsletterStatus.UNSUBSCRIBED },
+      }),
+    ).rejects.toThrow("Invalid sender email address");
+
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 });

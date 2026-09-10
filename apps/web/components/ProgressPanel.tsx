@@ -11,12 +11,18 @@ export function ProgressPanel({
   inProgressText,
   completedText,
   itemLabel,
+  formatProgress,
 }: {
   totalItems: number;
   remainingItems: number;
   inProgressText: string;
   completedText: string;
   itemLabel: string;
+  formatProgress?: (
+    processed: number,
+    total: number,
+    itemLabel: string,
+  ) => string;
 }) {
   const totalProcessed = totalItems - remainingItems;
   const progress = (totalProcessed / totalItems) * 100;
@@ -54,7 +60,9 @@ export function ProgressPanel({
               )}
             </span>
             <span>
-              {totalProcessed} of {totalItems} {itemLabel} processed
+              {formatProgress
+                ? formatProgress(totalProcessed, totalItems, itemLabel)
+                : `${totalProcessed} of ${totalItems} ${itemLabel} processed`}
             </span>
           </div>
         </motion.div>

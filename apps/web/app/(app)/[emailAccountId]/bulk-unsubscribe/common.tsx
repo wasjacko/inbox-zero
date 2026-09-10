@@ -4,8 +4,6 @@ import type React from "react";
 import { useState } from "react";
 import Link from "next/link";
 import {
-  ArchiveIcon,
-  ArchiveRestoreIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
@@ -15,7 +13,6 @@ import {
   MoreHorizontalIcon,
   TagIcon,
   ThumbsUpIcon,
-  TrashIcon,
 } from "lucide-react";
 import { type PostHog, usePostHog } from "posthog-js/react";
 import type { UserResponse } from "@/app/api/user/me/route";
@@ -50,9 +47,6 @@ import type { NewsletterFilterType } from "@/app/(app)/[emailAccountId]/bulk-uns
 import {
   useUnsubscribe,
   useApproveButton,
-  useBulkArchive,
-  useBulkDelete,
-  useBulkAutoArchive,
 } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/hooks";
 import { ResubscribeDialog } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/ResubscribeDialog";
 import { LabelsSubMenu } from "@/components/LabelsSubMenu";
@@ -66,7 +60,6 @@ export function ActionCell<T extends Row>({
   item,
   hasUnsubscribeAccess,
   mutate,
-  refetchPremium,
   onOpenNewsletter,
   labels,
   openPremiumModal,
@@ -95,7 +88,7 @@ export function ActionCell<T extends Row>({
       {isUnsubscribed ? (
         <Badge variant="red" className="gap-1">
           <MailXIcon className="size-3" />
-          Unsubscribed
+          Masqué de Canaux
         </Badge>
       ) : (
         <ApproveButton
@@ -116,7 +109,6 @@ export function ActionCell<T extends Row>({
           hasUnsubscribeAccess={hasUnsubscribeAccess}
           mutate={mutate}
           posthog={posthog}
-          refetchPremium={refetchPremium}
           emailAccountId={emailAccountId}
         />
       </PremiumTooltip>
@@ -126,12 +118,7 @@ export function ActionCell<T extends Row>({
         userEmail={userEmail}
         emailAccountId={emailAccountId}
         labels={labels}
-        posthog={posthog}
         mutate={mutate}
-        hasUnsubscribeAccess={hasUnsubscribeAccess}
-        refetchPremium={refetchPremium}
-        filter={filter}
-        openPremiumModal={openPremiumModal}
       />
     </>
   );
@@ -142,37 +129,27 @@ function UnsubscribeButton<T extends Row>({
   hasUnsubscribeAccess,
   mutate,
   posthog,
-  refetchPremium,
   emailAccountId,
 }: {
   item: T;
   hasUnsubscribeAccess: boolean;
   mutate: () => Promise<void>;
-  refetchPremium: () => Promise<UserResponse | null | undefined>;
   posthog: PostHog;
   emailAccountId: string;
 }) {
   const [resubscribeDialogOpen, setResubscribeDialogOpen] = useState(false);
 
-  const { unsubscribeLoading, onUnsubscribe, unsubscribeLink } = useUnsubscribe(
-    {
-      item,
-      hasUnsubscribeAccess,
-      mutate,
-      posthog,
-      refetchPremium,
-      emailAccountId,
-    },
-  );
+  const { unsubscribeLoading, onUnsubscribe } = useUnsubscribe({
+    item,
+    hasUnsubscribeAccess,
+    mutate,
+    posthog,
+    emailAccountId,
+  });
 
-  const hasUnsubscribeLink = unsubscribeLink !== "#";
   const isUnsubscribed = item.status === NewsletterStatus.UNSUBSCRIBED;
 
-  const buttonText = isUnsubscribed
-    ? "Restaurer"
-    : hasUnsubscribeLink
-      ? "Désabonner"
-      : "Pas un client";
+  const buttonText = isUnsubscribed ? "Restaurer" : "Écarter";
 
   const senderName = item.fromName || extractNameFromEmail(item.name);
 
@@ -193,17 +170,11 @@ function UnsubscribeButton<T extends Row>({
         size="sm"
         variant="outline"
         className="w-[110px] justify-center"
-        asChild
+        onClick={onUnsubscribe}
+        disabled={unsubscribeLoading}
       >
-        <Link
-          href={unsubscribeLink}
-          target={hasUnsubscribeLink ? "_blank" : undefined}
-          onClick={onUnsubscribe}
-          rel="noopener noreferrer"
-        >
-          {unsubscribeLoading && <ButtonLoader />}
-          {buttonText}
-        </Link>
+        {unsubscribeLoading && <ButtonLoader />}
+        {buttonText}
       </Button>
     );
 
@@ -275,47 +246,19 @@ export function MoreDropdown<T extends Row>({
   userEmail,
   emailAccountId,
   labels,
-  posthog,
   mutate,
-  hasUnsubscribeAccess,
-  refetchPremium,
-  filter,
-  openPremiumModal,
 }: {
   onOpenNewsletter?: (row: T) => void;
   item: T;
   userEmail: string;
   emailAccountId: string;
   labels: EmailLabel[];
-  posthog: PostHog;
   mutate: () => Promise<unknown>;
-  hasUnsubscribeAccess?: boolean;
-  refetchPremium?: () => Promise<UserResponse | null | undefined>;
-  filter?: NewsletterFilterType;
-  openPremiumModal?: () => void;
 }) {
   const { provider } = useAccount();
   const terminology = getEmailTerminology(provider);
   const isMobile = useIsMobile();
   const [labelSheetOpen, setLabelSheetOpen] = useState(false);
-  const { onBulkArchive, isBulkArchiving } = useBulkArchive({
-    posthog,
-    emailAccountId,
-    mutate,
-  });
-  const { onBulkDelete, isBulkDeleting } = useBulkDelete({
-    mutate,
-    posthog,
-    emailAccountId,
-  });
-  const { onBulkAutoArchive } = useBulkAutoArchive({
-    hasUnsubscribeAccess: hasUnsubscribeAccess ?? false,
-    mutate,
-    refetchPremium: refetchPremium ?? noopRefetchPremium,
-    emailAccountId,
-    filter: filter ?? "all",
-  });
-  const showAutoArchive = typeof hasUnsubscribeAccess === "boolean";
 
   const handleLabelClick = async (label: EmailLabel) => {
     const activeFilter = getActiveLabelFilter(item, label);
@@ -413,50 +356,6 @@ export function MoreDropdown<T extends Row>({
               </DropdownMenuPortal>
             </DropdownMenuSub>
           )}
-
-          <DropdownMenuSeparator />
-
-          {/* Bulk actions section */}
-          {showAutoArchive && (
-            <DropdownMenuItem
-              onClick={() => {
-                if (!hasUnsubscribeAccess) {
-                  openPremiumModal?.();
-                  return;
-                }
-
-                onBulkAutoArchive([item]);
-              }}
-            >
-              <ArchiveRestoreIcon className="mr-2 size-4" />
-              <span>Pas un client · écarter</span>
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={() => onBulkArchive([item])}>
-            {isBulkArchiving ? (
-              <ButtonLoader />
-            ) : (
-              <ArchiveIcon className="mr-2 size-4" />
-            )}
-            <span>Archiver les e-mails actuels</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              const yes = confirm(
-                `Are you sure you want to delete all emails from ${item.name}?`,
-              );
-              if (!yes) return;
-
-              onBulkDelete([item]);
-            }}
-          >
-            {isBulkDeleting ? (
-              <ButtonLoader />
-            ) : (
-              <TrashIcon className="mr-2 size-4" />
-            )}
-            <span>Delete all</span>
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -522,10 +421,6 @@ export function HeaderButton(props: {
       )}
     </Button>
   );
-}
-
-async function noopRefetchPremium() {
-  return null;
 }
 
 function getActiveLabelFilter<T extends Row>(item: T, label: EmailLabel) {

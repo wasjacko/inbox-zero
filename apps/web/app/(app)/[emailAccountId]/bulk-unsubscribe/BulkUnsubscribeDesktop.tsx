@@ -111,15 +111,19 @@ export function BulkUnsubscribeRowDesktop({
   return (
     <TableRow
       key={item.name}
-      className="hover:bg-transparent dark:hover:bg-transparent"
-      aria-selected={selected || undefined}
+      className={cn(
+        "transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/40",
+        checked &&
+          "bg-blue-50/70 hover:bg-blue-50 dark:bg-blue-950/20 dark:hover:bg-blue-950/25",
+      )}
+      aria-selected={checked || undefined}
       data-selected={selected || undefined}
       onMouseEnter={onSelectRow}
       onDoubleClick={onDoubleClick}
     >
       <TableCell className="w-10 pr-0" data-cell="checkbox">
         <ButtonCheckbox
-          label={`Sélectionner ${item.fromName || item.name}`}
+          label={`${checked ? "Désélectionner" : "Sélectionner"} ${item.fromName || item.name}`}
           checked={checked}
           onChange={(shiftKey) => onToggleSelect?.(item.name, shiftKey)}
         />

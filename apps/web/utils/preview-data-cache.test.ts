@@ -3,7 +3,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearPageData,
+  clearPageDataEntry,
   readPageData,
+  updatePageDataEntry,
   writePageData,
 } from "./preview-data-cache";
 
@@ -43,6 +45,37 @@ describe("preloaded page data", () => {
     expect(readPageData("account-a", "/api/threads")).toBeUndefined();
     expect(readPageData("account-b", "/api/newsletters")).toBeUndefined();
     expect(sessionStorage.getItem("theme")).toBe("light");
+  });
+
+  it("removes only the requested mailbox page", () => {
+    writePageData("account-a", "/api/threads", { threads: ["a"] });
+    writePageData("account-b", "/api/threads", { threads: ["b"] });
+
+    clearPageDataEntry("account-a", "/api/threads");
+
+    expect(readPageData("account-a", "/api/threads")).toBeUndefined();
+    expect(readPageData("account-b", "/api/threads")).toEqual({
+      threads: ["b"],
+    });
+  });
+
+  it("updates cached page data without waiting for a network refresh", () => {
+    writePageData("account-a", "/api/threads", {
+      threads: ["hidden", "visible"],
+    });
+
+    updatePageDataEntry<{ threads: string[] }>(
+      "account-a",
+      "/api/threads",
+      (current) => ({
+        ...current,
+        threads: current.threads.filter((thread) => thread !== "hidden"),
+      }),
+    );
+
+    expect(readPageData("account-a", "/api/threads")).toEqual({
+      threads: ["visible"],
+    });
   });
 
   it("tolerates corrupt cache and storage blocked by the browser", () => {

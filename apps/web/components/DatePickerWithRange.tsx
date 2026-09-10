@@ -17,19 +17,40 @@ import { differenceInDays, subDays } from "date-fns";
 import { useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-function getRelativeDateLabel(days: number) {
-  if (days === 1) return "Last day";
-  if (days === 7) return "Last week";
-  if (days === 30) return "Last month";
-  if (days === 90) return "Last 3 months";
-  if (days === 365) return "Last year";
-  return "All";
+type DatePickerLabels = {
+  lastDay: string;
+  lastWeek: string;
+  lastMonth: string;
+  lastThreeMonths: string;
+  lastYear: string;
+  all: string;
+  pickDate: string;
+};
+
+const defaultLabels: DatePickerLabels = {
+  lastDay: "Last day",
+  lastWeek: "Last week",
+  lastMonth: "Last month",
+  lastThreeMonths: "Last 3 months",
+  lastYear: "Last year",
+  all: "All",
+  pickDate: "Pick a date",
+};
+
+function getRelativeDateLabel(days: number, labels: DatePickerLabels) {
+  if (days === 1) return labels.lastDay;
+  if (days === 7) return labels.lastWeek;
+  if (days === 30) return labels.lastMonth;
+  if (days === 90) return labels.lastThreeMonths;
+  if (days === 365) return labels.lastYear;
+  return labels.all;
 }
 
 interface DatePickerWithRangeProps
   extends React.HTMLAttributes<HTMLDivElement> {
   dateDropdown: string;
   dateRange?: DateRange;
+  labels?: Partial<DatePickerLabels>;
   onSetDateDropdown: (option: { label: string; value: string }) => void;
   onSetDateRange: (dateRange?: DateRange) => void;
   selectOptions: { label: string; value: string }[];
@@ -41,14 +62,16 @@ export function DatePickerWithRange({
   selectOptions,
   dateDropdown,
   onSetDateDropdown,
+  labels: labelsOverride,
 }: DatePickerWithRangeProps) {
+  const labels = { ...defaultLabels, ...labelsOverride };
   const now = useMemo(() => new Date(), []);
   const isMobile = useIsMobile();
   const days =
     dateRange?.from && dateRange?.to
       ? differenceInDays(dateRange.to, dateRange.from)
       : 0;
-  const relativeDateLabel = getRelativeDateLabel(days);
+  const relativeDateLabel = getRelativeDateLabel(days, labels);
 
   return (
     <Popover modal={true}>
@@ -74,7 +97,7 @@ export function DatePickerWithRange({
                   format(dateRange.from, "LLL dd, y")
                 )
               ) : (
-                <span>Pick a date</span>
+                <span>{labels.pickDate}</span>
               ))}
           </div>
           <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />

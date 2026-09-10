@@ -1,34 +1,22 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { usePostHog } from "posthog-js/react";
 import {
-  ArchiveIcon,
-  ArchiveRestoreIcon,
   Loader2Icon,
   MailXIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
-  TrashIcon,
   XIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { DateRange } from "react-day-picker";
 import {
   useBulkUnsubscribe,
   useBulkApprove,
-  useBulkAutoArchive,
-  useBulkArchive,
-  useBulkDelete,
 } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/hooks";
-import {
-  UnsubscribeCelebrationDialog,
-  type UnsubscribeCelebration,
-} from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/UnsubscribeCelebrationDialog";
 import { PremiumTooltip } from "@/components/PremiumAlert";
 import { usePremium } from "@/hooks/usePremium";
 import { usePremiumModal } from "@/app/(app)/premium/PremiumModal";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { cn } from "@/utils";
-import { getHttpUnsubscribeLink } from "@/utils/parse/unsubscribe";
 import {
   Dialog,
   DialogContent,
@@ -52,7 +40,6 @@ function ActionButton({
   loadingLabel,
   onClick,
   loading,
-  danger,
   showLabelOnMobile,
 }: {
   icon: React.ComponentType<{ className?: string }>;
@@ -60,7 +47,6 @@ function ActionButton({
   loadingLabel?: string;
   onClick: () => void;
   loading?: boolean;
-  danger?: boolean;
   showLabelOnMobile?: boolean;
 }) {
   return (
@@ -72,7 +58,6 @@ function ActionButton({
       className={cn(
         "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
         "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
-        danger && "hover:text-red-600",
         loading && "opacity-50 cursor-not-allowed",
       )}
     >
@@ -96,7 +81,6 @@ export function BulkActions({
   newsletters,
   filter,
   totalCount,
-  dateRange,
 }: {
   selected: Map<string, boolean>;
   // biome-ignore lint/suspicious/noExplicitAny: existing loose external shape
@@ -106,36 +90,22 @@ export function BulkActions({
   newsletters?: Newsletter[];
   filter: NewsletterFilterType;
   totalCount: number;
-  dateRange?: DateRange;
 }) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-  const [autoArchiveDialogOpen, setAutoArchiveDialogOpen] = useState(false);
-  const [celebration, setCelebration] = useState<UnsubscribeCelebration | null>(
-    null,
-  );
+  const [evictDialogOpen, setEvictDialogOpen] = useState(false);
 
   const posthog = usePostHog();
-  const { hasUnsubscribeAccess, mutate: refetchPremium } = usePremium();
+  const { hasUnsubscribeAccess } = usePremium();
   const { PremiumModal, openModal } = usePremiumModal();
   const { emailAccountId } = useAccount();
-  const onBulkUnsubscribeSuccess = useCallback((items: Newsletter[]) => {
-    if (items.length === 0) return;
-    setCelebration({
-      senderCount: items.length,
-      emailCount: items.reduce((sum, item) => sum + item.value, 0),
+  const { onBulkUnsubscribe, isBulkUnsubscribing } =
+    useBulkUnsubscribe<Newsletter>({
+      hasUnsubscribeAccess,
+      mutate,
+      posthog,
+      emailAccountId,
+      onDeselectItem: deselectItem,
+      filter,
     });
-  }, []);
-  const { onBulkUnsubscribe } = useBulkUnsubscribe<Newsletter>({
-    hasUnsubscribeAccess,
-    mutate,
-    posthog,
-    refetchPremium,
-    emailAccountId,
-    onDeselectItem: deselectItem,
-    filter,
-    onSuccess: onBulkUnsubscribeSuccess,
-  });
 
   const { onBulkApprove } = useBulkApprove({
     mutate,
@@ -145,41 +115,11 @@ export function BulkActions({
     filter,
   });
 
-  const { onBulkAutoArchive } = useBulkAutoArchive({
-    hasUnsubscribeAccess,
-    mutate,
-    refetchPremium,
-    emailAccountId,
-    onDeselectItem: deselectItem,
-    filter,
-  });
-
-  const { onBulkArchive, isBulkArchiving } = useBulkArchive({
-    posthog,
-    emailAccountId,
-    mutate,
-  });
-
-  const { onBulkDelete, isBulkDeleting } = useBulkDelete({
-    mutate,
-    posthog,
-    emailAccountId,
-  });
-
-  const getSelectedValues = () =>
-    Array.from(selected.entries())
-      .filter(([, value]) => value)
-      .map(([name, value]) => ({
-        name,
-        value,
-      }));
-
-  const selectedCount = Array.from(selected.values()).filter(Boolean).length;
-  const isVisible = selectedCount > 0;
-
   // Get the selected newsletters with their details
   const selectedNewsletters =
     newsletters?.filter((n) => selected.get(n.name)) || [];
+  const selectedCount = selectedNewsletters.length;
+  const isVisible = selectedCount > 0;
 
   // Check if all selected newsletters are already approved
   const allSelectedAreApproved = useMemo(() => {
@@ -197,21 +137,6 @@ export function BulkActions({
     selectedNewsletters.every(
       (n) => n.status !== NewsletterStatus.UNSUBSCRIBED,
     );
-
-  const hasUnsubscribeLinks = selectedNewsletters.some((n) =>
-    getHttpUnsubscribeLink({ unsubscribeLink: n.unsubscribeLink }),
-  );
-
-  const hasBlockableLinks = selectedNewsletters.some(
-    (n) => !getHttpUnsubscribeLink({ unsubscribeLink: n.unsubscribeLink }),
-  );
-
-  const unsubscribeLabel =
-    hasUnsubscribeLinks && hasBlockableLinks
-      ? "Unsubscribe/Block"
-      : hasBlockableLinks
-        ? "Block"
-        : "Unsubscribe";
 
   return (
     <>
@@ -239,8 +164,8 @@ export function BulkActions({
                     <XIcon className="size-4" />
                   </button>
                   <span className="text-sm text-gray-600 whitespace-nowrap">
-                    {selectedCount} of {totalCount}
-                    <span className="hidden sm:inline"> selected</span>
+                    {selectedCount} sur {totalCount}
+                    <span className="hidden sm:inline"> sélectionnés</span>
                   </span>
                 </div>
 
@@ -249,39 +174,23 @@ export function BulkActions({
                   {allSelectedCanUnsubscribe && (
                     <ActionButton
                       icon={MailXIcon}
-                      label={unsubscribeLabel}
+                      label="Évincer"
+                      loadingLabel="Éviction…"
                       showLabelOnMobile
-                      onClick={() => onBulkUnsubscribe(selectedNewsletters)}
+                      onClick={() => setEvictDialogOpen(true)}
+                      loading={isBulkUnsubscribing}
                     />
                   )}
-                  <ActionButton
-                    icon={ArchiveRestoreIcon}
-                    label="Auto Archive"
-                    onClick={() => setAutoArchiveDialogOpen(true)}
-                  />
                   <ActionButton
                     icon={
                       allSelectedAreApproved ? ThumbsDownIcon : ThumbsUpIcon
                     }
-                    label={allSelectedAreApproved ? "Unapprove" : "Approve"}
-                    onClick={() =>
-                      onBulkApprove(getSelectedValues(), allSelectedAreApproved)
+                    label={
+                      allSelectedAreApproved ? "Retirer des favoris" : "Garder"
                     }
-                  />
-                  <ActionButton
-                    icon={ArchiveIcon}
-                    label="Archive"
-                    loadingLabel="Archiving"
-                    onClick={() => setArchiveDialogOpen(true)}
-                    loading={isBulkArchiving}
-                  />
-                  <ActionButton
-                    icon={TrashIcon}
-                    label="Delete"
-                    loadingLabel="Deleting"
-                    danger
-                    onClick={() => setDeleteDialogOpen(true)}
-                    loading={isBulkDeleting}
+                    onClick={() =>
+                      onBulkApprove(selectedNewsletters, allSelectedAreApproved)
+                    }
                   />
                 </div>
               </div>
@@ -290,171 +199,82 @@ export function BulkActions({
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete all emails?</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete all emails from these senders.
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Selected Senders List */}
-          {selectedNewsletters.length > 0 && (
-            <div className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {selectedNewsletters.map((newsletter) => {
-                  const domain =
-                    extractDomainFromEmail(newsletter.name) || newsletter.name;
-                  return (
-                    <div
-                      key={newsletter.name}
-                      className="flex items-center gap-3 px-3 py-2"
-                    >
-                      <DomainIcon
-                        domain={domain}
-                        size={32}
-                        variant="circular"
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-medium text-sm truncate">
-                          {newsletter.fromName || newsletter.name}
-                        </span>
-                        {newsletter.fromName && (
-                          <span className="text-xs text-muted-foreground truncate">
-                            {newsletter.name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onBulkDelete(getSelectedValues());
-                setDeleteDialogOpen(false);
-              }}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Archive Confirmation Dialog */}
-      <Dialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Archive all emails?</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to archive all emails from these senders?
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Selected Senders List */}
-          {selectedNewsletters.length > 0 && (
-            <div className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {selectedNewsletters.map((newsletter) => {
-                  const domain =
-                    extractDomainFromEmail(newsletter.name) || newsletter.name;
-                  return (
-                    <div
-                      key={newsletter.name}
-                      className="flex items-center gap-3 px-3 py-2"
-                    >
-                      <DomainIcon
-                        domain={domain}
-                        size={32}
-                        variant="circular"
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-medium text-sm truncate">
-                          {newsletter.fromName || newsletter.name}
-                        </span>
-                        {newsletter.fromName && (
-                          <span className="text-xs text-muted-foreground truncate">
-                            {newsletter.name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setArchiveDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                onBulkArchive(getSelectedValues());
-                setArchiveDialogOpen(false);
-              }}
-            >
-              Archive
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Auto Archive Confirmation Dialog */}
       <Dialog
-        open={autoArchiveDialogOpen}
-        onOpenChange={setAutoArchiveDialogOpen}
+        open={evictDialogOpen}
+        onOpenChange={(open) => {
+          if (!isBulkUnsubscribing) setEvictDialogOpen(open);
+        }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Auto archive these senders?</DialogTitle>
+            <DialogTitle>
+              Évincer {selectedCount} contact{selectedCount > 1 ? "s" : ""} ?
+            </DialogTitle>
             <DialogDescription>
-              Automatically archive all current and future emails from these
-              senders. They will no longer appear in your inbox.
+              Ces expéditeurs seront uniquement masqués dans les Canaux
+              Freescale. Rien ne sera modifié dans Gmail ou Outlook, et vous
+              pourrez les restaurer à tout moment.
             </DialogDescription>
           </DialogHeader>
+
+          {selectedNewsletters.length > 0 && (
+            <div className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {selectedNewsletters.map((newsletter) => {
+                  const domain =
+                    extractDomainFromEmail(newsletter.name) || newsletter.name;
+                  return (
+                    <div
+                      key={newsletter.name}
+                      className="flex items-center gap-3 px-3 py-2"
+                    >
+                      <DomainIcon
+                        domain={domain}
+                        size={32}
+                        variant="circular"
+                      />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm font-medium">
+                          {newsletter.fromName || newsletter.name}
+                        </span>
+                        {newsletter.fromName && (
+                          <span className="truncate text-xs text-muted-foreground">
+                            {newsletter.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setAutoArchiveDialogOpen(false)}
+              disabled={isBulkUnsubscribing}
+              onClick={() => setEvictDialogOpen(false)}
             >
-              Cancel
+              Annuler
             </Button>
             <Button
-              onClick={() => {
-                onBulkAutoArchive(getSelectedValues());
-                setAutoArchiveDialogOpen(false);
+              disabled={isBulkUnsubscribing}
+              onClick={async () => {
+                const result = await onBulkUnsubscribe(selectedNewsletters);
+                if (result && !result.stoppedByRateLimit) {
+                  setEvictDialogOpen(false);
+                }
               }}
             >
-              Auto Archive
+              {isBulkUnsubscribing && (
+                <Loader2Icon className="mr-2 size-4 animate-spin" />
+              )}
+              {isBulkUnsubscribing ? "Éviction en cours…" : "Évincer"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <UnsubscribeCelebrationDialog
-        celebration={celebration}
-        dateRange={dateRange}
-        onClose={() => setCelebration(null)}
-      />
 
       <PremiumModal />
     </>

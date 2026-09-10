@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useState, useEffect } from "react";
+import { useSWRConfig } from "swr";
 import { toast } from "sonner";
 import { useAction } from "next-safe-action/hooks";
 import type { PostHog } from "posthog-js/react";
 import { toastSuccess } from "@/components/Toast";
 import {
+  setFreescaleSenderVisibilityAction,
+  setFreescaleSendersVisibilityAction,
   setSenderStatusAction,
-  unsubscribeSenderAction,
 } from "@/utils/actions/unsubscriber";
 import { decrementUnsubscribeCreditAction } from "@/utils/actions/premium";
 import { NewsletterStatus } from "@/generated/prisma/enums";
@@ -21,23 +23,72 @@ import {
   useArchiveSenderQueueActions,
 } from "@/store/archive-sender-queue";
 import { deleteEmails } from "@/store/archive-queue";
+import { fetchAllSenderThreads } from "@/store/fetch-sender-threads";
 import type {
   NewsletterFilterType,
   Row,
 } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/types";
 import type { GetThreadsResponse } from "@/app/api/threads/basic/route";
+import type { ThreadsListResponse } from "@/app/api/threads/route";
 import { isDefined } from "@/utils/types";
 import { fetchWithAccount } from "@/utils/fetch";
 import type { UserResponse } from "@/app/api/user/me/route";
-import {
-  bulkArchiveAction,
-  bulkTrashAction,
-} from "@/utils/actions/mail-bulk-action";
-import {
-  getHttpUnsubscribeLink,
-  getUserFacingUnsubscribeLink,
-} from "@/utils/parse/unsubscribe";
+import { bulkArchiveAction } from "@/utils/actions/mail-bulk-action";
 import { useProductAnalytics } from "@/hooks/useProductAnalytics";
+import { CHANNELS_THREADS_CACHE_KEY } from "@/utils/preview-data";
+import {
+  clearPageDataEntry,
+  updatePageDataEntry,
+} from "@/utils/preview-data-cache";
+import { filterThreadsByMutedSenders } from "@/utils/channels/muted-threads";
+
+type GlobalMutate = ReturnType<typeof useSWRConfig>["mutate"];
+
+function removeSendersFromChannelsData(
+  data: ThreadsListResponse | undefined,
+  senderEmails: string[],
+) {
+  if (!data) return data;
+  const threads = filterThreadsByMutedSenders(data.threads, senderEmails);
+  const removedCount = data.threads.length - threads.length;
+  return {
+    ...data,
+    threads,
+    totalCount:
+      typeof data.totalCount === "number"
+        ? Math.max(0, data.totalCount - removedCount)
+        : data.totalCount,
+  };
+}
+
+async function removeSendersFromChannelsCache({
+  emailAccountId,
+  senderEmails,
+  mutateGlobal,
+}: {
+  emailAccountId: string;
+  senderEmails: string[];
+  mutateGlobal: GlobalMutate;
+}) {
+  updatePageDataEntry<ThreadsListResponse>(
+    emailAccountId,
+    CHANNELS_THREADS_CACHE_KEY,
+    (current) =>
+      removeSendersFromChannelsData(current, senderEmails) ?? current,
+  );
+  await mutateGlobal(
+    [CHANNELS_THREADS_CACHE_KEY, emailAccountId],
+    (current: ThreadsListResponse | undefined) =>
+      removeSendersFromChannelsData(current, senderEmails),
+    { revalidate: false },
+  );
+
+  // Reconcile in the background when Gmail/Outlook is available. The local
+  // removal above remains visible even if the provider is temporarily limited.
+  mutateGlobal([CHANNELS_THREADS_CACHE_KEY, emailAccountId]).catch(
+    captureException,
+  );
+}
 
 // Shared type for SWR mutate function
 type MutateFn = (
@@ -224,36 +275,6 @@ async function executeBulkOperation<T extends Row>({
   };
 }
 
-async function unsubscribeAndArchive({
-  senderEmail,
-  unsubscribeLink,
-  mutate,
-  refetchPremium,
-  emailAccountId,
-  queueArchiveSenders,
-}: {
-  senderEmail: string;
-  unsubscribeLink?: string | null;
-  mutate: () => Promise<void>;
-  refetchPremium: () => Promise<UserResponse | null | undefined>;
-  emailAccountId: string;
-  queueArchiveSenders: QueueArchiveSendersFn;
-}) {
-  const unsubscribed = await performAutomaticUnsubscribe({
-    emailAccountId,
-    senderEmail,
-    unsubscribeLink,
-  });
-  if (!unsubscribed) return false;
-
-  await mutate();
-  await decrementUnsubscribeCreditAction();
-  await queueArchiveSenders({ senders: [senderEmail] });
-  await refreshPremium(refetchPremium);
-
-  return true;
-}
-
 async function blockSender({
   sender,
   emailAccountId,
@@ -293,24 +314,16 @@ export function useUnsubscribe<T extends Row>({
   hasUnsubscribeAccess,
   mutate,
   posthog,
-  refetchPremium,
 }: {
   item: T;
   emailAccountId: string;
   hasUnsubscribeAccess: boolean;
   mutate: () => Promise<void>;
   posthog: PostHog;
-  refetchPremium: () => Promise<UserResponse | null | undefined>;
 }) {
   const analytics = useProductAnalytics("bulk_unsubscribe");
+  const { mutate: mutateGlobal } = useSWRConfig();
   const [unsubscribeLoading, setUnsubscribeLoading] = useState(false);
-  const { queueArchiveSenders } = useArchiveSenderQueueActions(emailAccountId);
-  const automaticUnsubscribeLink = getAutomaticUnsubscribeLink(
-    item.unsubscribeLink,
-  );
-  const userFacingUnsubscribeLink = getManualUnsubscribeLink(
-    item.unsubscribeLink,
-  );
 
   const onUnsubscribe = useCallback(async () => {
     if (!hasUnsubscribeAccess) return;
@@ -319,64 +332,41 @@ export function useUnsubscribe<T extends Row>({
 
     try {
       posthog.capture("Clicked Unsubscribe");
-      analytics.captureAction("unsubscribe_sender_started", {
+      analytics.captureAction("freescale_sender_visibility_started", {
         status: item.status,
-        has_automatic_unsubscribe_link: Boolean(automaticUnsubscribeLink),
-        has_user_facing_unsubscribe_link: Boolean(userFacingUnsubscribeLink),
       });
 
-      if (item.status === NewsletterStatus.UNSUBSCRIBED) {
-        const statusResult = await setSenderStatusAction(emailAccountId, {
-          senderEmail: item.name,
-          status: null,
-        });
-        assertActionSucceeded(statusResult);
-        await mutate();
-      } else {
-        if (!userFacingUnsubscribeLink) {
-          await blockSender({
-            sender: item.name,
-            emailAccountId,
-            queueArchiveSenders,
-          });
-          analytics.captureAction("unsubscribe_sender_completed", {
-            outcome: "blocked_sender",
-          });
-          toastSuccess({
-            description: "Sender blocked. Future emails will be archived.",
-          });
-          await mutate();
-          await refreshPremium(refetchPremium);
-          return;
-        }
-
-        if (!automaticUnsubscribeLink) return;
-
-        const unsubscribed = await unsubscribeAndArchive({
-          senderEmail: item.name,
-          unsubscribeLink: item.unsubscribeLink,
-          mutate,
-          refetchPremium,
+      const hidden = item.status !== NewsletterStatus.UNSUBSCRIBED;
+      const statusResult = await setFreescaleSenderVisibilityAction(
+        emailAccountId,
+        { senderEmail: item.name, hidden },
+      );
+      assertActionSucceeded(statusResult);
+      await mutate();
+      if (hidden) {
+        await removeSendersFromChannelsCache({
           emailAccountId,
-          queueArchiveSenders,
+          senderEmails: [item.name],
+          mutateGlobal,
         });
-        if (!unsubscribed) {
-          analytics.captureAction("unsubscribe_sender_failed", {
-            reason: "automatic_unsubscribe_failed",
-          });
-          toast.error(`Could not automatically unsubscribe from ${item.name}`);
-        } else {
-          analytics.captureAction("unsubscribe_sender_completed", {
-            outcome: "unsubscribed_and_archived",
-          });
-        }
+      } else {
+        clearPageDataEntry(emailAccountId, CHANNELS_THREADS_CACHE_KEY);
+        await mutateGlobal([CHANNELS_THREADS_CACHE_KEY, emailAccountId]);
       }
+      analytics.captureAction("freescale_sender_visibility_completed", {
+        hidden,
+      });
+      toastSuccess({
+        description: hidden
+          ? "Expéditeur masqué des Canaux Freescale."
+          : "Expéditeur restauré dans les Canaux Freescale.",
+      });
     } catch (error) {
       if (error instanceof EmailProviderRateLimitError) {
         toast.error(error.message);
       } else {
         captureException(error);
-        toast.error(`Could not unsubscribe from ${item.name}`);
+        toast.error(`Impossible de modifier la visibilité de ${item.name}`);
       }
     } finally {
       setUnsubscribeLoading(false);
@@ -385,24 +375,16 @@ export function useUnsubscribe<T extends Row>({
     hasUnsubscribeAccess,
     item.name,
     item.status,
-    item.unsubscribeLink,
-    automaticUnsubscribeLink,
     analytics,
     mutate,
-    refetchPremium,
     posthog,
     emailAccountId,
-    userFacingUnsubscribeLink,
-    queueArchiveSenders,
+    mutateGlobal,
   ]);
 
   return {
     unsubscribeLoading,
     onUnsubscribe,
-    unsubscribeLink:
-      hasUnsubscribeAccess && userFacingUnsubscribeLink
-        ? userFacingUnsubscribeLink
-        : "#",
   };
 }
 
@@ -410,7 +392,6 @@ export function useBulkUnsubscribe<T extends Row>({
   hasUnsubscribeAccess,
   mutate,
   posthog,
-  refetchPremium,
   emailAccountId,
   onDeselectItem,
   filter,
@@ -419,14 +400,14 @@ export function useBulkUnsubscribe<T extends Row>({
   hasUnsubscribeAccess: boolean;
   mutate: MutateFn;
   posthog: PostHog;
-  refetchPremium: () => Promise<UserResponse | null | undefined>;
   emailAccountId: string;
   onDeselectItem?: (id: string) => void;
   filter: NewsletterFilterType;
   onSuccess?: (items: T[]) => void;
 }) {
   const analytics = useProductAnalytics("bulk_unsubscribe");
-  const { queueArchiveSenders } = useArchiveSenderQueueActions(emailAccountId);
+  const { mutate: mutateGlobal } = useSWRConfig();
+  const [isBulkUnsubscribing, setIsBulkUnsubscribing] = useState(false);
 
   const onBulkUnsubscribe = useCallback(
     async (items: T[]) => {
@@ -438,79 +419,115 @@ export function useBulkUnsubscribe<T extends Row>({
           failureCount: items.length,
         };
       }
-      posthog.capture("Clicked Bulk Unsubscribe");
-      analytics.captureAction("bulk_unsubscribe_started", {
-        item_count: items.length,
-        filter,
-      });
+      if (isBulkUnsubscribing || items.length === 0) return;
+      setIsBulkUnsubscribing(true);
+      let toastId: string | number | undefined;
 
-      const messages = getBulkUnsubscribeMessages(items);
+      try {
+        posthog.capture("Clicked Bulk Unsubscribe");
+        analytics.captureAction("bulk_unsubscribe_started", {
+          item_count: items.length,
+          filter,
+        });
 
-      const result = await executeBulkOperation({
-        items,
-        mutate,
-        filter,
-        onDeselectItem,
-        newStatus: NewsletterStatus.UNSUBSCRIBED,
-        getNewStatus: (item) =>
-          getAutomaticUnsubscribeLink(item.unsubscribeLink)
-            ? NewsletterStatus.UNSUBSCRIBED
-            : NewsletterStatus.AUTO_ARCHIVED,
-        ...messages,
-        processItem: async (item) => {
-          if (!getAutomaticUnsubscribeLink(item.unsubscribeLink)) {
-            await blockSender({
-              sender: item.name,
-              emailAccountId,
-              queueArchiveSenders,
-            });
-            return;
-          }
+        const senderEmails = items.map((item) => item.name);
+        const selectedEmails = new Set(senderEmails);
+        toastId = toast.loading(
+          `Masquage de ${items.length} ${pluralize(items.length, "expéditeur")}…`,
+        );
 
-          const unsubscribed = await performAutomaticUnsubscribe({
+        await mutate(
+          // biome-ignore lint/suspicious/noExplicitAny: existing loose external shape
+          (currentData: any) => {
+            if (!currentData?.newsletters) return currentData;
+            return {
+              ...currentData,
+              newsletters: currentData.newsletters
+                // biome-ignore lint/suspicious/noExplicitAny: existing loose external shape
+                .map((newsletter: any) =>
+                  selectedEmails.has(newsletter.name)
+                    ? {
+                        ...newsletter,
+                        status: NewsletterStatus.UNSUBSCRIBED,
+                      }
+                    : newsletter,
+                )
+                // biome-ignore lint/suspicious/noExplicitAny: existing loose external shape
+                .filter((newsletter: any) =>
+                  itemMatchesFilter(newsletter.status, filter),
+                ),
+            };
+          },
+          { revalidate: false },
+        );
+
+        const statusResult = await setFreescaleSendersVisibilityAction(
+          emailAccountId,
+          { senderEmails, hidden: true },
+        );
+        assertActionSucceeded(statusResult);
+
+        for (const item of items) onDeselectItem?.(item.name);
+        await Promise.all([
+          mutate(),
+          removeSendersFromChannelsCache({
             emailAccountId,
-            senderEmail: item.name,
-            unsubscribeLink: item.unsubscribeLink,
-          });
-          if (!unsubscribed) {
-            throw new Error("Automatic unsubscribe did not succeed");
-          }
+            senderEmails,
+            mutateGlobal,
+          }),
+        ]);
 
-          await decrementUnsubscribeCreditAction();
-          await queueArchiveSenders({ senders: [item.name] });
-        },
-        onComplete: async () => {
-          await mutate();
-          await refreshPremium(refetchPremium);
-        },
-        onCompleteRevalidates: true,
-        onSuccess: () => onSuccess?.(items),
-      });
-      if (result.stoppedByRateLimit) return;
+        toast.success(
+          `${items.length} ${pluralize(items.length, "expéditeur")} ${items.length === 1 ? "masqué" : "masqués"} de Freescale`,
+          { id: toastId },
+        );
+        onSuccess?.(items);
 
-      analytics.captureAction("bulk_unsubscribe_completed", {
-        item_count: items.length,
-        success_count: result.successCount,
-        failure_count: result.failureCount,
-        filter,
-      });
-      return result;
+        const result: BulkOperationResult = {
+          stoppedByRateLimit: false,
+          total: items.length,
+          successCount: items.length,
+          failureCount: 0,
+        };
+
+        analytics.captureAction("bulk_unsubscribe_completed", {
+          item_count: items.length,
+          success_count: result.successCount,
+          failure_count: 0,
+          filter,
+        });
+        return result;
+      } catch (error) {
+        captureException(error);
+        await mutate();
+        toast.error("Impossible de masquer les expéditeurs sélectionnés", {
+          id: toastId,
+        });
+        return {
+          stoppedByRateLimit: false,
+          total: items.length,
+          successCount: 0,
+          failureCount: items.length,
+        };
+      } finally {
+        setIsBulkUnsubscribing(false);
+      }
     },
     [
       hasUnsubscribeAccess,
       mutate,
       posthog,
-      refetchPremium,
       emailAccountId,
       onDeselectItem,
       filter,
       analytics,
-      queueArchiveSenders,
       onSuccess,
+      isBulkUnsubscribing,
+      mutateGlobal,
     ],
   );
 
-  return { onBulkUnsubscribe };
+  return { onBulkUnsubscribe, isBulkUnsubscribing };
 }
 
 async function autoArchive({
@@ -978,34 +995,74 @@ export function useBulkDelete<T extends Row>({
   posthog: PostHog;
   emailAccountId: string;
 }) {
-  const { executeAsync: executeBulkTrash, isExecuting } = useAction(
-    bulkTrashAction.bind(null, emailAccountId),
-    {
-      onSuccess: () => {
-        mutate();
-      },
-    },
-  );
+  const { mutate: mutateGlobal } = useSWRConfig();
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  const onBulkDelete = (items: T[]) => {
+  const onBulkDelete = async (items: T[]) => {
+    if (isBulkDeleting || items.length === 0) return;
+    setIsBulkDeleting(true);
     posthog.capture("Clicked Bulk Delete");
-
-    const promise = executeBulkTrash({ froms: items.map((item) => item.name) });
-
-    const displayNames = formatSenderNames(items);
-
-    toast.promise(promise, {
-      loading: `Deleting emails from ${displayNames}...`,
-      success: `Deleted emails from ${displayNames}`,
-      error: (error: unknown) =>
-        getBulkActionErrorMessage(
-          error,
-          "There was an error trashing the emails",
-        ),
+    const toastId = toast.loading("Préparation de la suppression…", {
+      description: `0 sur ${items.length} expéditeur traité`,
     });
+
+    try {
+      const threadIds = new Set<string>();
+
+      for (const [index, item] of items.entries()) {
+        const data = await fetchAllSenderThreads({
+          sender: item.name,
+          emailAccountId,
+        });
+        for (const thread of data.threads) {
+          if (thread.id) threadIds.add(thread.id);
+        }
+        toast.loading("Préparation de la suppression…", {
+          id: toastId,
+          description: `${index + 1} sur ${items.length} expéditeurs traités`,
+        });
+      }
+
+      if (threadIds.size === 0) {
+        toast.info("Aucun e-mail à supprimer", { id: toastId });
+        return;
+      }
+
+      deleteEmails({
+        threadIds: [...threadIds],
+        emailAccountId,
+        onSuccess: () => {},
+        onComplete: async () => {
+          try {
+            await mutate();
+            clearPageDataEntry(emailAccountId, CHANNELS_THREADS_CACHE_KEY);
+            await mutateGlobal([CHANNELS_THREADS_CACHE_KEY, emailAccountId]);
+            toast.success("Suppression terminée");
+          } catch (error) {
+            captureException(error);
+            toast.error(
+              "Suppression terminée, mais l’affichage n’a pas pu être actualisé",
+            );
+          }
+        },
+      });
+
+      toast.success("Suppression lancée", {
+        id: toastId,
+        description: `${threadIds.size} conversation${threadIds.size > 1 ? "s" : ""} en cours de traitement`,
+      });
+    } catch (error) {
+      captureException(error);
+      toast.error(
+        getBulkActionErrorMessage(error, "Impossible de supprimer ces e-mails"),
+        { id: toastId },
+      );
+    } finally {
+      setIsBulkDeleting(false);
+    }
   };
 
-  return { onBulkDelete, isBulkDeleting: isExecuting };
+  return { onBulkDelete, isBulkDeleting };
 }
 
 export function useBulkUnsubscribeShortcuts<T extends Row>({
@@ -1030,7 +1087,7 @@ export function useBulkUnsubscribeShortcuts<T extends Row>({
   emailAccountId: string;
   userEmail: string;
 }) {
-  const { queueArchiveSenders } = useArchiveSenderQueueActions(emailAccountId);
+  const { mutate: mutateGlobal } = useSWRConfig();
 
   // perform actions using keyboard shortcuts
   // TODO make this available to command-K dialog too
@@ -1077,47 +1134,23 @@ export function useBulkUnsubscribeShortcuts<T extends Row>({
           return;
         }
         if (e.key === "u") {
-          // unsubscribe
+          // Hide only inside Freescale. Never follow a sender link or mutate
+          // the connected mailbox for this shortcut.
           e.preventDefault();
-          const automaticUnsubscribeLink = getAutomaticUnsubscribeLink(
-            item.unsubscribeLink,
-          );
-          const userFacingUnsubscribeLink = getManualUnsubscribeLink(
-            item.unsubscribeLink,
-          );
-
-          if (!userFacingUnsubscribeLink) {
-            await blockSender({
-              sender: item.name,
-              emailAccountId,
-              queueArchiveSenders,
-            });
-            toastSuccess({
-              description: "Sender blocked. Future emails will be archived.",
-            });
-            await mutate();
-            await refreshPremium(refetchPremium);
-            return;
-          }
-
-          if (!automaticUnsubscribeLink) {
-            window.open(
-              userFacingUnsubscribeLink,
-              "_blank",
-              "noopener,noreferrer",
-            );
-            return;
-          }
-
-          const unsubscribed = await unsubscribeAndArchive({
-            senderEmail: item.name,
-            unsubscribeLink: item.unsubscribeLink,
-            mutate,
-            refetchPremium,
+          const statusResult = await setFreescaleSenderVisibilityAction(
             emailAccountId,
-            queueArchiveSenders,
+            { senderEmail: item.name, hidden: true },
+          );
+          assertActionSucceeded(statusResult);
+          await mutate();
+          await removeSendersFromChannelsCache({
+            emailAccountId,
+            senderEmails: [item.name],
+            mutateGlobal,
           });
-          if (!unsubscribed) return;
+          toastSuccess({
+            description: "Expéditeur masqué des Canaux Freescale.",
+          });
           return;
         }
         if (e.key === "a") {
@@ -1146,7 +1179,7 @@ export function useBulkUnsubscribeShortcuts<T extends Row>({
     setSelectedRow,
     onOpenNewsletter,
     emailAccountId,
-    queueArchiveSenders,
+    mutateGlobal,
   ]);
 }
 
@@ -1168,74 +1201,6 @@ export function useNewsletterFilter() {
     filter,
     filtersArray,
     setFilter,
-  };
-}
-
-function didAutomaticUnsubscribeSucceed(
-  result: Awaited<ReturnType<typeof unsubscribeSenderAction>>,
-) {
-  if (result?.serverError) {
-    assertActionSucceeded({ serverError: result.serverError });
-  }
-
-  return result?.data?.unsubscribe.success === true;
-}
-
-async function performAutomaticUnsubscribe({
-  emailAccountId,
-  senderEmail,
-  unsubscribeLink,
-}: {
-  emailAccountId: string;
-  senderEmail: string;
-  unsubscribeLink?: string | null;
-}) {
-  const unsubscribeResult = await unsubscribeSenderAction(emailAccountId, {
-    senderEmail,
-    unsubscribeLink,
-  });
-
-  return didAutomaticUnsubscribeSucceed(unsubscribeResult);
-}
-
-function getAutomaticUnsubscribeLink(unsubscribeLink?: string | null) {
-  return getHttpUnsubscribeLink({
-    unsubscribeLink,
-  });
-}
-
-function getManualUnsubscribeLink(unsubscribeLink?: string | null) {
-  return getUserFacingUnsubscribeLink({
-    unsubscribeLink,
-  });
-}
-
-function getBulkUnsubscribeMessages<T extends Row>(items: T[]) {
-  const hasAutomatic = items.some((item) =>
-    getAutomaticUnsubscribeLink(item.unsubscribeLink),
-  );
-  const hasBlock = items.some(
-    (item) => !getAutomaticUnsubscribeLink(item.unsubscribeLink),
-  );
-
-  if (hasAutomatic && hasBlock) {
-    return {
-      loadingMessage: "Processing",
-      successMessage: "processed",
-      errorMessage: "Failed to process",
-    };
-  }
-  if (hasBlock) {
-    return {
-      loadingMessage: "Blocking",
-      successMessage: "blocked",
-      errorMessage: "Failed to block",
-    };
-  }
-  return {
-    loadingMessage: "Unsubscribing from",
-    successMessage: "unsubscribed",
-    errorMessage: "Failed to unsubscribe from",
   };
 }
 

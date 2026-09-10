@@ -6,6 +6,9 @@ import { useArchiveQueueProgress } from "@/store/archive-sender-queue";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { useAccount } from "@/providers/EmailAccountProvider";
 
+const formatProgress = (processed: number, total: number, itemLabel: string) =>
+  `${processed} sur ${total} ${itemLabel} traités`;
+
 export const ArchiveProgress = memo(() => {
   const { emailAccountId } = useAccount();
   const { totalThreads, activeThreads } = useQueueState();
@@ -36,9 +39,10 @@ export const ArchiveProgress = memo(() => {
           (bulkArchiveProgress?.totalItems || 0) -
           (bulkArchiveProgress?.completedItems || 0)
         }
-        inProgressText="Archiving senders..."
-        completedText="Archiving complete!"
-        itemLabel="senders"
+        inProgressText="Traitement des expéditeurs…"
+        completedText="Traitement terminé"
+        itemLabel="expéditeurs"
+        formatProgress={formatProgress}
       />
     );
   }
@@ -47,9 +51,10 @@ export const ArchiveProgress = memo(() => {
     <ProgressPanel
       totalItems={totalThreads}
       remainingItems={threadsRemaining}
-      inProgressText="Archiving emails..."
-      completedText="Archiving complete!"
-      itemLabel="emails"
+      inProgressText="Traitement des e-mails…"
+      completedText="Traitement terminé"
+      itemLabel="e-mails"
+      formatProgress={formatProgress}
     />
   );
 });

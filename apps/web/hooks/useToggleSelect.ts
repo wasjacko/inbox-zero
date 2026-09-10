@@ -1,8 +1,40 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 export function useToggleSelect(items: { id: string }[]) {
   const [selected, setSelected] = useState<Map<string, boolean>>(new Map());
   const lastClickedIdRef = useRef<string | null>(null);
+
+  const itemIds = items.map((item) => item.id);
+  const itemIdsKey = itemIds.join("\u001f");
+
+  // A selection only belongs to the currently available dataset. This keeps
+  // hidden results from lingering after a search, date or filter change.
+  useEffect(() => {
+    const availableIds = new Set(itemIdsKey ? itemIdsKey.split("\u001f") : []);
+    setSelected((previous) => {
+      const next = new Map(
+        [...previous].filter(
+          ([id, isSelected]) => isSelected && availableIds.has(id),
+        ),
+      );
+
+      if (
+        next.size === previous.size &&
+        [...next.keys()].every((id) => previous.get(id))
+      ) {
+        return previous;
+      }
+
+      return next;
+    });
+
+    if (
+      lastClickedIdRef.current &&
+      !availableIds.has(lastClickedIdRef.current)
+    ) {
+      lastClickedIdRef.current = null;
+    }
+  }, [itemIdsKey]);
 
   const isAllSelected =
     !!items.length && items.every((item) => selected.get(item.id));
@@ -32,7 +64,12 @@ export function useToggleSelect(items: { id: string }[]) {
         });
       } else {
         // Normal click: toggle single item
-        setSelected((prev) => new Map(prev).set(id, !prev.get(id)));
+        setSelected((prev) => {
+          const next = new Map(prev);
+          if (next.get(id)) next.delete(id);
+          else next.set(id, true);
+          return next;
+        });
       }
 
       lastClickedIdRef.current = id;
@@ -40,20 +77,19 @@ export function useToggleSelect(items: { id: string }[]) {
     [items],
   );
 
-  const onToggleSelectItems = useCallback(
-    (ids: string[]) => {
-      const allSelected = ids.every((id) => selected.get(id));
+  const onToggleSelectItems = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
 
-      setSelected((prev) => {
-        const newSelected = new Map(prev);
-        for (const id of ids) {
-          newSelected.set(id, !allSelected);
-        }
-        return newSelected;
-      });
-    },
-    [selected],
-  );
+    setSelected((prev) => {
+      const next = new Map(prev);
+      const allSelected = ids.every((id) => next.get(id));
+      for (const id of ids) {
+        if (allSelected) next.delete(id);
+        else next.set(id, true);
+      }
+      return next;
+    });
+  }, []);
 
   const onToggleSelectAll = useCallback(() => {
     onToggleSelectItems(items.map((item) => item.id));

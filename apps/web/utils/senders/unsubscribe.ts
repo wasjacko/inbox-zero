@@ -7,6 +7,7 @@ import type { EmailProvider } from "@/utils/email/types";
 import { findAutoArchiveFilters } from "@/utils/senders/filters";
 import {
   extractEmailOrThrow,
+  upsertSenderRecords,
   upsertSenderRecord,
 } from "@/utils/senders/record";
 import {
@@ -44,6 +45,22 @@ export async function setSenderStatus({
   return upsertSenderRecord({
     emailAccountId,
     senderEmail,
+    changes: { status },
+  });
+}
+
+export async function setSenderStatuses({
+  emailAccountId,
+  senderEmails,
+  status,
+}: {
+  emailAccountId: string;
+  senderEmails: string[];
+  status: NewsletterStatus | null;
+}) {
+  return upsertSenderRecords({
+    emailAccountId,
+    senderEmails,
     changes: { status },
   });
 }

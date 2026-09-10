@@ -10,6 +10,8 @@ import prisma from "@/utils/prisma";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { isIgnoredSender } from "@/utils/filter-ignored-senders";
 import type { EmailProvider } from "@/utils/email/types";
+import { NewsletterStatus } from "@/generated/prisma/enums";
+import { filterThreadsByMutedSenders } from "@/utils/channels/muted-threads";
 
 export const maxDuration = 30;
 
@@ -38,6 +40,8 @@ export const GET = withEmailProvider(
     const isUnread = searchParams.get("isUnread");
     const view = threadsView.parse(searchParams.get("view"));
     const includePlans = searchParams.get("includePlans") !== "false";
+    const excludeFreescaleMuted =
+      searchParams.get("excludeFreescaleMuted") === "true";
 
     const query = threadsQuery.parse({
       limit,
@@ -61,6 +65,7 @@ export const GET = withEmailProvider(
         emailProvider,
         includePlans,
         messageFormat: view === "list" ? "metadata" : "full",
+        excludeFreescaleMuted,
       });
       return NextResponse.json(
         view === "list" ? toListThreads(threads) : threads,
@@ -100,23 +105,46 @@ async function getThreads({
   emailProvider,
   includePlans,
   messageFormat,
+  excludeFreescaleMuted,
 }: {
   query: ThreadsQuery;
   emailAccountId: string;
   emailProvider: EmailProvider;
   includePlans: boolean;
   messageFormat: "full" | "metadata";
+  excludeFreescaleMuted: boolean;
 }) {
   // Get threads using the provider
-  const { threads, nextPageToken, totalCount, unreadCount } =
-    await emailProvider.getThreadsWithQuery({
-      query,
-      maxResults: query.limit || 50,
-      pageToken: query.nextPageToken || undefined,
-      messageFormat,
-    });
+  const [{ threads, nextPageToken, totalCount, unreadCount }, mutedSenders] =
+    await Promise.all([
+      emailProvider.getThreadsWithQuery({
+        query,
+        maxResults: query.limit || 50,
+        pageToken: query.nextPageToken || undefined,
+        messageFormat,
+      }),
+      excludeFreescaleMuted
+        ? prisma.newsletter.findMany({
+            where: {
+              emailAccountId,
+              status: {
+                in: [
+                  NewsletterStatus.UNSUBSCRIBED,
+                  NewsletterStatus.AUTO_ARCHIVED,
+                ],
+              },
+            },
+            select: { email: true },
+          })
+        : Promise.resolve([]),
+    ]);
 
-  const threadIds = threads.map((t) => t.id);
+  const visibleThreads = filterThreadsByMutedSenders(
+    threads,
+    mutedSenders.map(({ email }) => email),
+  );
+
+  const threadIds = visibleThreads.map((t) => t.id);
   const executedRules = includePlans
     ? await prisma.executedRule.findMany({
         where: {
@@ -159,7 +187,7 @@ async function getThreads({
   }
 
   // Process threads with plans and categories
-  const threadsWithPlans = threads.map((thread) => {
+  const threadsWithPlans = visibleThreads.map((thread) => {
     const plans = aggregateThreadPlans(
       executedRulesByThreadId.get(thread.id) ?? [],
     );

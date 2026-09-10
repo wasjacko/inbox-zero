@@ -1,15 +1,20 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockFindMany, mockGetThreadsWithQuery } = vi.hoisted(() => ({
-  mockFindMany: vi.fn(),
-  mockGetThreadsWithQuery: vi.fn(),
-}));
+const { mockFindMany, mockNewsletterFindMany, mockGetThreadsWithQuery } =
+  vi.hoisted(() => ({
+    mockFindMany: vi.fn(),
+    mockNewsletterFindMany: vi.fn(),
+    mockGetThreadsWithQuery: vi.fn(),
+  }));
 
 vi.mock("@/utils/prisma", () => ({
   default: {
     executedRule: {
       findMany: (...args: unknown[]) => mockFindMany(...args),
+    },
+    newsletter: {
+      findMany: (...args: unknown[]) => mockNewsletterFindMany(...args),
     },
   },
 }));
@@ -71,6 +76,7 @@ describe("GET /api/threads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFindMany.mockResolvedValue([]);
+    mockNewsletterFindMany.mockResolvedValue([]);
     mockGetThreadsWithQuery.mockResolvedValue({ threads: [] });
   });
 
@@ -128,6 +134,44 @@ describe("GET /api/threads", () => {
       maxResults: 50,
       pageToken: undefined,
       messageFormat: "full",
+    });
+  });
+
+  it("excludes locally muted senders only when Freescale requests it", async () => {
+    mockNewsletterFindMany.mockResolvedValue([{ email: "muted@example.com" }]);
+    mockGetThreadsWithQuery.mockResolvedValue({
+      threads: [
+        {
+          id: "muted-thread",
+          snippet: "muted",
+          messages: [
+            getMessage({ headers: { from: "Muted <muted@example.com>" } }),
+          ],
+        },
+        {
+          id: "visible-thread",
+          snippet: "visible",
+          messages: [getMessage({ headers: { from: "visible@example.com" } })],
+        },
+      ],
+    });
+
+    const response = await GET(
+      new NextRequest(
+        "http://localhost:3000/api/threads?excludeFreescaleMuted=true",
+      ),
+    );
+    const body = await response.json();
+
+    expect(body.threads.map(({ id }: { id: string }) => id)).toEqual([
+      "visible-thread",
+    ]);
+    expect(mockNewsletterFindMany).toHaveBeenCalledWith({
+      where: {
+        emailAccountId: "email-account-id",
+        status: { in: ["UNSUBSCRIBED", "AUTO_ARCHIVED"] },
+      },
+      select: { email: true },
     });
   });
 

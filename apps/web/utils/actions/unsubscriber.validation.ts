@@ -10,6 +10,16 @@ export const setSenderStatusBody = z.object({
 });
 export type SetSenderStatusBody = z.infer<typeof setSenderStatusBody>;
 
+export const setFreescaleSenderVisibilityBody = z.object({
+  senderEmail: z.string().email(),
+  hidden: z.boolean(),
+});
+
+export const setFreescaleSendersVisibilityBody = z.object({
+  senderEmails: z.array(z.string().email()).min(1).max(1000),
+  hidden: z.boolean(),
+});
+
 export const unsubscribeSenderBody = z.object({
   senderEmail: z.string().email(),
   unsubscribeLink: z.string().optional().nullable(),

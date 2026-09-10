@@ -49,9 +49,9 @@ describe("ArchiveProgress", () => {
 
     render(<ArchiveProgress />);
 
-    expect(screen.getByText("Archiving senders...")).toBeTruthy();
-    expect(screen.getByText("1 of 3 senders processed")).toBeTruthy();
-    expect(screen.queryByText("3 of 4 emails processed")).toBeNull();
+    expect(screen.getByText("Traitement des expéditeurs…")).toBeTruthy();
+    expect(screen.getByText("1 sur 3 expéditeurs traités")).toBeTruthy();
+    expect(screen.queryByText("3 sur 4 e-mails traités")).toBeNull();
   });
 
   it("falls back to the local archive queue progress", () => {
@@ -64,8 +64,8 @@ describe("ArchiveProgress", () => {
 
     render(<ArchiveProgress />);
 
-    expect(screen.getByText("Archiving emails...")).toBeTruthy();
-    expect(screen.getByText("3 of 4 emails processed")).toBeTruthy();
+    expect(screen.getByText("Traitement des e-mails…")).toBeTruthy();
+    expect(screen.getByText("3 sur 4 e-mails traités")).toBeTruthy();
   });
 
   it("does not reset archive progress after unmounting", () => {

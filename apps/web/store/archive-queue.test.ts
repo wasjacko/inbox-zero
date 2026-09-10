@@ -285,6 +285,21 @@ describe("cancelQueuedThreads", () => {
       }),
     ).toEqual({ cancelled: [], notCancelled: ["never-queued"] });
   });
+
+  it("reports completion after every queued deletion finishes", async () => {
+    const { deleteEmails } = await import("./archive-queue");
+    const onComplete = vi.fn();
+
+    await deleteEmails({
+      threadIds: ["thread-1", "thread-2"],
+      onSuccess: vi.fn(),
+      onComplete,
+      emailAccountId: "account-1",
+    });
+
+    await vi.waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
+    expect(mockTrashThreadAction).toHaveBeenCalledTimes(2);
+  });
 });
 
 // The queue atom isn't exported; it persists to localStorage on every write,

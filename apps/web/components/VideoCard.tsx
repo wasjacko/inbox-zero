@@ -29,6 +29,10 @@ type VideoCardBaseProps = React.HTMLAttributes<HTMLDivElement> & {
   icon?: React.ReactNode;
   title: string;
   description: string;
+  watchVideoLabel?: string;
+  closeLabel?: string;
+  playVideoLabel?: string;
+  videoTitlePrefix?: string;
   videoSrc?: string;
   thumbnailSrc?: string;
   muxPlaybackId?: string;
@@ -100,6 +104,10 @@ const VideoCard = React.forwardRef<
       icon,
       title,
       description,
+      watchVideoLabel = "Watch Video",
+      closeLabel = "Close",
+      playVideoLabel = "Play video",
+      videoTitlePrefix = "Video",
       videoSrc,
       thumbnailSrc,
       muxPlaybackId,
@@ -124,7 +132,7 @@ const VideoCard = React.forwardRef<
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={closeLabel}
               className="absolute top-3 right-3 z-10 p-1.5 rounded-full hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors duration-200"
             >
               <X className="w-4 h-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
@@ -147,7 +155,7 @@ const VideoCard = React.forwardRef<
                   onClick={() => openVideo("button")}
                   Icon={PlayIcon}
                 >
-                  Watch Video
+                  {watchVideoLabel}
                 </Button>
               </div>
             </div>
@@ -157,7 +165,7 @@ const VideoCard = React.forwardRef<
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    aria-label="Play video"
+                    aria-label={playVideoLabel}
                     onClick={() => openVideo("thumbnail")}
                     className="group relative cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 rounded-lg overflow-hidden"
                   >
@@ -183,7 +191,9 @@ const VideoCard = React.forwardRef<
                   </button>
                 </DialogTrigger>
                 <DialogContent className="max-w-6xl border-0 bg-transparent p-0 overflow-hidden">
-                  <DialogTitle className="sr-only">Video: {title}</DialogTitle>
+                  <DialogTitle className="sr-only">
+                    {videoTitlePrefix} : {title}
+                  </DialogTitle>
                   <div className="relative aspect-video w-full overflow-hidden rounded-lg">
                     {muxPlaybackId ? (
                       <MuxVideo
@@ -200,7 +210,7 @@ const VideoCard = React.forwardRef<
                     ) : youtubeVideoId ? (
                       <YouTubeVideo
                         videoId={youtubeVideoId}
-                        title={`Video: ${title}`}
+                        title={`${videoTitlePrefix} : ${title}`}
                         onVideoCompleted={analytics.trackCompleted}
                         onVideoProgress={analytics.trackProgress}
                         onVideoStarted={analytics.trackStarted}
@@ -212,7 +222,7 @@ const VideoCard = React.forwardRef<
                       <iframe
                         src={`${videoSrc}${videoSrc?.includes("?") ? "&" : "?"}autoplay=1&rel=0`}
                         className="size-full rounded-lg"
-                        title={`Video: ${title}`}
+                        title={`${videoTitlePrefix} : ${title}`}
                         allowFullScreen
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       />

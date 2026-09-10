@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import type { ThreadsListResponse } from "@/app/api/threads/route";
 import type { NewsletterStatsResponse } from "@/app/api/user/stats/newsletters/route";
@@ -16,14 +17,18 @@ import {
 const CHANNELS_BACKGROUND_CACHE_LIMIT = 1000;
 
 export function PreviewDataPreloader() {
+  const pathname = usePathname();
   const { emailAccountId } = useAccount();
   const { onLoad } = useStatLoader();
   const statsPreloadStartedFor = useRef<string | null>(null);
   const enabled = Boolean(emailAccountId);
+  const preloadChannels =
+    pathname === "/channels-v4" || pathname.endsWith("/channels");
+  const preloadNewsletters = pathname.endsWith("/bulk-unsubscribe");
 
   const { data: channelsData, mutate: updateChannelsData } =
     usePreloadedPageData<ThreadsListResponse>(
-      enabled ? CHANNELS_THREADS_CACHE_KEY : null,
+      enabled && preloadChannels ? CHANNELS_THREADS_CACHE_KEY : null,
       {
         dedupingInterval: 60_000,
         revalidateOnFocus: false,
@@ -36,14 +41,14 @@ export function PreviewDataPreloader() {
     isLoading: newsletterLoading,
     mutate: refreshNewsletters,
   } = usePreloadedPageData<NewsletterStatsResponse>(
-    enabled ? BULK_UNSUBSCRIBE_CACHE_KEY : null,
+    enabled && preloadNewsletters ? BULK_UNSUBSCRIBE_CACHE_KEY : null,
     {
       dedupingInterval: 60_000,
       revalidateOnFocus: false,
     },
   );
   usePreloadedPageData<ThreadsListResponse>(
-    enabled && newsletterData?.newsletters.length === 0
+    enabled && preloadNewsletters && newsletterData?.newsletters.length === 0
       ? BULK_UNSUBSCRIBE_THREADS_CACHE_KEY
       : null,
     {
@@ -101,7 +106,13 @@ export function PreviewDataPreloader() {
   }, [channelsData, channelsPageLoading, emailAccountId, updateChannelsData]);
 
   useEffect(() => {
-    if (!emailAccountId || newsletterLoading || !newsletterData) return;
+    if (
+      !preloadNewsletters ||
+      !emailAccountId ||
+      newsletterLoading ||
+      !newsletterData
+    )
+      return;
     if (newsletterData.newsletters.length > 0) return;
     if (statsPreloadStartedFor.current === emailAccountId) return;
 
@@ -116,6 +127,7 @@ export function PreviewDataPreloader() {
     newsletterData,
     newsletterLoading,
     onLoad,
+    preloadNewsletters,
     refreshNewsletters,
   ]);
 

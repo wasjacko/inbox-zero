@@ -81,6 +81,7 @@ const addThreadsToQueue = ({
   labelId,
   onSuccess,
   onError,
+  onComplete,
   emailAccountId,
 }: {
   actionType: QueueActionType;
@@ -88,6 +89,7 @@ const addThreadsToQueue = ({
   labelId?: string;
   onSuccess?: (threadId: string) => void;
   onError?: (threadId: string) => void;
+  onComplete?: () => void | Promise<void>;
   emailAccountId: string;
 }) => {
   const threads = Object.fromEntries(
@@ -115,7 +117,13 @@ const addThreadsToQueue = ({
     totalThreads: prev.totalThreads + Object.keys(threads).length,
   }));
 
-  processQueue({ threads, onSuccess, onError, emailAccountId });
+  processQueue({
+    threads,
+    onSuccess,
+    onError,
+    onComplete,
+    emailAccountId,
+  });
 };
 
 export const archiveEmails = async ({
@@ -123,12 +131,14 @@ export const archiveEmails = async ({
   labelId,
   onSuccess,
   onError,
+  onComplete,
   emailAccountId,
 }: {
   threadIds: string[];
   labelId?: string;
   onSuccess?: (threadId: string) => void;
   onError?: (threadId: string) => void;
+  onComplete?: () => void | Promise<void>;
   emailAccountId: string;
 }) => {
   addThreadsToQueue({
@@ -137,6 +147,7 @@ export const archiveEmails = async ({
     labelId,
     onSuccess,
     onError,
+    onComplete,
     emailAccountId,
   });
 };
@@ -145,11 +156,13 @@ export const markReadThreads = async ({
   threadIds,
   onSuccess,
   onError,
+  onComplete,
   emailAccountId,
 }: {
   threadIds: string[];
   onSuccess: (threadId: string) => void;
   onError?: (threadId: string) => void;
+  onComplete?: () => void | Promise<void>;
   emailAccountId: string;
 }) => {
   addThreadsToQueue({
@@ -157,6 +170,7 @@ export const markReadThreads = async ({
     threadIds,
     onSuccess,
     onError,
+    onComplete,
     emailAccountId,
   });
 };
@@ -165,11 +179,13 @@ export const deleteEmails = async ({
   threadIds,
   onSuccess,
   onError,
+  onComplete,
   emailAccountId,
 }: {
   threadIds: string[];
   onSuccess: (threadId: string) => void;
   onError?: (threadId: string) => void;
+  onComplete?: () => void | Promise<void>;
   emailAccountId: string;
 }) => {
   addThreadsToQueue({
@@ -177,6 +193,7 @@ export const deleteEmails = async ({
     threadIds,
     onSuccess,
     onError,
+    onComplete,
     emailAccountId,
   });
 };
@@ -201,11 +218,13 @@ export function processQueue({
   threads,
   onSuccess,
   onError,
+  onComplete,
   emailAccountId,
 }: {
   threads: Record<string, QueueItem>;
   onSuccess?: (threadId: string) => void;
   onError?: (threadId: string) => void;
+  onComplete?: () => void | Promise<void>;
   emailAccountId: string;
 }) {
   const actionMap: Record<QueueActionType, ActionFunction> = {
@@ -216,7 +235,7 @@ export function processQueue({
       markReadThreadAction(emailAccountId, { threadId, read: true }),
   };
 
-  emailActionQueue.addAll(
+  const queuePromise = emailActionQueue.addAll(
     Object.values(threads).map(({ threadId, actionType, labelId }) => {
       const key = getQueueKey(actionType, threadId);
       const job: QueuedJob = { threadId, actionType, status: "pending" };
@@ -261,6 +280,8 @@ export function processQueue({
       };
     }),
   );
+
+  queuePromise.then(() => onComplete?.());
 }
 
 /**

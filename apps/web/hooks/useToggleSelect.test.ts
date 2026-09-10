@@ -32,4 +32,30 @@ describe("useToggleSelect", () => {
     expect(result.current.selected.get("suggested-2")).toBe(true);
     expect(result.current.selected.get("hidden")).toBeUndefined();
   });
+
+  it("removes selections that disappear from the current dataset", () => {
+    const { result, rerender } = renderHook(
+      ({ visibleItems }) => useToggleSelect(visibleItems),
+      { initialProps: { visibleItems: items } },
+    );
+
+    act(() => {
+      result.current.selectItems(["suggested-1", "hidden"]);
+    });
+
+    rerender({ visibleItems: [items[0]] });
+
+    expect([...result.current.selected.keys()]).toEqual(["suggested-1"]);
+  });
+
+  it("removes deselected ids instead of retaining false entries", () => {
+    const { result } = renderHook(() => useToggleSelect(items));
+
+    act(() => {
+      result.current.onToggleSelect("suggested-1");
+      result.current.onToggleSelect("suggested-1");
+    });
+
+    expect(result.current.selected.has("suggested-1")).toBe(false);
+  });
 });

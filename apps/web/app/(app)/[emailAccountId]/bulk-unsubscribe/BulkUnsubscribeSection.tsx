@@ -10,8 +10,6 @@ import {
   ArchiveIcon,
   CheckCircle2Icon,
   CheckIcon,
-  ChevronsDownIcon,
-  ChevronsUpIcon,
   InboxIcon,
   ListIcon,
   MailXIcon,
@@ -36,7 +34,6 @@ import {
 import { createSearchParams } from "@/utils/url";
 import type { NewsletterFilterType } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/types";
 import {
-  getSuggestedModeRows,
   isUnsubscribeSuggestion,
   SUGGESTION_READ_RATE_THRESHOLD,
 } from "@/app/(app)/[emailAccountId]/bulk-unsubscribe/suggestions";
@@ -119,10 +116,10 @@ const filterOptions: {
 ];
 
 const selectOptions = [
-  { label: "Last week", value: "7" },
-  { label: "Last month", value: "30" },
-  { label: "Last 3 months", value: "90" },
-  { label: "Last year", value: "365" },
+  { label: "7 derniers jours", value: "7" },
+  { label: "30 derniers jours", value: "30" },
+  { label: "3 derniers mois", value: "90" },
+  { label: "12 derniers mois", value: "365" },
   { label: "Tous les e-mails", value: "0" },
 ];
 const defaultSelected = selectOptions[4];
@@ -183,15 +180,15 @@ export function BulkUnsubscribe() {
 
   const [search, setSearch] = useState("");
 
-  const [expanded, setExpanded] = useState(false);
-
   const params: NewsletterStatsQuery = {
     types: typesArray,
     filters: filtersArray,
     orderBy: sortColumn,
     orderDirection: sortDirection,
-    limit: expanded ? 500 : 50,
     includeMissingUnsubscribe: true,
+    // Eviction is local to Freescale, so this page does not need to wait for
+    // Gmail/Outlook filter retrieval on every sort, search or date change.
+    includeProviderFilters: false,
     ...getDateRangeParams(dateRange),
     ...(search ? { search } : {}),
   };
@@ -302,7 +299,7 @@ export function BulkUnsubscribe() {
     userEmail,
   ]);
 
-  // Track whether we're switching views (filter, sort, search, date range, expanded)
+  // Track whether we're switching views (filter, sort, search, date range)
   // Show skeleton when validating with different params, not on background refresh
   const [lastFetchedParams, setLastFetchedParams] = useState<string>("");
   const currentParamsString = urlParams.toString();
@@ -357,7 +354,6 @@ export function BulkUnsubscribe() {
 
   // Data is now filtered, sorted, and limited by the backend
   const rows = data?.newsletters?.length ? data.newsletters : channelRows;
-  const [isSuggestedMode, setIsSuggestedMode] = useState(false);
 
   const {
     selected,
@@ -372,14 +368,7 @@ export function BulkUnsubscribe() {
     () => rows?.filter(isUnsubscribeSuggestion) ?? [],
     [rows],
   );
-
-  const visibleRows = useMemo(
-    () =>
-      isSuggestedMode
-        ? getSuggestedModeRows(rows ?? [], selected)
-        : (rows ?? []),
-    [isSuggestedMode, rows, selected],
-  );
+  const visibleRows = rows ?? [];
   const visibleRowIds = useMemo(
     () => visibleRows.map((row) => row.name),
     [visibleRows],
@@ -390,19 +379,17 @@ export function BulkUnsubscribe() {
   const isSomeVisibleSelected = visibleRows.some((row) =>
     selected.get(row.name),
   );
+  const areAllSuggestionsSelected =
+    suggestedRows.length > 0 &&
+    suggestedRows.every((row) => selected.get(row.name));
 
-  const onToggleSuggestedMode = useCallback(() => {
-    if (isSuggestedMode) {
-      setIsSuggestedMode(false);
-      return;
-    }
-
-    selectItems(suggestedRows.map((row) => row.name));
-    setIsSuggestedMode(true);
-    posthog?.capture("Clicked Select Suggested Unsubscribes", {
+  const onToggleSuggestedSelection = useCallback(() => {
+    onToggleSelectItems(suggestedRows.map((row) => row.name));
+    posthog?.capture("Clicked Toggle Suggested Unsubscribes", {
       count: suggestedRows.length,
+      selected: !areAllSuggestionsSelected,
     });
-  }, [isSuggestedMode, selectItems, suggestedRows, posthog]);
+  }, [areAllSuggestionsSelected, onToggleSelectItems, suggestedRows, posthog]);
 
   const onToggleVisibleRow = useCallback(
     (id: string, shiftKey = false) =>
@@ -419,7 +406,6 @@ export function BulkUnsubscribe() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally clearing selection when filter changes
   useEffect(() => {
     clearSelection();
-    setIsSuggestedMode(false);
   }, [filter]);
 
   // Deep link (e.g. from the inbox health email or onboarding):
@@ -440,7 +426,6 @@ export function BulkUnsubscribe() {
 
     hasAppliedSelectParamRef.current = true;
     selectItems(rows.filter(isUnsubscribeSuggestion).map((row) => row.name));
-    setIsSuggestedMode(true);
 
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("select");
@@ -535,8 +520,12 @@ export function BulkUnsubscribe() {
       <DismissibleVideoCard
         className="my-4"
         icon={<ArchiveIcon className="size-5" />}
-        title="Getting started with Bulk Unsubscribe"
+        title="Bien démarrer avec le tri et le désabonnement"
         description="Découvrez comment utiliser le tri et le désabonnement pour écarter les e-mails indésirables."
+        watchVideoLabel="Regarder la vidéo"
+        closeLabel="Fermer"
+        playVideoLabel="Lire la vidéo"
+        videoTitlePrefix="Vidéo"
         videoSrc="https://www.youtube.com/embed/T1rnooV4OYc"
         youtubeVideoId="T1rnooV4OYc"
         thumbnailSrc="https://img.youtube.com/vi/T1rnooV4OYc/0.jpg"
@@ -553,7 +542,9 @@ export function BulkUnsubscribe() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-10">
                 {selectedFilter?.icon}
-                <span className="ml-2">{selectedFilter?.label ?? "All"}</span>
+                <span className="ml-2">
+                  {selectedFilter?.label ?? "Tous les expéditeurs"}
+                </span>
                 <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />
               </Button>
             </DropdownMenuTrigger>
@@ -583,31 +574,48 @@ export function BulkUnsubscribe() {
             selectOptions={selectOptions}
             dateDropdown={dateDropdown}
             onSetDateDropdown={onSetDateDropdown}
+            labels={{
+              lastDay: "Dernières 24 heures",
+              lastWeek: "7 derniers jours",
+              lastMonth: "30 derniers jours",
+              lastThreeMonths: "3 derniers mois",
+              lastYear: "12 derniers mois",
+              all: "Tous les e-mails",
+              pickDate: "Choisir une période",
+            }}
           />
-          <SearchBar onSearch={setSearch} />
-          {(suggestedRows.length > 0 || isSuggestedMode) && (
+          <SearchBar onSearch={setSearch} placeholder="Rechercher…" />
+          <span className="whitespace-nowrap text-sm text-muted-foreground">
+            {rows.length} expéditeur{rows.length > 1 ? "s" : ""}
+          </span>
+          {suggestedRows.length > 0 && (
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant={isSuggestedMode ? "secondary" : "outline"}
+                    variant={
+                      areAllSuggestionsSelected ? "secondary" : "outline"
+                    }
                     size="sm"
                     className="h-10"
-                    aria-pressed={isSuggestedMode}
-                    onClick={onToggleSuggestedMode}
+                    aria-pressed={areAllSuggestionsSelected}
+                    onClick={onToggleSuggestedSelection}
                   >
                     <SparklesIcon className="size-4 text-amber-500" />
                     <span className="ml-2">
-                      {isSuggestedMode ? "Showing" : "Select"}{" "}
-                      {suggestedRows.length} suggested
+                      {areAllSuggestionsSelected
+                        ? "Désélectionner"
+                        : "Sélectionner"}{" "}
+                      {suggestedRows.length} suggestion
+                      {suggestedRows.length > 1 ? "s" : ""}
                     </span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
-                    {isSuggestedMode
-                      ? "Shows suggested senders and any other senders you already selected. Click to show all senders."
-                      : `Selects and shows senders you rarely read (under ${SUGGESTION_READ_RATE_THRESHOLD}% read rate) so you can unsubscribe, block, or archive them in one go.`}
+                    {areAllSuggestionsSelected
+                      ? "Retirer les suggestions de la sélection. Les autres contacts sélectionnés restent cochés."
+                      : `Sélectionner les expéditeurs rarement lus (moins de ${SUGGESTION_READ_RATE_THRESHOLD} % de lecture), sans masquer le reste de la liste.`}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -628,7 +636,6 @@ export function BulkUnsubscribe() {
         newsletters={rows}
         filter={filter}
         totalCount={rows?.length ?? 0}
-        dateRange={dateRange}
       />
 
       <Card className="mt-2 md:mt-4 max-sm:border-0 max-sm:shadow-none">
@@ -649,40 +656,15 @@ export function BulkUnsubscribe() {
             loadingComponent={<BulkUnsubscribeDesktopSkeleton />}
           >
             {tableRows?.length ? (
-              <>
-                <BulkUnsubscribeDesktop
-                  sortColumn={sortColumn}
-                  sortDirection={sortDirection}
-                  onSort={handleSort}
-                  tableRows={tableRows}
-                  isAllSelected={isAllVisibleSelected}
-                  isSomeSelected={isSomeVisibleSelected}
-                  onToggleSelectAll={onToggleSelectAllVisible}
-                />
-                {/* Only show expand/collapse when there might be more results */}
-                {(expanded || (rows && rows.length >= 50)) && (
-                  <div className="mt-2 px-6 pb-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setExpanded(!expanded)}
-                      className="w-full"
-                    >
-                      {expanded ? (
-                        <>
-                          <ChevronsUpIcon className="h-4 w-4" />
-                          <span className="ml-2">Show less</span>
-                        </>
-                      ) : (
-                        <>
-                          <ChevronsDownIcon className="h-4 w-4" />
-                          <span className="ml-2">Show more</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </>
+              <BulkUnsubscribeDesktop
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                tableRows={tableRows}
+                isAllSelected={isAllVisibleSelected}
+                isSomeSelected={isSomeVisibleSelected}
+                onToggleSelectAll={onToggleSelectAllVisible}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center py-16 px-4">
                 <InboxIcon className="h-16 w-16 text-gray-300" />
