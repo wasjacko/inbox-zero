@@ -297,8 +297,8 @@ export function SideNav({
       <SidebarHeader className="gap-0 pb-0">
         {state.includes("left-sidebar") ? (
           <div className="flex items-center rounded-md pl-2 pr-0.5 py-3 text-foreground justify-between">
-            <Link href={navigation.homeHref}>
-              {previewMode ? (
+            {previewMode ? (
+              <a href={navigation.homeHref}>
                 <Image
                   src={FREESCALE_MENU_LOGO_SRC}
                   alt="Freescale"
@@ -308,10 +308,12 @@ export function SideNav({
                   priority
                   unoptimized
                 />
-              ) : (
+              </a>
+            ) : (
+              <Link href={navigation.homeHref}>
                 <Logo className="h-3.5" />
-              )}
-            </Link>
+              </Link>
+            )}
             <SidebarTrigger name="left-sidebar" />
           </div>
         ) : (
@@ -341,6 +343,7 @@ export function SideNav({
                 <SideNavMenu
                   activeHref={path}
                   items={navigation.manageItems}
+                  nativeNavigation={previewMode}
                   prefetch={previewMode ? false : undefined}
                 />
               </SidebarGroup>
@@ -349,6 +352,7 @@ export function SideNav({
                 <SideNavMenu
                   items={navigation.cleanupItems}
                   activeHref={path}
+                  nativeNavigation={previewMode}
                   prefetch={previewMode ? false : undefined}
                 />
               </SidebarGroup>
@@ -362,7 +366,11 @@ export function SideNav({
       ) : null}
 
       <SidebarFooter className="pb-4">
-        <SideNavMenu items={visibleBottomLinks} activeHref={path} />
+        <SideNavMenu
+          items={visibleBottomLinks}
+          activeHref={path}
+          nativeNavigation={previewMode}
+        />
 
         <SidebarMenu>
           <SidebarMenuItem>
@@ -373,10 +381,10 @@ export function SideNav({
                 sidebarName="left-sidebar"
                 tooltip="Aide & support"
               >
-                <Link href="/help">
+                <a href="/help">
                   <CircleHelpIcon />
                   <span>Aide & support</span>
-                </Link>
+                </a>
               </SidebarMenuButton>
             ) : (
               <FeedbackDialog />

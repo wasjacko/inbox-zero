@@ -25,7 +25,6 @@ import {
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type ChangeEvent,
@@ -3584,7 +3583,6 @@ function AskMueSuggestionResult({
   messageId: string;
   suggestion: AskMueSuggestionId;
 }) {
-  const router = useRouter();
   const { emailAccountId } = useAccount();
   const [decision, setDecision] = useState<"pending" | "accepted" | "declined">(
     "pending",
@@ -3700,7 +3698,7 @@ function AskMueSuggestionResult({
             const params = new URLSearchParams({
               created: persistedTaskIds.join(","),
             });
-            router.push(`/tasks?${params.toString()}`);
+            window.location.assign(`/tasks?${params.toString()}`);
           },
         },
       });
@@ -4547,6 +4545,26 @@ function ChatPanel({
       </PromptInput>
     </div>
   );
+
+  if (!chatStorageReady) {
+    return (
+      <div
+        aria-label="Restauration de la conversation Ask Mue"
+        className="flex h-full min-w-0 flex-1 flex-col px-6 py-8"
+        role="status"
+      >
+        <div className="mx-auto mt-[clamp(3rem,10vh,7rem)] w-full max-w-[760px] space-y-4">
+          <Skeleton className="h-8 w-48 rounded-lg" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+          <div className="grid gap-3 pt-5 sm:grid-cols-3">
+            <Skeleton className="h-20 rounded-xl" />
+            <Skeleton className="h-20 rounded-xl" />
+            <Skeleton className="h-20 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

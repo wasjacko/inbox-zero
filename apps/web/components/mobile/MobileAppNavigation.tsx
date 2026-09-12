@@ -17,7 +17,7 @@ import {
   SettingsIcon,
   WorkflowIcon,
 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MueIcon } from "@/components/MueIcon";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
@@ -398,8 +398,6 @@ function MobileNavigationRow({
   last?: boolean;
   onNavigate: () => void;
 }) {
-  const router = useRouter();
-
   return (
     <a
       aria-current={active ? "page" : undefined}
@@ -413,8 +411,8 @@ function MobileNavigationRow({
       href={href}
       onClick={(event) => {
         event.preventDefault();
-        router.push(href);
         onNavigate();
+        window.location.assign(href);
       }}
     >
       <Icon className="size-5 shrink-0" />
