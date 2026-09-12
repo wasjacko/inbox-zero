@@ -3028,6 +3028,15 @@ type AskMuePayload = {
 
 const ASK_MUE_ASSET_MARKER = ":::mue-asset:::";
 const ASK_MUE_CHAT_STORAGE_KEY = "freescale-ask-mue-chat-v1";
+const ASK_MUE_ACTIVE_CHAT_STORAGE_KEY = `${ASK_MUE_CHAT_STORAGE_KEY}:active`;
+
+type SavedAskMueChat = {
+  emailAccountId: string;
+  input?: string;
+  mentionedClientNames?: string[];
+  messages?: AskMueMessage[];
+  streamingMessageId?: string | null;
+};
 
 const askSuggestionFinalCopy: Record<AskMueSuggestionId, string> = {
   priorities:
@@ -3037,6 +3046,29 @@ const askSuggestionFinalCopy: Record<AskMueSuggestionId, string> = {
   actions:
     "J’ai transformé les demandes et engagements explicites en tâches concrètes. Elles sont prêtes, mais je vous laisse les vérifier avant de les ajouter :",
 };
+
+function restoreAskMueMessages(saved: SavedAskMueChat | null) {
+  return (saved?.messages ?? []).slice(-50).map((message): AskMueMessage => {
+    if (message.role === "user") return message;
+    const wasInterrupted =
+      saved?.streamingMessageId === message.id || !message.content;
+    if (!wasInterrupted) return { ...message, restored: true };
+    if (message.suggestion) {
+      return {
+        ...message,
+        content: askSuggestionFinalCopy[message.suggestion],
+        restored: true,
+      };
+    }
+    const payload = getAskMuePayload(message.prompt);
+    return {
+      ...message,
+      content: payload.content,
+      asset: payload.asset,
+      restored: true,
+    };
+  });
+}
 
 const askPriorityItems = [
   {
@@ -4029,6 +4061,7 @@ function ChatPanel({
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
   const [chatStorageReady, setChatStorageReady] = useState(false);
   const skipNextChatPersistRef = useRef(false);
+  const restoredAccountIdRef = useRef<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isStreaming = streamingMessageId !== null;
   const hasStarted = messages.length > 0;
@@ -4051,7 +4084,27 @@ function ChatPanel({
   const showMentionMenu = mentionQuery !== null && mentionClients.length > 0;
 
   useEffect(() => {
+    try {
+      const saved = JSON.parse(
+        sessionStorage.getItem(ASK_MUE_ACTIVE_CHAT_STORAGE_KEY) ?? "null",
+      ) as SavedAskMueChat | null;
+      if (!saved?.emailAccountId) return;
+      restoredAccountIdRef.current = saved.emailAccountId;
+      setMessages(restoreAskMueMessages(saved));
+      setMentionedClientNames(saved.mentionedClientNames ?? []);
+      onInputChange(saved.input ?? "");
+      setStreamingMessageId(null);
+      setThinkingPhase(-1);
+      setChatStorageReady(true);
+    } catch {}
+  }, [onInputChange]);
+
+  useEffect(() => {
     if (!emailAccountId) return;
+    if (restoredAccountIdRef.current === emailAccountId) {
+      setChatStorageReady(true);
+      return;
+    }
     skipNextChatPersistRef.current = true;
     setChatStorageReady(false);
     try {
@@ -4059,37 +4112,9 @@ function ChatPanel({
         sessionStorage.getItem(
           `${ASK_MUE_CHAT_STORAGE_KEY}:${emailAccountId}`,
         ) ?? "null",
-      ) as {
-        input?: string;
-        mentionedClientNames?: string[];
-        messages?: AskMueMessage[];
-        streamingMessageId?: string | null;
-      } | null;
+      ) as SavedAskMueChat | null;
 
-      const restoredMessages = (saved?.messages ?? [])
-        .slice(-50)
-        .map((message): AskMueMessage => {
-          if (message.role === "user") return message;
-          const wasInterrupted =
-            saved?.streamingMessageId === message.id || !message.content;
-          if (!wasInterrupted) return { ...message, restored: true };
-          if (message.suggestion) {
-            return {
-              ...message,
-              content: askSuggestionFinalCopy[message.suggestion],
-              restored: true,
-            };
-          }
-          const payload = getAskMuePayload(message.prompt);
-          return {
-            ...message,
-            content: payload.content,
-            asset: payload.asset,
-            restored: true,
-          };
-        });
-
-      setMessages(restoredMessages);
+      setMessages(restoreAskMueMessages(saved));
       setMentionedClientNames(saved?.mentionedClientNames ?? []);
       onInputChange(saved?.input ?? "");
     } catch {
@@ -4099,6 +4124,7 @@ function ChatPanel({
     }
     setStreamingMessageId(null);
     setThinkingPhase(-1);
+    restoredAccountIdRef.current = emailAccountId;
     setChatStorageReady(true);
   }, [emailAccountId, onInputChange]);
 
@@ -4123,18 +4149,24 @@ function ChatPanel({
                 asset: message.asset,
               },
       );
+      const snapshot: SavedAskMueChat = {
+        emailAccountId,
+        input,
+        mentionedClientNames,
+        messages: serializableMessages,
+        streamingMessageId,
+      };
       try {
         sessionStorage.setItem(
           `${ASK_MUE_CHAT_STORAGE_KEY}:${emailAccountId}`,
-          JSON.stringify({
-            input,
-            mentionedClientNames,
-            messages: serializableMessages,
-            streamingMessageId,
-          }),
+          JSON.stringify(snapshot),
+        );
+        sessionStorage.setItem(
+          ASK_MUE_ACTIVE_CHAT_STORAGE_KEY,
+          JSON.stringify(snapshot),
         );
       } catch {}
-    }, 120);
+    }, 260);
 
     return () => window.clearTimeout(timeout);
   }, [
