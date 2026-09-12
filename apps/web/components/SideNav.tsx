@@ -341,7 +341,6 @@ export function SideNav({
                 <SideNavMenu
                   activeHref={path}
                   items={navigation.manageItems}
-                  nativeNavigation={previewMode}
                   prefetch={previewMode ? false : undefined}
                 />
               </SidebarGroup>
@@ -349,7 +348,6 @@ export function SideNav({
                 <SidebarGroupLabel>Nettoyage</SidebarGroupLabel>
                 <SideNavMenu
                   items={navigation.cleanupItems}
-                  nativeNavigation={previewMode}
                   activeHref={path}
                   prefetch={previewMode ? false : undefined}
                 />
@@ -364,11 +362,7 @@ export function SideNav({
       ) : null}
 
       <SidebarFooter className="pb-4">
-        <SideNavMenu
-          items={visibleBottomLinks}
-          activeHref={path}
-          nativeNavigation={previewMode}
-        />
+        <SideNavMenu items={visibleBottomLinks} activeHref={path} />
 
         <SidebarMenu>
           <SidebarMenuItem>

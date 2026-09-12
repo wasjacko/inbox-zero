@@ -23,11 +23,9 @@ export function PreviewAppLayout({ children }: { children: React.ReactNode }) {
           <PreviewOnboardingGate>
             <div className={`${inter.variable} min-h-svh font-inter`}>
               <SideNavWithTopNav defaultOpen previewMode>
-                <PreviewDataGate>
-                  <PersistentPreviewContent>
-                    {children}
-                  </PersistentPreviewContent>
-                </PreviewDataGate>
+                <PersistentPreviewContent>
+                  <PreviewDataGate>{children}</PreviewDataGate>
+                </PersistentPreviewContent>
               </SideNavWithTopNav>
             </div>
           </PreviewOnboardingGate>

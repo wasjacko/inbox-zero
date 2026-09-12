@@ -17,7 +17,7 @@ import {
   SettingsIcon,
   WorkflowIcon,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MueIcon } from "@/components/MueIcon";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
@@ -398,6 +398,8 @@ function MobileNavigationRow({
   last?: boolean;
   onNavigate: () => void;
 }) {
+  const router = useRouter();
+
   return (
     <a
       aria-current={active ? "page" : undefined}
@@ -411,11 +413,8 @@ function MobileNavigationRow({
       href={href}
       onClick={(event) => {
         event.preventDefault();
+        router.push(href);
         onNavigate();
-        // Closing the Radix sheet can unmount a Next Link before its
-        // client-side transition starts. A native location change is reliable
-        // from both mobile Safari and installed/PWA contexts.
-        window.location.assign(href);
       }}
     >
       <Icon className="size-5 shrink-0" />

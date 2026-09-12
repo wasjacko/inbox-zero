@@ -25,6 +25,7 @@ import {
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   type ChangeEvent,
@@ -3583,6 +3584,7 @@ function AskMueSuggestionResult({
   messageId: string;
   suggestion: AskMueSuggestionId;
 }) {
+  const router = useRouter();
   const { emailAccountId } = useAccount();
   const [decision, setDecision] = useState<"pending" | "accepted" | "declined">(
     "pending",
@@ -3698,7 +3700,7 @@ function AskMueSuggestionResult({
             const params = new URLSearchParams({
               created: persistedTaskIds.join(","),
             });
-            window.location.assign(`/tasks?${params.toString()}`);
+            router.push(`/tasks?${params.toString()}`);
           },
         },
       });
