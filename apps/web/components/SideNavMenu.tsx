@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
@@ -43,11 +43,19 @@ export function SideNavMenu({
   nativeNavigation?: boolean;
   prefetch?: boolean;
 }) {
-  const { closeMobileSidebar } = useSidebar();
+  const { closeMobileSidebar, isMobile } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const posthog = usePostHog();
   const currentAppPage = getAppPageFromPathname(pathname);
+
+  // Closing the mobile drawer inside the link click used to enqueue a
+  // competing state update while Next was starting its route transition.
+  // In the persistent Ask Mue shell that could cancel navigation from /chat.
+  // Close it only after the pathname has actually changed.
+  useEffect(() => {
+    if (pathname && isMobile) closeMobileSidebar("left-sidebar");
+  }, [closeMobileSidebar, isMobile, pathname]);
 
   return (
     <SidebarMenu>
@@ -71,7 +79,6 @@ export function SideNavMenu({
           } catch {
             // Analytics must never prevent navigation.
           }
-          closeMobileSidebar("left-sidebar");
         };
         const content = (
           <>
@@ -106,19 +113,7 @@ export function SideNavMenu({
               ) : (
                 <Link
                   href={item.href}
-                  onClick={(event) => {
-                    if (
-                      event.button !== 0 ||
-                      event.metaKey ||
-                      event.ctrlKey ||
-                      event.shiftKey ||
-                      event.altKey
-                    )
-                      return;
-                    event.preventDefault();
-                    router.push(item.href);
-                    handleClick();
-                  }}
+                  onClick={handleClick}
                   onMouseEnter={() => {
                     if (prefetch === false) router.prefetch(item.href);
                   }}
