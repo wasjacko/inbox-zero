@@ -160,7 +160,10 @@ export interface EmailProvider {
   getFolderCounts(): Promise<EmailFolderCount[]>;
   getFolders(): Promise<OutlookFolder[]>;
   getInboxMessages(maxResults?: number): Promise<ParsedMessage[]>;
-  getInboxStats(): Promise<{ total: number; unread: number }>;
+  getInboxStats(options?: { exact?: boolean }): Promise<{
+    total: number;
+    unread: number;
+  }>;
   getLabelById(labelId: string): Promise<EmailLabel | null>;
   getLabelByName(name: string): Promise<EmailLabel | null>;
   getLabels(options?: { includeHidden?: boolean }): Promise<EmailLabel[]>;

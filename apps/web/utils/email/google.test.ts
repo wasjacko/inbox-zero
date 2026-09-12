@@ -310,6 +310,48 @@ describe("GmailProvider.getThreadsWithQuery", () => {
     });
   });
 
+  it("keeps metadata pages bounded and consumes all returned IDs before advancing", async () => {
+    const list = vi.fn().mockResolvedValue({
+      data: {
+        messages: [
+          { id: "newest-1", threadId: "thread-1" },
+          { id: "older-1", threadId: "thread-1" },
+          { id: "newest-2", threadId: "thread-2" },
+          { id: "newest-3", threadId: "thread-3" },
+        ],
+        nextPageToken: "next-page",
+      },
+    });
+    const getMessagesBatch = vi
+      .spyOn(gmailMessageModule, "getMessagesBatch")
+      .mockResolvedValue([]);
+    const provider = new GmailProvider({
+      users: { messages: { list } },
+      context: {
+        _options: {
+          auth: { credentials: { access_token: "access-token" } },
+        },
+      },
+    } as any);
+
+    const result = await provider.getThreadsWithQuery({
+      messageFormat: "metadata",
+      maxResults: 2,
+      pageToken: "current-page",
+    });
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ maxResults: 2, pageToken: "current-page" }),
+    );
+    expect(getMessagesBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageIds: ["newest-1", "newest-2", "newest-3"],
+        format: "metadata",
+      }),
+    );
+    expect(result.nextPageToken).toBe("next-page");
+  });
+
   it("returns the exact Gmail inbox total instead of the list estimate", async () => {
     vi.spyOn(gmailMessageModule, "getMessagesBatch").mockResolvedValue([]);
     const provider = new GmailProvider({
@@ -398,6 +440,46 @@ describe("GmailProvider.getThreadsWithQuery", () => {
     });
 
     expect(result.totalCount).toBe(678);
+  });
+
+  it("counts every inbox page when exact stats are requested", async () => {
+    const list = vi.fn().mockImplementation(({ labelIds, pageToken }) => {
+      const unread = labelIds.includes(GmailLabel.UNREAD);
+      const firstPage = pageToken === undefined;
+      const count = unread ? (firstPage ? 3 : 2) : firstPage ? 50 : 43;
+
+      return Promise.resolve({
+        data: {
+          messages: Array.from({ length: count }, (_, index) => ({
+            id: `${unread ? "unread" : "inbox"}-${pageToken ?? "first"}-${index}`,
+            threadId: `${unread ? "unread" : "inbox"}-thread-${index}`,
+          })),
+          nextPageToken: firstPage
+            ? `${unread ? "unread" : "inbox"}-next`
+            : undefined,
+        },
+      });
+    });
+    const provider = new GmailProvider({
+      users: { messages: { list } },
+    } as any);
+
+    const result = await provider.getInboxStats({ exact: true });
+
+    expect(result).toEqual({ total: 93, unread: 5 });
+    expect(list).toHaveBeenCalledTimes(4);
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        labelIds: [GmailLabel.INBOX],
+        maxResults: 500,
+      }),
+    );
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        labelIds: [GmailLabel.INBOX, GmailLabel.UNREAD],
+        maxResults: 500,
+      }),
+    );
   });
 });
 

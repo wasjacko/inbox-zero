@@ -42,6 +42,8 @@ export const PRODUCT_ANALYTICS_ACTIONS = {
   bulkUnsubscribe: {
     bulkCompleted: "bulk_unsubscribe_completed",
     bulkStarted: "bulk_unsubscribe_started",
+    senderVisibilityCompleted: "freescale_sender_visibility_completed",
+    senderVisibilityStarted: "freescale_sender_visibility_started",
     senderCompleted: "unsubscribe_sender_completed",
     senderFailed: "unsubscribe_sender_failed",
     senderStarted: "unsubscribe_sender_started",

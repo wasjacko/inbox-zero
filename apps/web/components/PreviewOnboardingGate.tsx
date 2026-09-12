@@ -27,7 +27,11 @@ export function PreviewOnboardingGate({
   const [state, setState] = useState<GateState>("allowed");
 
   useEffect(() => {
-    if (pathname === onboardingPath) {
+    if (
+      pathname === onboardingPath ||
+      pathname === "/chat" ||
+      pathname.endsWith("/chat")
+    ) {
       setState("allowed");
       return;
     }
@@ -87,8 +91,8 @@ export function PreviewOnboardingGate({
         return;
       }
 
-      setState("redirecting");
-      router.replace(onboardingPath);
+      // Configuration is offered from the home screen; it must not interrupt navigation.
+      setState("allowed");
     };
 
     verifyAccess();

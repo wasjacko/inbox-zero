@@ -36,7 +36,7 @@ const SKELETON_ROW_KEYS = Array.from(
 export function StepBulkUnsubscribe({ onNext }: { onNext: () => void }) {
   const { emailAccountId } = useAccount();
   const posthog = usePostHog();
-  const { hasUnsubscribeAccess, mutate: refetchPremium } = usePremium();
+  const { hasUnsubscribeAccess } = usePremium();
 
   // Day-boundary date range keeps the SWR key stable across mounts, so
   // revisiting this step (back/forward) reuses the cached result.
@@ -93,7 +93,6 @@ export function StepBulkUnsubscribe({ onNext }: { onNext: () => void }) {
     hasUnsubscribeAccess,
     mutate,
     posthog,
-    refetchPremium,
     emailAccountId,
     filter: "unhandled",
   });

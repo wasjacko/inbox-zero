@@ -1,11 +1,13 @@
 interface GmailProps {
+  className?: string;
   height?: string | number;
   width?: string | number;
 }
 
-export function Gmail({ width = "26", height = "23" }: GmailProps) {
+export function Gmail({ className, width = "26", height = "23" }: GmailProps) {
   return (
     <svg
+      className={className}
       width={width}
       height={height}
       viewBox="0 0 26 23"

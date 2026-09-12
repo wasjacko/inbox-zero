@@ -1,7 +1,6 @@
 import { Inter } from "next/font/google";
 import { PreviewOnboardingGate } from "@/components/PreviewOnboardingGate";
 import { PreviewDataGate } from "@/components/PreviewDataGate";
-import { PreviewDataPreloader } from "@/components/PreviewDataPreloader";
 import { SideNavWithTopNav } from "@/components/SideNavWithTopNav";
 import { EmailAccountProvider } from "@/providers/EmailAccountProvider";
 import { StatLoaderProvider } from "@/providers/StatLoaderProvider";
@@ -20,7 +19,6 @@ export function PreviewAppLayout({ children }: { children: React.ReactNode }) {
     <EmailAccountProvider>
       <SWRProvider>
         <StatLoaderProvider>
-          <PreviewDataPreloader />
           <PreviewOnboardingGate>
             <div className={`${inter.variable} min-h-svh font-inter`}>
               <SideNavWithTopNav defaultOpen previewMode>

@@ -14,22 +14,44 @@ import {
   RefreshCwIcon,
   ShieldCheckIcon,
   SparklesIcon,
+  SmartphoneIcon,
   UsersRoundIcon,
+  XIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
-import type { ThreadsListResponse } from "@/app/api/threads/route";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { GetOnboardingInboxScanResponse } from "@/app/api/user/onboarding/inbox-scan/route";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { toastError } from "@/components/Toast";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useSimulatedWhatsApp } from "@/hooks/useSimulatedWhatsApp";
+import { useSimulatedChannel } from "@/hooks/useSimulatedChannel";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { cn } from "@/utils";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
-import { sendVerificationEmail, signIn, signUp } from "@/utils/auth-client";
+import {
+  sendVerificationEmail,
+  signIn,
+  signUp,
+  useSession,
+} from "@/utils/auth-client";
 import {
   getPreviewOnboardingDestination,
   getVerifiedMailboxChannels,
@@ -206,9 +228,7 @@ function useFreescaleAuthentication(mode: AuthMode) {
         return;
       }
 
-      router.push(
-        mode === "signup" ? "/onboarding" : "/welcome-redirect?intent=login",
-      );
+      router.push("/welcome-redirect?intent=login");
       router.refresh();
     } catch (authError) {
       setError(getFreescaleAuthError(authError));
@@ -762,7 +782,62 @@ const onboardingSteps = [
     title: "Place au premier brief.",
     description: "Mue repère l’essentiel.",
   },
+  {
+    title: "Vos données et Mue.",
+    description: "Comprendre avant de commencer.",
+  },
 ];
+
+function DataGovernanceStep() {
+  return (
+    <div className="mx-auto w-full max-w-xl py-4">
+      <ShieldCheckIcon
+        className="mb-5 size-10 text-blue-600"
+        aria-hidden="true"
+      />
+      <StepHeading
+        title="La confiance commence par la transparence"
+        description="Voici les repères essentiels pour utiliser Mue et vos canaux."
+      />
+      <div className="mt-6 space-y-4">
+        <div className="rounded-xl border p-4">
+          <h2 className="font-medium">Des connexions explicites</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            La connexion à Freescale vous identifie. L’accès à une messagerie
+            fait l’objet d’une autorisation distincte. Les connexions marquées «
+            simulation » n’accèdent pas à vos vrais messages.
+          </p>
+        </div>
+        <div className="rounded-xl border p-4">
+          <h2 className="font-medium">Où fonctionne l’IA ?</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Le traitement dépend du fournisseur et du modèle configurés.
+            Freescale prend en charge des modèles locaux et des fournisseurs
+            externes : l’utilisation de Mue ne garantit pas à elle seule un
+            traitement exclusivement local ni indépendant des grands
+            fournisseurs.
+          </p>
+        </div>
+        <div className="rounded-xl border p-4">
+          <h2 className="font-medium">Confidentialité et RGPD</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Consultez notre politique pour connaître les traitements de données,
+            vos droits et les moyens de nous contacter. Cette présentation ne
+            remplace pas la politique de confidentialité.
+          </p>
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block text-sm font-medium text-blue-600 underline underline-offset-4"
+          >
+            Lire la politique de confidentialité (nouvel onglet)
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const channelOptions = [
   {
@@ -784,13 +859,27 @@ const channelOptions = [
     label: "WhatsApp",
     detail: "Messages directs",
     logo: "/images/whatsapp.svg",
-    available: false,
+    available: true,
   },
   {
     id: "slack",
     label: "Slack",
-    detail: "Canaux projets",
+    detail: "Canaux projets · Simulation",
     logo: "/images/slack.svg",
+    available: true,
+  },
+  {
+    id: "discord",
+    label: "Discord",
+    detail: "Communautés et projets",
+    logo: "/images/discord.svg",
+    available: false,
+  },
+  {
+    id: "instagram",
+    label: "Instagram",
+    detail: "Messages professionnels",
+    logo: "/images/instagram.svg",
     available: false,
   },
 ] as const;
@@ -870,8 +959,24 @@ type MobileOnboardingState = {
 function useOnboardingChannelConnections() {
   const searchParams = useSearchParams();
   const { mutate: mutateAccounts } = useAccounts();
-  const { refreshAccounts } = useAccount();
-  const [connectedChannels, setConnectedChannels] = useState<string[]>([]);
+  const { emailAccountId, refreshAccounts } = useAccount();
+  const {
+    connected: simulatedWhatsAppConnected,
+    connect: connectSimulatedWhatsApp,
+  } = useSimulatedWhatsApp(emailAccountId);
+  const { connected: slackConnected, connect: connectSlack } =
+    useSimulatedChannel("slack");
+  const [mailboxChannels, setConnectedChannels] = useState<string[]>([]);
+  const connectedChannels = useMemo(
+    () => [
+      ...mailboxChannels.filter(
+        (channel) => channel !== "whatsapp" && channel !== "slack",
+      ),
+      ...(simulatedWhatsAppConnected ? ["whatsapp"] : []),
+      ...(slackConnected ? ["slack"] : []),
+    ],
+    [mailboxChannels, simulatedWhatsAppConnected, slackConnected],
+  );
   const [connectingChannels, setConnectingChannels] = useState<string[]>([]);
 
   const refreshConnectedChannels = useCallback(
@@ -884,7 +989,14 @@ function useOnboardingChannelConnections() {
         accounts.emailAccounts,
       );
 
-      setConnectedChannels(verifiedChannels);
+      setConnectedChannels((current) => [
+        ...new Set([
+          ...verifiedChannels,
+          ...current.filter(
+            (channel) => channel === "whatsapp" || channel === "slack",
+          ),
+        ]),
+      ]);
       return verifiedChannels.includes(expectedChannel);
     },
     [mutateAccounts, refreshAccounts],
@@ -966,6 +1078,23 @@ function useOnboardingChannelConnections() {
       return;
     }
 
+    if (channel === "slack") {
+      connectSlack();
+      return;
+    }
+
+    if (channel === "whatsapp") {
+      setConnectingChannels((current) => [...current, channel]);
+      connectSimulatedWhatsApp();
+      setConnectedChannels((current) =>
+        current.includes(channel) ? current : [...current, channel],
+      );
+      setConnectingChannels((current) =>
+        current.filter((item) => item !== channel),
+      );
+      return;
+    }
+
     const provider =
       channel === "gmail"
         ? "google"
@@ -980,6 +1109,18 @@ function useOnboardingChannelConnections() {
       `freescale-connect-${channel}`,
       "popup=yes,width=560,height=720,left=120,top=80",
     );
+
+    if (!popup) {
+      setConnectingChannels((current) =>
+        current.filter((item) => item !== channel),
+      );
+      toastError({
+        title: "Fenêtre de connexion bloquée",
+        description:
+          "Autorisez les fenêtres pop-up pour Freescale, puis réessayez. Votre onboarding reste ouvert.",
+      });
+      return;
+    }
 
     try {
       const returnTo = popup
@@ -1024,6 +1165,7 @@ function useOnboardingChannelConnections() {
 }
 
 function MobileOnboardingPreview() {
+  const { data: session } = useSession();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [selectedChannels, setSelectedChannels] = useState<string[]>(["gmail"]);
@@ -1108,7 +1250,10 @@ function MobileOnboardingPreview() {
 
   const continueOnboarding = () => {
     if (step === 0) {
-      savePreviewFreelancerName(businessProfile.freelancerName);
+      savePreviewFreelancerName(
+        businessProfile.freelancerName,
+        session?.user?.id,
+      );
     }
     if (step === 1) savePreviewWorkspaceName(workspaceName);
     if (step < onboardingSteps.length - 1) {
@@ -1264,6 +1409,7 @@ function MobileOnboardingPreview() {
                 onStatusChange={setScanComplete}
               />
             ) : null}
+            {step === 5 ? <DataGovernanceStep /> : null}
           </motion.div>
         </AnimatePresence>
       </section>
@@ -1297,6 +1443,7 @@ function MobileOnboardingPreview() {
 }
 
 function DesktopOnboardingPreview() {
+  const { data: session } = useSession();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [selectedChannels, setSelectedChannels] = useState(["gmail"]);
@@ -1326,7 +1473,10 @@ function DesktopOnboardingPreview() {
 
   const next = () => {
     if (step === 0) {
-      savePreviewFreelancerName(businessProfile.freelancerName);
+      savePreviewFreelancerName(
+        businessProfile.freelancerName,
+        session?.user?.id,
+      );
     }
     if (step === 1) savePreviewWorkspaceName(workspaceName);
     if (step < onboardingSteps.length - 1) {
@@ -1532,6 +1682,7 @@ function DesktopOnboardingPreview() {
                     onStatusChange={setScanComplete}
                   />
                 ) : null}
+                {step === 5 ? <DataGovernanceStep /> : null}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -1919,7 +2070,9 @@ function ChannelsStep({
         })}
       </div>
       <p className="mt-4 text-muted-foreground text-xs">
-        Gmail est disponible maintenant. Les autres canaux arrivent bientôt.
+        Gmail est disponible en connexion réelle. WhatsApp et Slack sont
+        disponibles en simulation pour tester tout le parcours sans accéder à
+        vos messages.
       </p>
     </>
   );
@@ -1936,9 +2089,73 @@ function ConnectChannelsStep({
   connecting?: string[];
   onConnect: (value: string) => void;
 }) {
+  const [slackDialogOpen, setSlackDialogOpen] = useState(false);
+  const [gmailDialogOpen, setGmailDialogOpen] = useState(false);
+  const [slackProgress, setSlackProgress] = useState<number | null>(null);
+  const slackTimerRef = useRef<number | null>(null);
+  const setSlackOpen = (open: boolean) => {
+    if (!open) {
+      if (slackTimerRef.current) window.clearInterval(slackTimerRef.current);
+      slackTimerRef.current = null;
+      setSlackProgress(null);
+    }
+    setSlackDialogOpen(open);
+  };
+  const startSlackSimulation = () => {
+    if (slackTimerRef.current) return;
+    setSlackProgress(0);
+    let progress = 0;
+    slackTimerRef.current = window.setInterval(() => {
+      progress = Math.min(100, progress + 5);
+      setSlackProgress(progress);
+      if (progress === 100) {
+        if (slackTimerRef.current) window.clearInterval(slackTimerRef.current);
+        slackTimerRef.current = null;
+        onConnect("slack");
+      }
+    }, 120);
+  };
+  const [whatsAppStage, setWhatsAppStage] = useState<
+    "closed" | "qr" | "scanning" | "success"
+  >("closed");
+  const [whatsAppProgress, setWhatsAppProgress] = useState(0);
+  const scanTimerRef = useRef<number | null>(null);
   const channels = channelOptions.filter((channel) =>
     selected.includes(channel.id),
   );
+
+  useEffect(
+    () => () => {
+      if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+      if (slackTimerRef.current) window.clearInterval(slackTimerRef.current);
+    },
+    [],
+  );
+
+  const startWhatsAppScan = () => {
+    if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+    setWhatsAppProgress(0);
+    setWhatsAppStage("scanning");
+
+    let progress = 0;
+    scanTimerRef.current = window.setInterval(() => {
+      progress = Math.min(100, progress + 4);
+      setWhatsAppProgress(progress);
+      if (progress < 100) return;
+
+      if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+      scanTimerRef.current = null;
+      onConnect("whatsapp");
+      setWhatsAppStage("success");
+    }, 70);
+  };
+
+  const closeWhatsAppFlow = () => {
+    if (scanTimerRef.current) window.clearInterval(scanTimerRef.current);
+    scanTimerRef.current = null;
+    setWhatsAppStage("closed");
+    setWhatsAppProgress(0);
+  };
 
   return (
     <>
@@ -1951,7 +2168,10 @@ function ConnectChannelsStep({
           const active = connected.includes(channel.id);
           const isConnecting = connecting.includes(channel.id);
           const isAvailable =
-            channel.id === "gmail" || channel.id === "outlook";
+            channel.id === "gmail" ||
+            channel.id === "outlook" ||
+            channel.id === "whatsapp" ||
+            channel.id === "slack";
           return (
             <div
               className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
@@ -1995,7 +2215,15 @@ function ConnectChannelsStep({
                   !active && "bg-[#4771df] text-white hover:bg-[#3c63c9]",
                 )}
                 disabled={active || isConnecting || !isAvailable}
-                onClick={() => onConnect(channel.id)}
+                onClick={() =>
+                  channel.id === "whatsapp"
+                    ? setWhatsAppStage("qr")
+                    : channel.id === "gmail"
+                      ? setGmailDialogOpen(true)
+                      : channel.id === "slack"
+                        ? setSlackDialogOpen(true)
+                        : onConnect(channel.id)
+                }
                 size="sm"
                 variant={active ? "outline" : "default"}
               >
@@ -2011,7 +2239,243 @@ function ConnectChannelsStep({
           );
         })}
       </div>
+      <Dialog open={gmailDialogOpen} onOpenChange={setGmailDialogOpen}>
+        <DialogContent className="z-[161] max-w-md" overlayClassName="z-[160]">
+          <DialogTitle>Connecter Gmail</DialogTitle>
+          <DialogDescription>
+            Autorisez l’accès à votre messagerie dans une fenêtre Google
+            sécurisée. Cette page restera ouverte.
+          </DialogDescription>
+          {connected.includes("gmail") ? (
+            <p role="status" className="text-sm text-emerald-600">
+              Votre messagerie Gmail est connectée.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Vérifiez le compte choisi et les autorisations demandées sur
+                Google avant de confirmer.
+              </p>
+              <Button
+                disabled={connecting.includes("gmail")}
+                onClick={() => onConnect("gmail")}
+              >
+                {connecting.includes("gmail")
+                  ? "Autorisation en cours sur Google…"
+                  : "Continuer avec Google"}
+              </Button>
+            </>
+          )}
+          <Button variant="outline" onClick={() => setGmailDialogOpen(false)}>
+            {connected.includes("gmail") ? "Continuer" : "Fermer"}
+          </Button>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={slackDialogOpen} onOpenChange={setSlackOpen}>
+        <DialogContent className="z-[161] max-w-md" overlayClassName="z-[160]">
+          <DialogTitle className="text-xl font-medium">
+            Connecter Slack — simulation
+          </DialogTitle>
+          <DialogDescription className="mt-3 text-sm text-muted-foreground">
+            Espace de démonstration Freescale. Aucun accès à votre vrai compte
+            Slack, aucun message lu ni envoyé.
+          </DialogDescription>
+          {connected.includes("slack") ? (
+            <div
+              className="mt-4 rounded-xl bg-emerald-50 p-4 text-emerald-800"
+              role="status"
+            >
+              <CheckIcon className="mb-2 size-6" />
+              <p className="font-medium">Slack connecté en mode simulation</p>
+              <p className="mt-2 text-sm">
+                Le parcours de connexion est terminé. Aucun message réel n’a été
+                importé.
+              </p>
+            </div>
+          ) : slackProgress !== null ? (
+            <div className="mt-4 space-y-3" role="status" aria-live="polite">
+              <p className="text-sm">
+                {slackProgress < 35
+                  ? "Validation de l’autorisation simulée…"
+                  : slackProgress < 75
+                    ? "Découverte des canaux de démonstration…"
+                    : "Finalisation de la connexion simulée…"}
+              </p>
+              <div
+                role="progressbar"
+                aria-label="Connexion Slack simulée"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={slackProgress}
+                className="h-2 overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full bg-purple-600 transition-all"
+                  style={{ width: `${slackProgress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {slackProgress} % · Démonstration uniquement
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="mt-4 rounded-xl border p-4 text-sm">
+                <p className="font-medium">Espace Freescale Démo</p>
+                <p className="mt-2 text-muted-foreground">
+                  Canaux fictifs : #général, #projets et #clients. L’étape
+                  suivante simule leur découverte, sans contacter Slack.
+                </p>
+              </div>
+              <Button className="mt-5 w-full" onClick={startSlackSimulation}>
+                Simuler l’autorisation Slack
+              </Button>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            className="mt-3 w-full"
+            onClick={() => setSlackOpen(false)}
+          >
+            {connected.includes("slack") ? "Continuer" : "Annuler"}
+          </Button>
+        </DialogContent>
+      </Dialog>
+      {whatsAppStage !== "closed" ? (
+        <div
+          aria-label="Connexion WhatsApp simulée"
+          aria-modal="true"
+          className="fixed inset-0 z-[160] grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          role="dialog"
+        >
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+            <button
+              aria-label="Fermer"
+              className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
+              onClick={closeWhatsAppFlow}
+              type="button"
+            >
+              <XIcon className="size-4" />
+            </button>
+
+            {whatsAppStage === "qr" ? (
+              <>
+                <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <SmartphoneIcon className="size-5" />
+                </span>
+                <h2 className="mt-4 font-medium text-xl">
+                  Scannez le QR WhatsApp
+                </h2>
+                <p className="mx-auto mt-2 max-w-sm text-muted-foreground text-sm leading-6">
+                  Démonstration du parcours WhatsApp. Aucun compte réel ni aucun
+                  message privé ne sera lu.
+                </p>
+                <SimulatedWhatsAppQr />
+                <p className="mt-4 text-muted-foreground text-xs">
+                  WhatsApp → Appareils connectés → Connecter un appareil
+                </p>
+                <Button
+                  className="mt-5 w-full bg-emerald-600 hover:bg-emerald-700"
+                  onClick={startWhatsAppScan}
+                >
+                  Simuler le scan du QR
+                </Button>
+              </>
+            ) : null}
+
+            {whatsAppStage === "scanning" ? (
+              <>
+                <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <LoaderCircleIcon className="size-6 animate-spin" />
+                </span>
+                <h2 className="mt-5 font-medium text-xl">
+                  Import des conversations
+                </h2>
+                <p className="mt-2 text-muted-foreground text-sm">
+                  {Math.round(47 * (whatsAppProgress / 100))} messages détectés
+                </p>
+                <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-[width] duration-100"
+                    style={{ width: `${whatsAppProgress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-right font-medium text-emerald-600 text-xs tabular-nums">
+                  {whatsAppProgress}%
+                </p>
+              </>
+            ) : null}
+
+            {whatsAppStage === "success" ? (
+              <>
+                <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-500 text-white">
+                  <CheckIcon className="size-6" strokeWidth={3} />
+                </span>
+                <h2 className="mt-5 font-medium text-xl">
+                  WhatsApp est connecté
+                </h2>
+                <p className="mt-2 text-muted-foreground text-sm leading-6">
+                  47 messages de démonstration ont été préparés. Le canal sera
+                  visible dans votre espace Freescale.
+                </p>
+                <Button className="mt-6 w-full" onClick={closeWhatsAppFlow}>
+                  Continuer
+                </Button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </>
+  );
+}
+
+function SimulatedWhatsAppQr() {
+  const size = 25;
+  const isFinder = (row: number, column: number) => {
+    const inBox = (originRow: number, originColumn: number) => {
+      const localRow = row - originRow;
+      const localColumn = column - originColumn;
+      if (localRow < 0 || localRow > 6 || localColumn < 0 || localColumn > 6) {
+        return false;
+      }
+      return (
+        localRow === 0 ||
+        localRow === 6 ||
+        localColumn === 0 ||
+        localColumn === 6 ||
+        (localRow >= 2 && localRow <= 4 && localColumn >= 2 && localColumn <= 4)
+      );
+    };
+    return inBox(0, 0) || inBox(0, size - 7) || inBox(size - 7, 0);
+  };
+
+  return (
+    <div
+      aria-label="QR code WhatsApp de démonstration"
+      className="mx-auto mt-5 grid size-48 rounded-xl border-8 border-white bg-white p-1 shadow-sm"
+      role="img"
+      style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+    >
+      {Array.from({ length: size * size }, (_, index) => {
+        const row = Math.floor(index / size);
+        const column = index % size;
+        const dark =
+          isFinder(row, column) ||
+          ((row * 11 + column * 7 + row * column) % 9 < 4 &&
+            !(
+              (row < 8 && column < 8) ||
+              (row < 8 && column > size - 9) ||
+              (row > size - 9 && column < 8)
+            ));
+        return (
+          <span
+            className={dark ? "bg-slate-950" : "bg-white"}
+            key={`${row}-${column}`}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -2048,12 +2512,15 @@ function RealFirstValueScanStep({
   const gmailAccount = accountsData?.emailAccounts.find(
     ({ account }) => account.provider === "google",
   );
+  const hasGmail = connected.includes("gmail");
+  const hasWhatsApp = connected.includes("whatsapp");
+  const hasSlack = connected.includes("slack");
   const [result, setResult] = useState<RealInboxScan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const scanInbox = useCallback(async () => {
-    if (!connected.includes("gmail") || !gmailAccount?.id) {
+    if (!hasGmail || !gmailAccount?.id) {
       setResult({
         totalCount: 0,
         unreadCount: 0,
@@ -2068,30 +2535,14 @@ function RealFirstValueScanStep({
     onStatusChange(false);
 
     try {
-      const requestStats = (type: "all" | "unread") =>
-        fetch(
-          `/api/threads?view=list&limit=1&includePlans=false&type=${type}`,
-          {
-            cache: "no-store",
-            headers: { [EMAIL_ACCOUNT_HEADER]: gmailAccount.id },
-          },
-        );
-      const [allResponse, unreadResponse] = await Promise.all([
-        requestStats("all"),
-        requestStats("unread"),
-      ]);
-      if (!allResponse.ok || !unreadResponse.ok) {
-        throw new Error("Inbox scan failed");
-      }
+      const response = await fetch("/api/user/onboarding/inbox-scan", {
+        cache: "no-store",
+        headers: { [EMAIL_ACCOUNT_HEADER]: gmailAccount.id },
+      });
+      if (!response.ok) throw new Error("Inbox scan failed");
 
-      const [allData, unreadData] = (await Promise.all([
-        allResponse.json(),
-        unreadResponse.json(),
-      ])) as [ThreadsListResponse, ThreadsListResponse];
-      const scanResult = {
-        totalCount: allData.totalCount ?? 0,
-        unreadCount: unreadData.totalCount ?? 0,
-      };
+      const scanResult =
+        (await response.json()) as GetOnboardingInboxScanResponse;
 
       setResult(scanResult);
       onStatusChange(true);
@@ -2104,7 +2555,7 @@ function RealFirstValueScanStep({
     } finally {
       setIsLoading(false);
     }
-  }, [connected, gmailAccount?.id, onStatusChange]);
+  }, [gmailAccount?.id, hasGmail, onStatusChange]);
 
   useEffect(() => {
     scanInbox();
@@ -2117,14 +2568,14 @@ function RealFirstValueScanStep({
           <LoaderCircleIcon className="size-7 animate-spin" />
         </span>
         <p className="mt-6 font-medium text-blue-600 text-sm">
-          Analyse de votre vraie messagerie
+          Analyse de vos canaux
         </p>
         <h1 className="mt-2 font-medium text-3xl tracking-[-0.045em] sm:text-[2.45rem]">
-          Lecture de Gmail en cours
+          Lecture de vos échanges en cours
         </h1>
         <p className="mt-4 max-w-md text-muted-foreground text-sm leading-6">
-          Freescale récupère vos échanges autorisés. Cette étape se termine
-          uniquement lorsque Gmail a répondu.
+          Freescale prépare les échanges autorisés et les conversations de
+          démonstration WhatsApp sélectionnées.
         </p>
       </div>
     );
@@ -2148,31 +2599,64 @@ function RealFirstValueScanStep({
   }
 
   const cards = [
-    {
-      Icon: MailIcon,
-      title: `${result?.totalCount ?? 0} emails`,
-      description: "Présents dans votre compte Gmail",
-      tone: "bg-blue-50 text-blue-600 dark:bg-blue-950/40",
-    },
-    {
-      Icon: Clock3Icon,
-      title: `${result?.unreadCount ?? 0} non lus`,
-      description: "Comptés directement par Gmail",
-      tone: "bg-amber-50 text-amber-600 dark:bg-amber-950/40",
-    },
+    ...(hasGmail
+      ? [
+          {
+            Icon: MailIcon,
+            title: `${result?.totalCount ?? 0} emails`,
+            description: "Dans votre boîte de réception Gmail",
+            tone: "bg-blue-50 text-blue-600 dark:bg-blue-950/40",
+          },
+          {
+            Icon: Clock3Icon,
+            title: `${result?.unreadCount ?? 0} non lus`,
+            description: "Comptés directement par Gmail",
+            tone: "bg-amber-50 text-amber-600 dark:bg-amber-950/40",
+          },
+        ]
+      : []),
+    ...(hasSlack
+      ? [
+          {
+            Icon: CheckIcon,
+            title: "Slack connecté",
+            description:
+              "Connexion de démonstration · Aucun message réel importé",
+            tone: "bg-purple-50 text-purple-600 dark:bg-purple-950/40",
+          },
+        ]
+      : []),
+    ...(hasWhatsApp
+      ? [
+          {
+            Icon: SmartphoneIcon,
+            title: "47 messages",
+            description: "Conversations WhatsApp de démonstration",
+            tone: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
+          },
+        ]
+      : []),
   ];
 
   return (
     <div className="mx-auto flex min-h-[510px] max-w-3xl flex-col justify-center py-3 text-center">
       <p className="font-medium text-emerald-600 text-sm">Analyse terminée</p>
       <h1 className="mt-2 font-medium text-3xl tracking-[-0.045em] sm:text-[2.45rem]">
-        Votre messagerie est prête.
+        Vos canaux sont prêts.
       </h1>
       <p className="mx-auto mt-3 max-w-lg text-muted-foreground text-sm leading-6">
-        Ces résultats viennent directement du compte Gmail que vous venez de
-        connecter.
+        {hasGmail
+          ? `Comptage Gmail en direct pour ${gmailAccount?.email}.`
+          : "Vos connexions de démonstration sont prêtes dans votre espace."}
       </p>
-      <div className="mx-auto mt-10 grid w-full max-w-xl gap-3 sm:grid-cols-2">
+      <div
+        className={cn(
+          "mx-auto mt-10 grid w-full gap-3",
+          cards.length > 2
+            ? "max-w-2xl sm:grid-cols-3"
+            : "max-w-xl sm:grid-cols-2",
+        )}
+      >
         {cards.map(({ Icon, title, description, tone }) => (
           <div
             className="rounded-2xl border bg-white p-5 text-left shadow-[0_18px_50px_-40px_rgba(15,23,42,0.5)] dark:bg-slate-950"
@@ -2195,6 +2679,16 @@ function RealFirstValueScanStep({
           </div>
         ))}
       </div>
+      <Button
+        className="mx-auto mt-5"
+        disabled={isLoading}
+        onClick={scanInbox}
+        size="sm"
+        variant="ghost"
+      >
+        <RefreshCwIcon className="size-4" />
+        Actualiser le scan
+      </Button>
     </div>
   );
 }

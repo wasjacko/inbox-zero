@@ -332,6 +332,6 @@ describe("processHistoryItem", () => {
     };
     await processHistoryItem(createHistoryItem(), options, logger);
 
-    expect(mockProvider.blockUnsubscribedEmail).toHaveBeenCalledWith("123");
+    expect(mockProvider.blockUnsubscribedEmail).not.toHaveBeenCalled();
   });
 });

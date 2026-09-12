@@ -13,7 +13,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArchiveIcon,
@@ -81,6 +81,7 @@ import { SidebarRight } from "@/components/SidebarRight";
 import { cn } from "@/utils";
 import {
   DEFAULT_PREVIEW_WORKSPACE_NAME,
+  getPreviewWorkspaceInitial,
   PREVIEW_WORKSPACE_NAME_EVENT,
   PREVIEW_WORKSPACE_NAME_KEY,
 } from "@/utils/preview-workspace";
@@ -88,12 +89,13 @@ import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels
 import { useAccounts } from "@/hooks/useAccounts";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { redirectToSafeUrl } from "@/utils/redirect";
-import { toastError } from "@/components/Toast";
+import { toastError, toastSuccess } from "@/components/Toast";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { prefixPath } from "@/utils/path";
 import { PREVIEW_POST_ONBOARDING_SORT_PARAM } from "@/utils/preview-onboarding";
 import { useMessagingChannels } from "@/hooks/useMessagingChannels";
-import { useSlackConnect } from "@/hooks/useSlackConnect";
+import { useSimulatedChannel } from "@/hooks/useSimulatedChannel";
+import { useSimulatedWhatsApp } from "@/hooks/useSimulatedWhatsApp";
 
 const CrispWithNoSSR = dynamic(() => import("@/components/CrispChat"));
 
@@ -383,6 +385,7 @@ function PreviewContextBar() {
     DEFAULT_PREVIEW_WORKSPACE_NAME,
   );
   const connectedChannels = usePreviewConnectedChannels();
+  const workspaceInitial = getPreviewWorkspaceInitial(workspaceName);
 
   useEffect(() => {
     setWorkspaceName(
@@ -430,7 +433,7 @@ function PreviewContextBar() {
               variant="ghost"
             >
               <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-teal-600 font-semibold text-white text-xs">
-                W
+                {workspaceInitial}
               </span>
               <span className="hidden max-w-40 truncate font-medium xl:inline">
                 {workspaceName}
@@ -443,7 +446,7 @@ function PreviewContextBar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-3">
               <span className="flex size-7 items-center justify-center rounded-md bg-teal-600 font-semibold text-white text-xs">
-                W
+                {workspaceInitial}
               </span>
               <div className="min-w-0">
                 <p className="truncate font-medium">{workspaceName}</p>
@@ -2309,7 +2312,7 @@ function TaskWorkflowUserBubble({ compact = false }: { compact?: boolean }) {
 }
 
 function taskStatusLabel(status: MueSuggestedTask["status"]) {
-  if (status === "scope") return "À cadrer";
+  if (status === "scope") return "Aujourd’hui";
   if (status === "waiting") return "En attente";
   return "À faire";
 }
@@ -2672,12 +2675,8 @@ function ConnectedChannels() {
   const [selected, setSelected] = useState<ChannelId | null>(null);
   const [step, setStep] = useState<"select" | "confirm" | "success">("select");
   const [isConnecting, setIsConnecting] = useState(false);
-  const { connect: connectSlack, connecting: connectingSlack } =
-    useSlackConnect({
-      emailAccountId,
-      onConnected: () => mutateMessagingChannels(),
-      openInNewTab: false,
-    });
+  const { connect: connectSlack } = useSimulatedChannel("slack");
+  const { connect: connectWhatsApp } = useSimulatedWhatsApp(emailAccountId);
 
   useEffect(() => {
     if (!accountChannels) return;
@@ -2729,8 +2728,24 @@ function ConnectedChannels() {
     }
 
     if (selected === "slack") {
-      await connectSlack();
+      connectSlack();
       setIsConnecting(false);
+      setStep("success");
+      return;
+    }
+
+    if (selected === "whatsapp") {
+      await new Promise((resolve) => window.setTimeout(resolve, 850));
+      connectWhatsApp();
+      setConnected((current) => [
+        ...new Set<ChannelId>([...current, "whatsapp"]),
+      ]);
+      setIsConnecting(false);
+      setStep("success");
+      toastSuccess({
+        description:
+          "Le canal de démonstration WhatsApp est ajouté. Aucun message réel n’est synchronisé.",
+      });
       return;
     }
 
@@ -2809,7 +2824,7 @@ function ConnectedChannels() {
                         ? "cursor-default bg-muted/40"
                         : "hover:border-foreground/20 hover:bg-accent/50",
                     )}
-                    disabled={isConnected}
+                    disabled={isConnected || channel.soon}
                     key={channel.id}
                     onClick={() => {
                       setSelected(channel.id);
@@ -2827,6 +2842,8 @@ function ConnectedChannels() {
                           <Badge className="gap-1" variant="green">
                             <CheckIcon className="size-3" /> Connecté
                           </Badge>
+                        ) : channel.soon ? (
+                          <Badge variant="outline">Bientôt</Badge>
                         ) : null}
                       </div>
                       <p className="mt-1 text-muted-foreground text-sm">
@@ -2877,11 +2894,18 @@ function ConnectedChannels() {
               <div>
                 <p className="mb-3 font-medium text-sm">Freescale pourra :</p>
                 <ul className="space-y-3 text-sm">
-                  {[
-                    "Importer les nouvelles conversations dans Canaux",
-                    "Envoyer vos réponses depuis votre espace de travail",
-                    "Synchroniser automatiquement les statuts et notifications",
-                  ].map((permission) => (
+                  {(selected === "slack" || selected === "whatsapp"
+                    ? [
+                        "Ajouter un canal de démonstration à Freescale",
+                        "Tester avec des conversations fictives",
+                        "Aucun message réel lu ou envoyé",
+                      ]
+                    : [
+                        "Importer les nouvelles conversations dans Canaux",
+                        "Envoyer vos réponses depuis votre espace de travail",
+                        "Synchroniser automatiquement les statuts et notifications",
+                      ]
+                  ).map((permission) => (
                     <li className="flex items-start gap-3" key={permission}>
                       <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
                         <CheckIcon className="size-3" />
@@ -2895,10 +2919,12 @@ function ConnectedChannels() {
               <div className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-muted-foreground text-xs">
                 <LockKeyholeIcon className="mt-0.5 size-4 shrink-0" />
                 {selectedChannel.id === "gmail" ||
-                selectedChannel.id === "outlook" ||
-                selectedChannel.id === "slack"
+                selectedChannel.id === "outlook"
                   ? `Vous serez redirigé vers ${selectedChannel.name} pour autoriser la connexion de votre compte.`
-                  : "Cette intégration sera disponible lorsqu’elle pourra synchroniser de vraies données."}
+                  : selectedChannel.id === "whatsapp" ||
+                      selectedChannel.id === "slack"
+                    ? "Données de démonstration : aucun accès à votre compte et aucun message réel envoyé."
+                    : "Cette intégration sera disponible lorsqu’elle pourra synchroniser de vraies données."}
               </div>
             </div>
 
@@ -2906,10 +2932,7 @@ function ConnectedChannels() {
               <Button onClick={() => setStep("select")} variant="outline">
                 Retour
               </Button>
-              <Button
-                loading={isConnecting || connectingSlack}
-                onClick={connectSelectedChannel}
-              >
+              <Button loading={isConnecting} onClick={connectSelectedChannel}>
                 Connecter {selectedChannel.name}
               </Button>
             </DialogFooter>
@@ -2943,6 +2966,8 @@ const channelIds = [
   "slack",
   "telegram",
   "teams",
+  "discord",
+  "instagram",
 ] as const;
 
 type ChannelId = (typeof channelIds)[number];
@@ -2951,6 +2976,7 @@ const channels: Array<{
   id: ChannelId;
   name: string;
   description: string;
+  soon?: boolean;
 }> = [
   {
     id: "gmail",
@@ -2959,28 +2985,31 @@ const channels: Array<{
   },
   {
     id: "outlook",
+    soon: true,
     name: "Outlook",
     description: "E-mails Microsoft 365 et Outlook.",
   },
   {
     id: "whatsapp",
     name: "WhatsApp",
-    description: "Messages clients via WhatsApp Business.",
+    description: "Messages directs.",
   },
   {
     id: "slack",
     name: "Slack",
-    description: "Messages et notifications de votre workspace.",
+    description: "Canaux projets.",
   },
   {
-    id: "telegram",
-    name: "Telegram",
-    description: "Conversations et alertes depuis votre bot.",
+    id: "discord",
+    name: "Discord",
+    description: "Communautés et conversations.",
+    soon: true,
   },
   {
-    id: "teams",
-    name: "Microsoft Teams",
-    description: "Messages et collaborations de votre équipe.",
+    id: "instagram",
+    name: "Instagram",
+    description: "Messages directs.",
+    soon: true,
   },
 ];
 
@@ -3001,7 +3030,12 @@ function ChannelLogo({
         className={cn("text-[#22c55e]", size === "large" ? "size-7" : "size-5")}
       />
     );
-  if (id === "slack" || id === "telegram") {
+  if (
+    id === "slack" ||
+    id === "telegram" ||
+    id === "discord" ||
+    id === "instagram"
+  ) {
     return (
       <Image
         alt=""
@@ -3042,14 +3076,6 @@ export function SideNavWithTopNav({
   previewMode?: boolean;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!previewMode) return;
-    for (const href of ["/chat", "/channels-v4", "/tasks", "/stats"]) {
-      router.prefetch(href);
-    }
-  }, [previewMode, router]);
 
   if (!pathname) return null;
 
@@ -3096,9 +3122,6 @@ export function SideNavWithTopNav({
       <ContentWrapper previewMode={previewMode}>{children}</ContentWrapper>
       {previewMode ? (
         <>
-          <Suspense fallback={null}>
-            <ChannelConnectedSuccessDialog />
-          </Suspense>
           <PreviewCommandCenter />
           {!isAiHome ? <PreviewMuePanel name="mue-panel" /> : null}
         </>

@@ -2,6 +2,7 @@
 
 import {
   ArchiveIcon,
+  ArrowLeftIcon,
   ArrowRightIcon,
   ArrowUpRightIcon,
   CheckIcon,
@@ -22,6 +23,7 @@ import {
   XIcon,
 } from "lucide-react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
@@ -39,9 +41,6 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Response } from "@/components/ai-elements/response";
-import { AutomationPreview } from "@/components/preview/AutomationPreview";
-import { DesktopRealBrief } from "@/components/preview/DesktopRealBrief";
-import { MobileChatPreview } from "@/components/mobile/MobileChatPreview";
 import { ConnectChannelDialog } from "@/components/ConnectChannelDialog";
 import { WhatsAppIcon } from "@/components/BrandIcons";
 import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
@@ -53,7 +52,7 @@ import {
   TASKS_STORAGE_KEY,
   type Task,
 } from "@/components/preview/TasksPreview";
-import { toastSuccess } from "@/components/Toast";
+import { toastError, toastSuccess } from "@/components/Toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,6 +64,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip } from "@/components/Tooltip";
 import { cn } from "@/utils";
 import {
@@ -73,16 +73,112 @@ import {
   PREVIEW_FREELANCER_NAME_KEY,
 } from "@/utils/preview-profile";
 import { PREVIEW_ONBOARDING_STATUS_KEY } from "@/utils/preview-onboarding";
+import { useMobileViewport } from "@/hooks/useMobileViewport";
+import { DesktopRealBrief } from "@/components/preview/DesktopRealBrief";
+import { useSession } from "@/utils/auth-client";
+import { useAccount } from "@/providers/EmailAccountProvider";
+import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
+import { useMueBriefTasks } from "@/hooks/useMueBriefTasks";
+import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
+import {
+  CREATED_TASK_IDS_STORAGE_KEY,
+  CREATED_TASKS_STORAGE_KEY,
+  getLocalDateKey,
+} from "@/utils/freescale-task-date";
+
+const AutomationPreview = dynamic(
+  () =>
+    import("@/components/preview/AutomationPreview").then(
+      (module) => module.AutomationPreview,
+    ),
+  { ssr: false, loading: () => <BriefConnectionLoadingState /> },
+);
+const MobileChatPreview = dynamic(
+  () =>
+    import("@/components/mobile/MobileChatPreview").then(
+      (module) => module.MobileChatPreview,
+    ),
+  { ssr: false, loading: () => <BriefConnectionLoadingState /> },
+);
 
 const suggestions = [
-  { label: "Aide-moi à gérer mes priorités aujourd’hui", icon: InboxIcon },
-  { label: "Résume mes échanges importants", icon: ArchiveIcon },
-  { label: "Suggère les prochaines actions", icon: SparklesIcon },
-];
+  {
+    id: "priorities",
+    label: "Aide-moi à gérer mes priorités aujourd’hui",
+    icon: InboxIcon,
+  },
+  { id: "summary", label: "Résume mes échanges importants", icon: ArchiveIcon },
+  {
+    id: "actions",
+    label: "Suggère les prochaines actions",
+    icon: SparklesIcon,
+  },
+] as const;
 
 type ChatView = "brief" | "ask" | "history" | "assistant";
 
-export function ChatPreview({
+export function ChatPreview(_props: {
+  initialView?: ChatView;
+  onboardingComplete?: boolean;
+}) {
+  const [input, setInput] = useState("");
+  const [showSetup, setShowSetup] = useState(false);
+
+  useEffect(() => {
+    try {
+      setShowSetup(
+        sessionStorage.getItem("freescale-setup-invitation-dismissed") !== "1",
+      );
+    } catch {
+      setShowSetup(true);
+    }
+  }, []);
+
+  const dismissSetup = () => {
+    setShowSetup(false);
+    try {
+      sessionStorage.setItem("freescale-setup-invitation-dismissed", "1");
+    } catch {}
+  };
+
+  return (
+    <section
+      className="relative flex min-h-[70svh] w-full flex-1 flex-col bg-background lg:h-[calc(100svh-4rem)]"
+      aria-label="Accueil IA"
+    >
+      <ChatPanel input={input} onInputChange={setInput} />
+      {showSetup ? (
+        <aside
+          aria-label="Configurer votre espace"
+          className="fixed bottom-24 right-4 z-40 w-[calc(100%-2rem)] max-w-sm rounded-2xl border bg-background p-5 shadow-lg lg:bottom-6 lg:right-6"
+        >
+          <button
+            aria-label="Fermer l’invitation"
+            className="absolute right-3 top-3 rounded-md p-1.5 hover:bg-muted"
+            onClick={dismissSetup}
+            type="button"
+          >
+            <XIcon className="size-4" />
+          </button>
+          <p className="pr-7 font-medium">Bienvenue dans votre espace</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Connectez vos outils et personnalisez Freescale depuis la
+            configuration.
+          </p>
+          <Button asChild className="mt-4">
+            <Link href="/setup">
+              Configurer mon espace
+              <ArrowRightIcon className="size-4" />
+            </Link>
+          </Button>
+        </aside>
+      ) : null}
+    </section>
+  );
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: kept temporarily for the alternate tabbed home prototype.
+function LegacyChatPreview({
   initialView = "brief",
   onboardingComplete = false,
 }: {
@@ -94,6 +190,8 @@ export function ChatPreview({
   const [connectDialogOpen, setConnectDialogOpen] = useState(false);
   const [activeView, setActiveView] = useState<ChatView>(initialView);
   const connectedChannels = usePreviewConnectedChannels();
+  const isMobileViewport = useMobileViewport();
+  const isConnectedChannelsLoading = connectedChannels === null;
   const hasConnectedChannels = (connectedChannels?.length ?? 0) > 0;
 
   const changeActiveView = (view: string) => {
@@ -131,12 +229,14 @@ export function ChatPreview({
 
   return (
     <>
-      <MobileChatPreview
-        freelancerName={freelancerName}
-        hasConnectedChannels={hasConnectedChannels}
-        onboardingComplete={onboardingComplete}
-        onConnectChannel={() => setConnectDialogOpen(true)}
-      />
+      {isMobileViewport ? (
+        <MobileChatPreview
+          freelancerName={freelancerName}
+          hasConnectedChannels={hasConnectedChannels}
+          onboardingComplete={onboardingComplete}
+          onConnectChannel={() => setConnectDialogOpen(true)}
+        />
+      ) : null}
       <Tabs
         className="relative isolate hidden h-[calc(100svh-4rem)] min-h-0 w-full flex-none flex-col overflow-x-hidden overflow-y-auto bg-background lg:flex"
         defaultValue="brief"
@@ -210,7 +310,9 @@ export function ChatPreview({
           className="mt-0 flex w-full flex-none overflow-visible"
           value="brief"
         >
-          {hasConnectedChannels ? (
+          {isConnectedChannelsLoading || isMobileViewport !== false ? (
+            <BriefConnectionLoadingState />
+          ) : hasConnectedChannels ? (
             <DesktopRealBrief freelancerName={freelancerName} />
           ) : (
             <CenteredBriefOverview
@@ -544,6 +646,33 @@ const dailyBriefChanges = [
   },
 ] as const;
 
+function BriefConnectionLoadingState() {
+  return (
+    <div
+      aria-live="polite"
+      className="relative flex min-h-[calc(100svh-8rem)] w-full items-start justify-center overflow-hidden px-6 pb-12 pt-16 sm:pt-20"
+      role="status"
+    >
+      <span className="sr-only">Chargement de votre messagerie</span>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-80 opacity-60 dark:opacity-20"
+        style={{
+          background:
+            "radial-gradient(ellipse 62% 72% at 50% 0%, rgba(96,165,250,0.11), rgba(251,191,36,0.045) 52%, transparent 78%)",
+        }}
+      />
+      <section className="relative flex w-full max-w-lg flex-col items-center text-center">
+        <div className="h-10 w-60 animate-pulse rounded-xl bg-muted" />
+        <div className="mt-8 h-6 w-48 animate-pulse rounded-lg bg-muted" />
+        <div className="mt-3 h-4 w-full max-w-md animate-pulse rounded bg-muted" />
+        <div className="mt-2 h-4 w-80 max-w-full animate-pulse rounded bg-muted" />
+        <div className="mt-6 h-10 w-44 animate-pulse rounded-[13px] bg-muted" />
+      </section>
+    </div>
+  );
+}
+
 function CenteredBriefOverview({
   freelancerName,
   hasConnectedChannels,
@@ -593,7 +722,7 @@ function CenteredBriefOverview({
   }
 
   return (
-    <div className="relative flex min-h-[calc(100svh-8rem)] w-full flex-none items-start justify-center bg-background px-4 pb-12 pt-20 sm:px-6 sm:pt-20">
+    <div className="relative flex min-h-[calc(100svh-8rem)] w-full flex-none items-start justify-center bg-background px-4 pb-12 pt-16 sm:px-6 sm:pt-20">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] opacity-60 dark:opacity-20"
@@ -968,7 +1097,7 @@ function DisconnectedBriefState({
   onConnectChannel: () => void;
 }) {
   return (
-    <div className="flex min-h-[calc(100svh-8rem)] w-full items-center justify-center px-6 py-16">
+    <div className="flex min-h-[calc(100svh-8rem)] w-full items-start justify-center px-6 pb-12 pt-16 sm:pt-20">
       <section className="w-full max-w-md text-center">
         <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
           <InboxIcon className="size-6" />
@@ -2879,8 +3008,11 @@ type AskMueMessage =
       role: "assistant";
       content: string;
       prompt: string;
+      suggestion?: AskMueSuggestionId;
       asset?: AskMueAsset;
     };
+
+type AskMueSuggestionId = (typeof suggestions)[number]["id"];
 
 type AskMueAsset = {
   name: string;
@@ -2912,6 +3044,56 @@ const askPriorityItems = [
     tone: "normal" as const,
   },
 ];
+
+const askSuggestionThinkingSteps = [
+  {
+    label: "Je comprends votre demande",
+    detail: "Intention, périmètre et résultat attendu",
+    duration: 1400,
+  },
+  {
+    label: "Je scanne vos nouveaux messages",
+    detail: "Conversations, réponses attendues et signaux d’urgence",
+    duration: 1800,
+  },
+  {
+    label: "Je relie les échanges à votre activité",
+    detail: "Clients, projets, échéances et tâches existantes",
+    duration: 2200,
+  },
+  {
+    label: "Je compacte le contexte utile",
+    detail: "Je retire le bruit et prépare une réponse actionnable",
+    duration: 4200,
+  },
+] as const;
+
+const askSuggestedTasks = [
+  {
+    id: "ask-theo-planning",
+    title: "Confirmer le planning avec Théo",
+    meta: "WhatsApp · réponse attendue aujourd’hui",
+    source: "WhatsApp" as const,
+    status: "todo" as const,
+    due: "Aujourd’hui",
+  },
+  {
+    id: "ask-maya-payment",
+    title: "Relancer Maya pour le règlement",
+    meta: "Gmail · facture F-2048 arrivée à échéance",
+    source: "Gmail" as const,
+    status: "waiting" as const,
+    due: "Aujourd’hui",
+  },
+  {
+    id: "ask-jon-seo",
+    title: "Valider les prochaines étapes SEO avec Jon",
+    meta: "Outlook · projet livré, confirmation attendue",
+    source: "Outlook" as const,
+    status: "scope" as const,
+    due: "Demain",
+  },
+] as const;
 
 function getAskMueResponse(prompt: string): AskMueResponse {
   const normalized = prompt.toLocaleLowerCase("fr-FR");
@@ -3019,35 +3201,6 @@ function getAskMuePayload(prompt: string): AskMuePayload {
   };
 }
 
-function createAskMueStream(content: string) {
-  const words = content.match(/\S+\s*/g) ?? [content];
-  const chunks: string[] = [];
-
-  for (let index = 0; index < words.length; index += 3) {
-    chunks.push(words.slice(index, index + 3).join(""));
-  }
-
-  return new ReadableStream<string>({
-    start(controller) {
-      let index = 0;
-
-      const pushNextChunk = () => {
-        const chunk = chunks[index];
-        if (chunk === undefined) {
-          controller.close();
-          return;
-        }
-
-        controller.enqueue(chunk);
-        index += 1;
-        window.setTimeout(pushNextChunk, 28);
-      };
-
-      window.setTimeout(pushNextChunk, 72);
-    },
-  });
-}
-
 function AskMueAssetCard({
   asset,
   ready,
@@ -3133,6 +3286,524 @@ function AskMueStreamingContent({
         />
       )}
     </div>
+  );
+}
+
+function AskMueThinkingTrace({ phase }: { phase: number }) {
+  const isCompacting = phase === askSuggestionThinkingSteps.length - 1;
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      aria-live="polite"
+      className="max-w-xl py-1"
+      initial={{ opacity: 0, y: 4 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div className="flex items-center gap-2 text-sm">
+        <span className="relative flex size-5 items-center justify-center">
+          <span className="absolute size-4 animate-ping rounded-full bg-blue-400/20 motion-reduce:animate-none" />
+          <span className="size-2 rounded-full bg-blue-500" />
+        </span>
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.span
+            animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+            className="font-medium"
+            exit={{ filter: "blur(4px)", opacity: 0, y: -4 }}
+            initial={{ filter: "blur(4px)", opacity: 0, y: 4 }}
+            key={phase}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Mue réfléchit
+          </motion.span>
+        </AnimatePresence>
+      </div>
+      <div className="mt-3 space-y-2 border-l border-border/80 pl-3">
+        {askSuggestionThinkingSteps.slice(0, phase + 1).map((step, index) => (
+          <motion.div
+            animate={{ opacity: 1, x: 0 }}
+            className={cn(
+              "flex items-start gap-2 text-xs",
+              index === phase
+                ? "font-medium text-foreground"
+                : "text-muted-foreground",
+            )}
+            initial={{ opacity: 0, x: -4 }}
+            key={step.label}
+          >
+            {index < phase ? (
+              <CheckIcon className="mt-0.5 size-3.5 text-emerald-600" />
+            ) : (
+              <LoaderCircleIcon className="mt-0.5 size-3.5 animate-spin text-blue-500 motion-reduce:animate-none" />
+            )}
+            <span className="min-w-0">
+              <span
+                className={cn(
+                  "block",
+                  index === phase &&
+                    "bg-[linear-gradient(90deg,#64748b_0%,#2563eb_35%,#7c3aed_58%,#64748b_100%)] bg-[length:220%_100%] bg-clip-text text-transparent [animation:mue-text-flow_1.8s_ease-in-out_infinite] [-webkit-background-clip:text] [-webkit-text-fill-color:transparent] motion-reduce:animate-none",
+                )}
+              >
+                {step.label}
+                {index === phase ? "…" : ""}
+              </span>
+              <span className="mt-0.5 block font-normal text-[11px] text-muted-foreground">
+                {step.detail}
+              </span>
+            </span>
+          </motion.div>
+        ))}
+      </div>
+      <AnimatePresence>
+        {isCompacting && (
+          <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 max-w-md rounded-xl border border-border/60 bg-muted/20 p-3"
+            initial={{ opacity: 0, y: 5 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="mb-2 flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Construction de la réponse</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="size-1 animate-pulse rounded-full bg-blue-500" />
+                en cours
+              </span>
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-2.5 w-[92%] [animation-duration:1.6s]" />
+              <Skeleton className="h-2.5 w-[78%] [animation-duration:1.8s]" />
+              <Skeleton className="h-2.5 w-[86%] [animation-duration:2s]" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function AskMueTypedText({
+  content,
+  onComplete,
+}: {
+  content: string;
+  onComplete: () => void;
+}) {
+  const reducedMotion = useReducedMotion();
+  const characters = Array.from(content);
+  const [visibleLength, setVisibleLength] = useState(0);
+  const completedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setVisibleLength(characters.length);
+      return;
+    }
+
+    const startedAt = performance.now();
+    const interval = window.setInterval(() => {
+      const nextLength = Math.min(
+        characters.length,
+        Math.max(1, Math.floor((performance.now() - startedAt) / 6)),
+      );
+      setVisibleLength(nextLength);
+      if (nextLength === characters.length) window.clearInterval(interval);
+    }, 24);
+
+    return () => window.clearInterval(interval);
+  }, [reducedMotion, characters.length]);
+
+  useEffect(() => {
+    if (visibleLength < characters.length || completedRef.current) return;
+    completedRef.current = true;
+    onCompleteRef.current();
+  }, [visibleLength, characters.length]);
+
+  return (
+    <p className="max-w-2xl whitespace-pre-wrap text-sm leading-6">
+      {characters.slice(0, visibleLength).join("")}
+      {visibleLength < characters.length && (
+        <motion.span
+          animate={{ opacity: [1, 0.25, 1] }}
+          aria-label="Réponse en cours"
+          className="ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 rounded-full bg-foreground/70"
+          transition={{ duration: 0.7, repeat: Number.POSITIVE_INFINITY }}
+        />
+      )}
+    </p>
+  );
+}
+
+function AskMueResultSkeleton({
+  suggestion,
+}: {
+  suggestion: AskMueSuggestionId;
+}) {
+  const label =
+    suggestion === "actions"
+      ? "Mue prépare les tâches"
+      : suggestion === "summary"
+        ? "Mue structure la synthèse"
+        : "Mue organise les priorités";
+
+  return (
+    <motion.section
+      animate={{ opacity: 1, y: 0 }}
+      aria-label={label}
+      className="mt-4 max-w-2xl"
+      initial={{ opacity: 0, y: 6 }}
+    >
+      <div className="mb-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <span className="relative flex size-4 items-center justify-center">
+          <span className="absolute size-3 animate-ping rounded-full bg-blue-400/20 motion-reduce:animate-none" />
+          <SparklesIcon className="size-3 text-blue-500" />
+        </span>
+        {label}…
+      </div>
+      <div className="grid gap-2.5 sm:grid-cols-3">
+        {[78, 92, 68].map((width, index) => (
+          <motion.div
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative min-h-32 overflow-hidden rounded-2xl border border-border/70 bg-card p-4"
+            initial={{ opacity: 0, scale: 0.985 }}
+            key={width}
+            transition={{ delay: index * 0.12, duration: 0.25 }}
+          >
+            <motion.span
+              animate={{ x: ["-120%", "220%"] }}
+              className="pointer-events-none absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-blue-100/55 to-transparent dark:via-blue-900/20"
+              transition={{
+                duration: 1.5,
+                ease: "easeInOut",
+                repeat: Number.POSITIVE_INFINITY,
+              }}
+            />
+            <Skeleton className="size-7 rounded-lg" />
+            <Skeleton className="mt-4 h-3 w-full" />
+            <Skeleton className="mt-2 h-3" style={{ width: `${width}%` }} />
+            <Skeleton className="mt-4 h-7 w-20 rounded-lg" />
+          </motion.div>
+        ))}
+      </div>
+    </motion.section>
+  );
+}
+
+function AskMueSuggestionReveal({
+  messageId,
+  suggestion,
+}: {
+  messageId: string;
+  suggestion: AskMueSuggestionId;
+}) {
+  const reducedMotion = useReducedMotion();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setReady(true),
+      reducedMotion ? 120 : 1800,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [reducedMotion]);
+
+  return (
+    <AnimatePresence initial={false} mode="wait">
+      {ready ? (
+        <AskMueSuggestionResult
+          key="result"
+          messageId={messageId}
+          suggestion={suggestion}
+        />
+      ) : (
+        <AskMueResultSkeleton key="skeleton" suggestion={suggestion} />
+      )}
+    </AnimatePresence>
+  );
+}
+
+function AskMueSuggestionResult({
+  messageId,
+  suggestion,
+}: {
+  messageId: string;
+  suggestion: AskMueSuggestionId;
+}) {
+  const { emailAccountId } = useAccount();
+  const [decision, setDecision] = useState<"pending" | "accepted" | "declined">(
+    "pending",
+  );
+  const [createdTaskIds, setCreatedTaskIds] = useState<string[]>([]);
+  const [isExecuting, setIsExecuting] = useState(false);
+
+  const createTasks = async (ids: string[]) => {
+    const tasks = askSuggestedTasks.filter(
+      (task) => ids.includes(task.id) && !createdTaskIds.includes(task.id),
+    );
+    if (tasks.length === 0) return;
+
+    if (!emailAccountId) {
+      toastError({
+        description: "Connectez une messagerie avant d’ajouter ces tâches.",
+      });
+      return;
+    }
+
+    setIsExecuting(true);
+    try {
+      const due = getLocalDateKey();
+      const persistedTasks = await Promise.all(
+        tasks.map(async (task) => {
+          const response = await fetch("/api/user/tasks", {
+            method: "POST",
+            cache: "no-store",
+            headers: {
+              "Content-Type": "application/json",
+              [EMAIL_ACCOUNT_HEADER]: emailAccountId,
+            },
+            body: JSON.stringify({
+              title: task.title,
+              status: "scope",
+              due,
+              priority: "medium",
+              source: "ai",
+              assignees: [],
+              sourceThreadId: `ask-mue-priority:${due}:${task.id}`,
+            }),
+          });
+          if (!response.ok) throw new Error("task_request_failed");
+          const result = (await response.json()) as { task: { id: string } };
+          return result.task;
+        }),
+      );
+
+      const nextCreatedIds = [
+        ...new Set([...createdTaskIds, ...tasks.map((task) => task.id)]),
+      ];
+      setCreatedTaskIds(nextCreatedIds);
+      if (nextCreatedIds.length === askSuggestedTasks.length) {
+        setDecision("accepted");
+      }
+      const savedCount = persistedTasks.length;
+      const persistedTaskIds = persistedTasks.map((task) => task.id);
+      try {
+        sessionStorage.setItem(
+          CREATED_TASK_IDS_STORAGE_KEY,
+          persistedTaskIds.join(","),
+        );
+        sessionStorage.setItem(
+          CREATED_TASKS_STORAGE_KEY,
+          JSON.stringify(
+            tasks.map((task, index) => ({
+              id: persistedTaskIds[index],
+              title: task.title,
+              status: "scope",
+              due,
+              priority: "medium",
+              source: "ai",
+              assignees: [],
+              sourceThreadId: `ask-mue-priority:${due}:${task.id}`,
+            })),
+          ),
+        );
+      } catch {}
+      toastSuccess({
+        title: "Ajouté à Aujourd’hui",
+        description: `${savedCount} tâche${savedCount === 1 ? " a" : "s ont"} été ajoutée${savedCount === 1 ? "" : "s"} à la page Tâches.`,
+        duration: 10_000,
+        action: {
+          label: "Voir mes tâches",
+          onClick: () => {
+            const params = new URLSearchParams({
+              created: persistedTaskIds.join(","),
+            });
+            window.location.assign(`/tasks?${params.toString()}`);
+          },
+        },
+      });
+    } catch {
+      toastError({
+        description: "Les tâches n’ont pas pu être ajoutées. Réessayez.",
+      });
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  if (suggestion === "summary") {
+    return (
+      <motion.section
+        animate={{ opacity: 1, y: 0 }}
+        aria-label="Échanges importants"
+        className="mt-4 max-w-2xl"
+        initial={{ opacity: 0, y: 7 }}
+      >
+        <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-muted/20 px-4 py-3">
+          <div>
+            <p className="font-semibold text-sm">3 échanges à retenir</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Contexte compacté depuis 18 messages
+            </p>
+          </div>
+          <span className="rounded-full bg-blue-50 px-2 py-1 font-medium text-[10px] text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+            À jour
+          </span>
+        </div>
+        <div className="mt-2.5 grid gap-2.5 sm:grid-cols-3">
+          {dailyBriefClients.map((client) => (
+            <div
+              className="flex min-h-40 flex-col items-start rounded-2xl border border-border/80 bg-card p-4 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.5)]"
+              key={client.name}
+            >
+              <div className="flex w-full items-center gap-2.5">
+                <ClientMentionAvatar
+                  className="size-8"
+                  name={client.name}
+                  position={client.avatarPosition}
+                />
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-medium text-sm">{client.name}</p>
+                  <DailyBriefChannelIcon channel={client.channel} />
+                </div>
+              </div>
+              <p className="mt-3 flex-1 text-xs leading-5 text-muted-foreground">
+                {client.headline}
+              </p>
+              <Button asChild className="mt-3" size="sm" variant="ghost">
+                <Link
+                  href={`/channels-v4?conversation=${client.conversationId}`}
+                >
+                  Ouvrir
+                  <ArrowUpRightIcon className="size-3.5" />
+                </Link>
+              </Button>
+            </div>
+          ))}
+        </div>
+      </motion.section>
+    );
+  }
+
+  const isActions = suggestion === "actions";
+
+  return (
+    <motion.section
+      animate={{ opacity: 1, y: 0 }}
+      aria-label={isActions ? "Tâches proposées" : "Plan de priorités proposé"}
+      className="mt-4 max-w-2xl"
+      initial={{ opacity: 0, y: 7 }}
+      key={`${messageId}-${suggestion}`}
+    >
+      <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-muted/20 px-4 py-3">
+        <div>
+          <p className="font-semibold text-sm">
+            {isActions
+              ? `${askSuggestedTasks.length} tâche${askSuggestedTasks.length === 1 ? "" : "s"} prête${askSuggestedTasks.length === 1 ? "" : "s"} à créer`
+              : "Plan proposé pour aujourd’hui"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {isActions
+              ? "Rien ne sera ajouté sans votre accord"
+              : "Validez cet ordre avant de l’appliquer"}
+          </p>
+        </div>
+        <span className="rounded-full border bg-background px-2 py-1 font-medium text-[10px] text-muted-foreground">
+          Validation requise
+        </span>
+      </div>
+
+      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-3">
+        {askSuggestedTasks.map((task, index) => {
+          const created = createdTaskIds.includes(task.id);
+          return (
+            <div
+              className="flex min-h-40 flex-col items-start rounded-2xl border border-border/80 bg-card p-4 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.5)]"
+              key={task.id}
+            >
+              <span
+                className={cn(
+                  "grid size-7 shrink-0 place-items-center rounded-lg font-semibold text-xs",
+                  created
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                    : "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
+                )}
+              >
+                {created ? <CheckIcon className="size-4" /> : index + 1}
+              </span>
+              <div className="mt-3 min-w-0 flex-1">
+                <p className="font-medium text-sm leading-5">{task.title}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {task.meta} · {task.due}
+                </p>
+              </div>
+              {isActions ? (
+                <Button
+                  className="shrink-0"
+                  disabled={created || decision === "declined" || isExecuting}
+                  onClick={() => createTasks([task.id])}
+                  size="sm"
+                  variant={created ? "ghost" : "outline"}
+                >
+                  {created ? "Ajoutée" : "Ajouter"}
+                </Button>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2 rounded-2xl border border-border/80 bg-muted/15 px-4 py-3">
+        {decision === "pending" ? (
+          <>
+            <Button
+              disabled={isExecuting}
+              onClick={() =>
+                createTasks(askSuggestedTasks.map((task) => task.id))
+              }
+              size="sm"
+            >
+              {isExecuting ? (
+                <LoaderCircleIcon className="size-3.5 animate-spin" />
+              ) : (
+                <CheckIcon className="size-3.5" />
+              )}
+              {isActions
+                ? `Oui, ajouter les ${askSuggestedTasks.length}`
+                : "Oui, valider ce plan"}
+            </Button>
+            <Button
+              disabled={isExecuting}
+              onClick={() => setDecision("declined")}
+              size="sm"
+              variant="ghost"
+            >
+              Non, ajuster
+            </Button>
+          </>
+        ) : (
+          <p
+            className={cn(
+              "flex items-center gap-2 font-medium text-xs",
+              decision === "accepted"
+                ? "text-emerald-700 dark:text-emerald-300"
+                : "text-muted-foreground",
+            )}
+          >
+            {decision === "accepted" ? (
+              <CheckIcon className="size-4" />
+            ) : (
+              <RotateCcwIcon className="size-4" />
+            )}
+            {decision === "accepted"
+              ? isActions
+                ? "Les tâches ont été ajoutées."
+                : "Les priorités ont été ajoutées à Aujourd’hui."
+              : "D’accord. Dites-moi ce que vous voulez modifier."}
+          </p>
+        )}
+      </div>
+    </motion.section>
   );
 }
 
@@ -3260,21 +3931,61 @@ function ChatPanel({
   input: string;
   onInputChange: (value: string) => void;
 }) {
+  const { data: session } = useSession();
+  const reducedMotion = useReducedMotion();
+  const { emailAccountId } = useAccount();
+  const { data: summary, error: summaryError } = usePreloadedPageData<{
+    unreadEmails: number;
+  }>("/api/user/brief-summary");
+  const { data: brief } = useMueBriefTasks();
+  const userId = session?.user?.id;
+  const [onboardingName, setOnboardingName] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    const readName = () => {
+      try {
+        setOnboardingName({
+          userId,
+          name:
+            localStorage
+              .getItem(`${PREVIEW_FREELANCER_NAME_KEY}:${userId}`)
+              ?.trim() ?? "",
+        });
+      } catch {
+        setOnboardingName(null);
+      }
+    };
+    readName();
+    window.addEventListener(PREVIEW_FREELANCER_NAME_EVENT, readName);
+    window.addEventListener("storage", readName);
+    return () => {
+      window.removeEventListener(PREVIEW_FREELANCER_NAME_EVENT, readName);
+      window.removeEventListener("storage", readName);
+    };
+  }, [userId]);
+  const accountName =
+    (onboardingName?.userId === userId ? onboardingName?.name : "") ||
+    session?.user?.name?.trim();
+  const priorityCount = brief?.tasks.length ?? 0;
   const [messages, setMessages] = useState<AskMueMessage[]>([]);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null,
   );
+  const [thinkingPhase, setThinkingPhase] = useState(-1);
   const [mentionedClientNames, setMentionedClientNames] = useState<string[]>(
     [],
   );
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const isMountedRef = useRef(true);
   const isStreaming = streamingMessageId !== null;
   const hasStarted = messages.length > 0;
-  const latestMessageId = messages.at(-1)?.id;
+  const latestMessage = messages.at(-1);
+  const latestMessageId = latestMessage?.id;
   const streamedContentLength =
-    messages.at(-1)?.role === "assistant" ? messages.at(-1)?.content.length : 0;
+    latestMessage?.role === "assistant" ? latestMessage.content.length : 0;
   const mentionMatch = input.match(/(?:^|\s)@([^\s@]*)$/);
   const mentionQuery = mentionMatch?.[1] ?? null;
   const mentionClients =
@@ -3304,50 +4015,109 @@ function ChatPanel({
     return () => window.cancelAnimationFrame(frame);
   }, [latestMessageId, isStreaming, streamedContentLength]);
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   const streamAssistantMessage = async (
     assistantId: string,
     prompt: string,
+    suggestion?: AskMueSuggestionId,
   ) => {
-    const payload = getAskMuePayload(prompt);
     setStreamingMessageId(assistantId);
+    setThinkingPhase(suggestion ? 0 : -1);
     setMessages((current) =>
       current.map((message) =>
         message.id === assistantId && message.role === "assistant"
-          ? { ...message, asset: payload.asset, content: "" }
+          ? { ...message, content: "" }
           : message,
       ),
     );
 
-    const reader = createAskMueStream(payload.content).getReader();
+    if (suggestion) {
+      const examples: Record<string, string> = {
+        priorities:
+          "J’ai terminé. Les sujets suivants ressortent nettement aujourd’hui. Je les ai classés selon l’attente client, l’urgence et ce qu’ils débloquent pour la suite. Voici le plan que je vous propose :",
+        summary:
+          "J’ai regroupé les échanges qui parlent du même sujet, puis retiré les répétitions. Voici l’essentiel, avec un accès direct à chaque conversation :",
+        actions:
+          "J’ai transformé les demandes et engagements explicites en tâches concrètes. Elles sont prêtes, mais je vous laisse les vérifier avant de les ajouter :",
+      };
 
-    while (true) {
-      const { done, value: chunk } = await reader.read();
-      if (done || !isMountedRef.current) {
-        break;
+      for (
+        let phase = 0;
+        phase < askSuggestionThinkingSteps.length;
+        phase += 1
+      ) {
+        setThinkingPhase(phase);
+        await new Promise((resolve) =>
+          window.setTimeout(
+            resolve,
+            reducedMotion ? 80 : askSuggestionThinkingSteps[phase].duration,
+          ),
+        );
       }
 
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantId && message.role === "assistant"
-            ? { ...message, content: message.content + chunk }
+            ? { ...message, content: examples[suggestion] }
             : message,
         ),
       );
+      setThinkingPhase(-1);
+      return;
     }
 
-    if (isMountedRef.current) {
-      setStreamingMessageId(null);
-    }
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, reducedMotion ? 30 : 520),
+    );
+    const payload = getAskMuePayload(prompt);
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === assistantId && message.role === "assistant"
+          ? { ...message, asset: payload.asset }
+          : message,
+      ),
+    );
+    await typeAssistantMessage(assistantId, payload.content);
   };
 
-  const sendMessage = (value: string) => {
+  const typeAssistantMessage = async (assistantId: string, content: string) => {
+    if (reducedMotion) {
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId && message.role === "assistant"
+            ? { ...message, content }
+            : message,
+        ),
+      );
+      setThinkingPhase(-1);
+      setStreamingMessageId(null);
+      return;
+    }
+
+    const characters = Array.from(content);
+    for (let index = 3; index < characters.length; index += 3) {
+      const streamedContent = characters.slice(0, index).join("");
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId && message.role === "assistant"
+            ? { ...message, content: streamedContent }
+            : message,
+        ),
+      );
+      await new Promise((resolve) => window.setTimeout(resolve, 18));
+    }
+
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === assistantId && message.role === "assistant"
+          ? { ...message, content }
+          : message,
+      ),
+    );
+    setThinkingPhase(-1);
+    setStreamingMessageId(null);
+  };
+
+  const sendMessage = (value: string, suggestion?: AskMueSuggestionId) => {
     const content = value.trim();
     if (!content || isStreaming) {
       return;
@@ -3363,10 +4133,11 @@ function ChatPanel({
         role: "assistant",
         content: "",
         prompt: content,
+        suggestion,
       },
     ]);
     onInputChange("");
-    streamAssistantMessage(assistantId, content);
+    streamAssistantMessage(assistantId, content, suggestion);
   };
 
   const selectMention = (clientName: string) => {
@@ -3395,6 +4166,15 @@ function ChatPanel({
 
     sendMessage(content);
     setMentionedClientNames([]);
+  };
+
+  const returnToAskMueHome = () => {
+    setMessages([]);
+    setStreamingMessageId(null);
+    setThinkingPhase(-1);
+    setMentionedClientNames([]);
+    setActiveMentionIndex(0);
+    onInputChange("");
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -3598,6 +4378,16 @@ function ChatPanel({
         } as CSSProperties
       }
     >
+      {!hasStarted && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-72"
+          style={{
+            background:
+              "radial-gradient(ellipse at 45% 0%, rgba(96,165,250,.20), transparent 65%), radial-gradient(ellipse at 70% 0%, rgba(251,191,153,.12), transparent 60%)",
+          }}
+        />
+      )}
       <AnimatePresence initial={false}>
         {hasStarted ? (
           <motion.div
@@ -3608,9 +4398,22 @@ function ChatPanel({
             transition={{ duration: 0.1 }}
           >
             <div
-              className="min-h-0 flex-1 overflow-y-auto px-[var(--chat-px)] pt-10"
+              className="min-h-0 flex-1 overflow-y-auto px-[var(--chat-px)] pt-5"
               ref={scrollAreaRef}
             >
+              <div className="sticky top-0 z-10 mx-auto mb-5 flex w-full max-w-[760px] bg-gradient-to-b from-background via-background/95 to-transparent pb-4 pt-1">
+                <Tooltip content="Retour aux suggestions Ask Mue">
+                  <Button
+                    aria-label="Retour à Ask Mue"
+                    className="size-9 rounded-full border-border/70 bg-background/90 text-muted-foreground shadow-sm backdrop-blur transition-all hover:-translate-x-0.5 hover:text-foreground"
+                    onClick={returnToAskMueHome}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <ArrowLeftIcon className="size-4" />
+                  </Button>
+                </Tooltip>
+              </div>
               <div
                 aria-live="polite"
                 className="mx-auto flex w-full max-w-[760px] flex-col gap-7 pb-8"
@@ -3634,11 +4437,29 @@ function ChatPanel({
                       <div className="min-w-0 flex-1 text-sm leading-6">
                         {message.content ? (
                           <>
-                            <AskMueStreamingContent
-                              asset={message.asset}
-                              content={message.content}
-                              streaming={streamingMessageId === message.id}
-                            />
+                            {message.suggestion ? (
+                              <AskMueTypedText
+                                content={message.content}
+                                onComplete={() =>
+                                  setStreamingMessageId((current) =>
+                                    current === message.id ? null : current,
+                                  )
+                                }
+                              />
+                            ) : (
+                              <AskMueStreamingContent
+                                asset={message.asset}
+                                content={message.content}
+                                streaming={streamingMessageId === message.id}
+                              />
+                            )}
+                            {streamingMessageId !== message.id &&
+                              message.suggestion && (
+                                <AskMueSuggestionReveal
+                                  messageId={message.id}
+                                  suggestion={message.suggestion}
+                                />
+                              )}
                             {streamingMessageId !== message.id && (
                               <AskMueMessageActions
                                 content={message.content}
@@ -3647,12 +4468,17 @@ function ChatPanel({
                                     streamAssistantMessage(
                                       message.id,
                                       message.prompt,
+                                      message.suggestion,
                                     );
                                   }
                                 }}
                               />
                             )}
                           </>
+                        ) : message.suggestion ? (
+                          <AskMueThinkingTrace
+                            phase={Math.max(0, thinkingPhase)}
+                          />
                         ) : (
                           <motion.span
                             animate={{ opacity: [0.35, 0.9, 0.35] }}
@@ -3663,7 +4489,7 @@ function ChatPanel({
                               repeat: Number.POSITIVE_INFINITY,
                             }}
                           >
-                            Réfléchit…
+                            Mue réfléchit…
                           </motion.span>
                         )}
                       </div>
@@ -3686,37 +4512,56 @@ function ChatPanel({
         ) : (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
-            className="relative z-[1] flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-[var(--chat-px)] pb-10 pt-24"
+            className="relative z-[1] flex min-h-0 flex-1 items-start justify-center overflow-y-auto px-[var(--chat-px)] pb-10 pt-16 lg:pt-[clamp(4rem,12vh,8rem)]"
             exit={{ opacity: 0, y: -12 }}
             initial={{ opacity: 0, y: 8 }}
             key="welcome"
             transition={{ duration: 0.22 }}
           >
             <div className="w-full max-w-[800px]">
-              <h1 className="mb-7 text-center font-extralight text-2xl tracking-tight sm:text-3xl md:text-4xl">
-                Que voulez-vous accomplir, Wacil ?
-              </h1>
+              <header className="mb-8 text-center">
+                <h1 className="font-medium text-2xl tracking-tight sm:text-3xl md:text-4xl">
+                  Bonjour{accountName ? ` ${accountName}` : ""}
+                </h1>
+                <p
+                  className="mt-3 min-h-6 text-muted-foreground"
+                  aria-live="polite"
+                >
+                  {!emailAccountId
+                    ? "Connectez une messagerie pour retrouver vos messages."
+                    : summary
+                      ? `Vous avez ${summary.unreadEmails.toLocaleString("fr-FR")} message${summary.unreadEmails === 1 ? "" : "s"} non lu${summary.unreadEmails === 1 ? "" : "s"}.`
+                      : summaryError
+                        ? "Le nombre de messages est momentanément indisponible."
+                        : "Chargement de vos messages…"}
+                </p>
+                {priorityCount > 0 && (
+                  <p
+                    className="mt-2 font-medium text-blue-700 dark:text-blue-300"
+                    aria-live="polite"
+                  >
+                    Mue a détecté {priorityCount} priorité
+                    {priorityCount === 1 ? "" : "s"}.
+                  </p>
+                )}
+              </header>
 
-              <div className="rounded-[18px] bg-gradient-to-r from-sky-400 via-fuchsia-500 to-rose-400 p-px shadow-sm">
-                {composer}
-              </div>
-
-              <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
-                {suggestions.map(({ label, icon: Icon }) => (
+              <div className="mb-5 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+                {suggestions.map(({ id, label }) => (
                   <Button
-                    className="group h-auto min-h-20 min-w-0 items-center justify-start gap-3 whitespace-normal text-wrap rounded-xl border-border/70 bg-muted/15 px-4 py-4 text-left shadow-none transition-colors hover:border-blue-300/60 hover:bg-blue-50/40 focus-visible:ring-blue-500/40 sm:min-h-28 sm:flex-col sm:items-start dark:hover:bg-blue-950/20"
+                    className="group h-auto min-h-16 min-w-0 items-center justify-start whitespace-normal text-wrap rounded-xl border-blue-200/80 bg-blue-50/70 px-4 py-3 text-left shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-100/70 focus-visible:ring-blue-500/40 dark:border-blue-900 dark:bg-blue-950/30 dark:hover:bg-blue-950/60"
                     key={label}
-                    onClick={() => sendMessage(label)}
+                    onClick={() => sendMessage(label, id)}
                     variant="outline"
                   >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground ring-1 ring-border/60 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                      <Icon aria-hidden="true" className="size-3.5" />
-                    </span>
-                    <span className="min-w-0 whitespace-normal text-wrap break-words font-normal text-[13px] leading-5 sm:w-full">
+                    <span className="min-w-0 whitespace-normal text-wrap break-words font-medium text-sm leading-5 sm:w-full">
                       {label}
                     </span>
                   </Button>
                 ))}
+              </div>
+              <div className="rounded-[18px] bg-gradient-to-r from-sky-400 via-fuchsia-500 to-rose-400 p-px shadow-sm">
+                {composer}
               </div>
             </div>
           </motion.div>

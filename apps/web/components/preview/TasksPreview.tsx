@@ -25,6 +25,12 @@ import useSWR from "swr";
 import type { GetFreescaleTasksResponse } from "@/app/api/user/tasks/route";
 import { PageWrapper } from "@/components/PageWrapper";
 import { toastError, toastSuccess } from "@/components/Toast";
+import {
+  CREATED_TASK_IDS_STORAGE_KEY,
+  CREATED_TASKS_STORAGE_KEY,
+  getLocalDateKey,
+  getLocalTomorrowDateKey,
+} from "@/utils/freescale-task-date";
 import { WhatsAppIcon } from "@/components/BrandIcons";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { MueIcon } from "@/components/MueIcon";
@@ -100,7 +106,29 @@ type MueWorkflowProjection = {
 type ProjectedMueTask = MueTaskEventDetail[number] & { revealed: boolean };
 type PendingTaskMove = { id: string; status: TaskStatus };
 
-export const TASKS_TODAY = "2026-08-17";
+function parseCreatedTaskIds(value: string | null) {
+  return (
+    value
+      ?.split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .slice(0, 20) ?? []
+  );
+}
+
+function readPendingCreatedTasks() {
+  try {
+    const value = sessionStorage.getItem(CREATED_TASKS_STORAGE_KEY);
+    if (!value) return [];
+    const parsed = JSON.parse(value) as Task[];
+    return Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+  } catch {
+    return [];
+  }
+}
+
+export const TASKS_TODAY = getLocalDateKey();
+const TASKS_TOMORROW = getLocalTomorrowDateKey();
 export const TASKS_STORAGE_KEY = "freescale-preview-tasks-v4";
 const statuses: Array<{
   id: TaskStatus;
@@ -109,7 +137,7 @@ const statuses: Array<{
 }> = [
   {
     id: "scope",
-    label: "À cadrer",
+    label: "Aujourd’hui",
     toneClass:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300",
   },
@@ -268,21 +296,22 @@ const avatarStyles: Record<string, string> = {
   CA: "bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300",
 };
 
-async function taskRequest(
+async function taskRequest<T = unknown>(
   emailAccountId: string,
-  method: "POST" | "PATCH" | "DELETE",
-  body: object,
-) {
+  method: "GET" | "POST" | "PATCH" | "DELETE",
+  body?: object,
+): Promise<T> {
   const response = await fetch("/api/user/tasks", {
     method,
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       [EMAIL_ACCOUNT_HEADER]: emailAccountId,
     },
-    body: JSON.stringify(body),
+    body: body ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) throw new Error("task_request_failed");
-  return response.json();
+  return response.json() as Promise<T>;
 }
 
 export function TasksPreview() {
@@ -295,10 +324,13 @@ export function TasksPreview() {
     error: tasksError,
     mutate: refreshTasks,
   } = useSWR<GetFreescaleTasksResponse>(
-    emailAccountId ? "/api/user/tasks" : null,
+    emailAccountId ? ["/api/user/tasks", emailAccountId] : null,
+    ([, activeEmailAccountId]) =>
+      taskRequest<GetFreescaleTasksResponse>(activeEmailAccountId, "GET"),
   );
   const taskTutorialRequested = searchParams.get("tutorial") === "mue-tasks";
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [pendingCreatedTasks, setPendingCreatedTasks] = useState<Task[]>([]);
   const [query, setQuery] = useState("");
   const [priorities, setPriorities] = useState<TaskPriority[]>([]);
   const [sort, setSort] = useState<"manual" | "due" | "priority">("manual");
@@ -306,7 +338,12 @@ export function TasksPreview() {
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>("todo");
   const [mueProjection, setMueProjection] =
     useState<MueWorkflowProjection | null>(null);
-  const [highlightedTaskIds, setHighlightedTaskIds] = useState<string[]>([]);
+  const [arrivingTaskIds, setArrivingTaskIds] = useState<string[]>(() =>
+    parseCreatedTaskIds(searchParams.get("created")),
+  );
+  const [highlightedTaskIds, setHighlightedTaskIds] = useState<string[]>(() =>
+    parseCreatedTaskIds(searchParams.get("created")),
+  );
   const [pendingTaskMove, setPendingTaskMove] =
     useState<PendingTaskMove | null>(null);
   const [recentlyMovedTaskId, setRecentlyMovedTaskId] = useState<string | null>(
@@ -365,27 +402,95 @@ export function TasksPreview() {
   }, [taskTutorialStep]);
 
   useEffect(() => {
+    const pendingTasks = readPendingCreatedTasks();
+    if (pendingTasks.length === 0) return;
+    setPendingCreatedTasks(pendingTasks);
+    setTasks((current) => {
+      const currentIds = new Set(current.map((task) => task.id));
+      return [
+        ...pendingTasks.filter((task) => !currentIds.has(task.id)),
+        ...current,
+      ];
+    });
+  }, []);
+
+  useEffect(() => {
     if (!storedTasks) return;
-    setTasks(
-      storedTasks.tasks.map((task) => ({
-        id: task.id,
-        title: task.title,
-        status: task.status as TaskStatus,
-        due: task.due,
-        priority: task.priority as TaskPriority,
-        source: task.source as TaskSource,
-        assignees: task.assignees,
-        context: task.context ?? undefined,
-        sourceThreadId: task.sourceThreadId ?? undefined,
-        contact: task.contactName
-          ? {
-              name: task.contactName,
-              avatarPosition: task.contactAvatarPosition ?? "50% 50%",
-            }
-          : undefined,
-      })),
+    const serverTasks = storedTasks.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      status: task.status as TaskStatus,
+      due: task.due,
+      priority: task.priority as TaskPriority,
+      source: task.source as TaskSource,
+      assignees: task.assignees,
+      context: task.context ?? undefined,
+      sourceThreadId: task.sourceThreadId ?? undefined,
+      contact: task.contactName
+        ? {
+            name: task.contactName,
+            avatarPosition: task.contactAvatarPosition ?? "50% 50%",
+          }
+        : undefined,
+    }));
+    const serverTaskIds = new Set(serverTasks.map((task) => task.id));
+    setTasks([
+      ...pendingCreatedTasks.filter((task) => !serverTaskIds.has(task.id)),
+      ...serverTasks,
+    ]);
+
+    if (
+      pendingCreatedTasks.length > 0 &&
+      pendingCreatedTasks.every((task) => serverTaskIds.has(task.id))
+    ) {
+      setPendingCreatedTasks([]);
+      try {
+        sessionStorage.removeItem(CREATED_TASKS_STORAGE_KEY);
+      } catch {}
+    }
+  }, [pendingCreatedTasks, storedTasks]);
+
+  useEffect(() => {
+    const queryTaskIds = parseCreatedTaskIds(searchParams.get("created"));
+    let storedCreatedTaskIds: string[] = [];
+    try {
+      storedCreatedTaskIds = parseCreatedTaskIds(
+        sessionStorage.getItem(CREATED_TASK_IDS_STORAGE_KEY),
+      );
+    } catch {}
+    const createdTaskIds =
+      queryTaskIds.length > 0 ? queryTaskIds : storedCreatedTaskIds;
+    if (createdTaskIds.length === 0 || !storedTasks) return;
+
+    const storedTaskIds = new Set(storedTasks.tasks.map((task) => task.id));
+    const visibleCreatedTaskIds = createdTaskIds.filter((id) =>
+      storedTaskIds.has(id),
     );
-  }, [storedTasks]);
+    if (visibleCreatedTaskIds.length === 0) return;
+
+    setArrivingTaskIds(visibleCreatedTaskIds);
+    setHighlightedTaskIds(visibleCreatedTaskIds);
+
+    const scrollTimer = window.setTimeout(() => {
+      document
+        .getElementById(`task-${visibleCreatedTaskIds[0]}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 180);
+    const cleanupTimer = window.setTimeout(() => {
+      setArrivingTaskIds([]);
+      setHighlightedTaskIds([]);
+      try {
+        sessionStorage.removeItem(CREATED_TASK_IDS_STORAGE_KEY);
+      } catch {}
+      if (queryTaskIds.length > 0)
+        window.history.replaceState(null, "", "/tasks");
+    }, 5200);
+
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(cleanupTimer);
+    };
+  }, [searchParams, storedTasks]);
 
   useEffect(() => {
     let highlightTimer: number | undefined;
@@ -394,7 +499,7 @@ export function TasksPreview() {
       const suggestions = (event as CustomEvent<MueTaskEventDetail>).detail;
       const dueDates: Record<string, string> = {
         "Aujourd’hui": TASKS_TODAY,
-        Demain: "2026-08-18",
+        Demain: TASKS_TOMORROW,
         "20 août": "2026-08-20",
         "Cette semaine": "2026-08-21",
       };
@@ -676,6 +781,7 @@ export function TasksPreview() {
                 (task) => task.status === status.id,
               )}
               highlightedTaskIds={highlightedTaskIds}
+              arrivingTaskIds={arrivingTaskIds}
               pendingTaskMove={pendingTaskMove}
               recentlyMovedTaskId={recentlyMovedTaskId}
               onValidateProjection={validateProjectedTask}
@@ -1428,6 +1534,7 @@ function TaskGroup({
   tasks,
   projectedTasks,
   highlightedTaskIds,
+  arrivingTaskIds,
   pendingTaskMove,
   recentlyMovedTaskId,
   onValidateProjection,
@@ -1438,6 +1545,7 @@ function TaskGroup({
   tasks: Task[];
   projectedTasks: ProjectedMueTask[];
   highlightedTaskIds: string[];
+  arrivingTaskIds: string[];
   pendingTaskMove: PendingTaskMove | null;
   recentlyMovedTaskId: string | null;
   onValidateProjection: (task: ProjectedMueTask) => void;
@@ -1500,6 +1608,7 @@ function TaskGroup({
               {highlightedTasks.map((task) => (
                 <TaskRow
                   highlighted
+                  arrivalIndex={arrivingTaskIds.indexOf(task.id)}
                   key={task.id}
                   pendingStatus={
                     pendingTaskMove?.id === task.id
@@ -1633,6 +1742,7 @@ function MueTaskProjectionRow({
 function TaskRow({
   task,
   highlighted = false,
+  arrivalIndex = -1,
   pendingStatus,
   recentlyMoved = false,
   onMove,
@@ -1640,14 +1750,30 @@ function TaskRow({
 }: {
   task: Task;
   highlighted?: boolean;
+  arrivalIndex?: number;
   pendingStatus?: TaskStatus;
   recentlyMoved?: boolean;
   onMove: (id: string, status: TaskStatus) => void;
   onRemove: (id: string) => void;
 }) {
   return (
-    <div
+    <motion.div
+      animate={{ filter: "blur(0px)", opacity: 1, scale: 1, y: 0 }}
       id={`task-${task.id}`}
+      initial={
+        arrivalIndex >= 0
+          ? { filter: "blur(7px)", opacity: 0, scale: 0.985, y: 16 }
+          : false
+      }
+      transition={
+        arrivalIndex >= 0
+          ? {
+              delay: arrivalIndex * 0.34,
+              duration: 0.56,
+              ease: [0.16, 1, 0.3, 1],
+            }
+          : undefined
+      }
       className={cn(
         "group relative px-4 py-3 transition-[background-color,box-shadow] duration-500 hover:bg-muted/30",
         pendingStatus &&
@@ -1701,7 +1827,7 @@ function TaskRow({
         <Source source={task.source} />
         <TaskMenu task={task} onMove={onMove} onRemove={onRemove} />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -2118,7 +2244,7 @@ function DueDate({ date, done }: { date: string; done: boolean }) {
   const label =
     date === TASKS_TODAY
       ? "Aujourd’hui"
-      : date === "2026-08-18"
+      : date === TASKS_TOMORROW
         ? "Demain"
         : new Intl.DateTimeFormat("fr-FR", {
             day: "numeric",

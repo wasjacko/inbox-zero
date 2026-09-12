@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 import type { LucideIcon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { usePostHog } from "posthog-js/react";
 import {
   SidebarMenu,
@@ -36,13 +36,16 @@ export function SideNavMenu({
   items,
   activeHref,
   nativeNavigation = false,
+  prefetch,
 }: {
   items: NavItem[];
   activeHref: string;
   nativeNavigation?: boolean;
+  prefetch?: boolean;
 }) {
   const { closeMobileSidebar } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
   const posthog = usePostHog();
   const currentAppPage = getAppPageFromPathname(pathname);
 
@@ -101,7 +104,17 @@ export function SideNavMenu({
                   {content}
                 </a>
               ) : (
-                <Link href={item.href} onClick={handleClick}>
+                <Link
+                  href={item.href}
+                  onClick={handleClick}
+                  onMouseEnter={() => {
+                    if (prefetch === false) router.prefetch(item.href);
+                  }}
+                  onFocus={() => {
+                    if (prefetch === false) router.prefetch(item.href);
+                  }}
+                  prefetch={prefetch}
+                >
                   {content}
                 </Link>
               )}

@@ -140,9 +140,10 @@ export function MailShell({
       );
     }
     if (split.kind === MailSplitKind.LABEL && split.value) {
+      const labelId = split.value;
       return allThreads.filter(
         (thread) =>
-          thread.mailbox === "inbox" && thread.labelIds.includes(split.value),
+          thread.mailbox === "inbox" && thread.labelIds.includes(labelId),
       );
     }
     return allThreads.filter((thread) => thread.mailbox === "inbox");

@@ -2,6 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAccountLinkingUrl } from "./account-linking";
 
 describe("getAccountLinkingUrl", () => {
+  it("returns to login when the session is missing instead of reporting a Gmail outage", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Unauthorized" }),
+      }),
+    );
+    await expect(getAccountLinkingUrl("google")).resolves.toBe("/login");
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
   });

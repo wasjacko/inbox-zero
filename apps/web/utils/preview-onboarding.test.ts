@@ -36,15 +36,15 @@ describe("preview onboarding connections", () => {
     window.removeEventListener(PREVIEW_CONNECTED_CHANNELS_EVENT, listener);
   });
 
-  it("opens the cleanup prompt after onboarding with a connected channel", () => {
+  it("opens home after onboarding with a connected channel", () => {
     expect(getPreviewOnboardingDestination(["gmail"])).toBe(
-      "/chat?onboarding=complete&postOnboardingSort=1",
+      "/chat?onboarding=complete",
     );
   });
 
-  it("opens configuration when onboarding ends without a channel", () => {
+  it("opens home when onboarding ends or is skipped without a channel", () => {
     expect(getPreviewOnboardingDestination([])).toBe(
-      "/setup?onboarding=complete",
+      "/chat?onboarding=complete",
     );
   });
 

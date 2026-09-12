@@ -30,10 +30,8 @@ export function startPreviewOnboarding(storage: Pick<Storage, "setItem">) {
   storage.setItem(PREVIEW_ONBOARDING_STATUS_KEY, "pending");
 }
 
-export function getPreviewOnboardingDestination(connectedChannels: string[]) {
-  return connectedChannels.length > 0
-    ? `/chat?onboarding=complete&${PREVIEW_POST_ONBOARDING_SORT_PARAM}=1`
-    : "/setup?onboarding=complete";
+export function getPreviewOnboardingDestination(_connectedChannels: string[]) {
+  return "/chat?onboarding=complete";
 }
 
 export function getVerifiedMailboxChannels(

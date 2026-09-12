@@ -229,7 +229,7 @@ describe("Provider Edge Cases", () => {
           status: NewsletterStatus.UNSUBSCRIBED,
         },
       });
-      expect(provider.blockUnsubscribedEmail).toHaveBeenCalledWith("msg-123");
+      expect(provider.blockUnsubscribedEmail).not.toHaveBeenCalled();
       expect(sendOtpPushNotification).not.toHaveBeenCalled();
     });
 

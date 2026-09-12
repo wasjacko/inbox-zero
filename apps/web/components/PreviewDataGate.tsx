@@ -5,8 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "@/providers/EmailAccountProvider";
+import { usePreviewConnectedChannels } from "@/hooks/usePreviewConnectedChannels";
 
 const routesAvailableWithoutConnections = [
+  "/chat",
   "/onboarding",
   "/setup",
   "/onboarding-brief",
@@ -73,6 +75,7 @@ const emptyStateCopy = [
 export function PreviewDataGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { emailAccount, isLoading } = useAccount();
+  const channels = usePreviewConnectedChannels();
   const routeIsAvailable = routesAvailableWithoutConnections.some((path) =>
     pathname.startsWith(path),
   );
@@ -82,6 +85,7 @@ export function PreviewDataGate({ children }: { children: React.ReactNode }) {
   if (isLoading) return children;
 
   if (emailAccount) return children;
+  if (pathname.startsWith("/channels") && channels?.length) return children;
 
   const copy = emptyStateCopy.find(({ paths }) =>
     paths.some((path) => pathname === path || pathname.startsWith(`${path}/`)),

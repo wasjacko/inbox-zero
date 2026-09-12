@@ -2,6 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  getActiveAccountFirstName,
   getPreviewGreeting,
   PREVIEW_FREELANCER_NAME_EVENT,
   PREVIEW_FREELANCER_NAME_KEY,
@@ -27,5 +28,24 @@ describe("preview freelancer profile", () => {
   it("builds the home greeting from the freelancer name", () => {
     expect(getPreviewGreeting("Maya")).toBe("Bonjour Maya");
     expect(getPreviewGreeting("   ")).toBe("Bonjour");
+  });
+
+  it("uses the active mailbox identity before any global fallback", () => {
+    expect(
+      getActiveAccountFirstName({
+        accountName: "Wassil Account",
+        accountEmail: "wassil@example.com",
+        fallbackName: "Kawake Global",
+      }),
+    ).toBe("Wassil");
+  });
+
+  it("derives the active identity from its email when it has no name", () => {
+    expect(
+      getActiveAccountFirstName({
+        accountEmail: "anna.yumi@example.com",
+        fallbackName: "Kawake Global",
+      }),
+    ).toBe("anna");
   });
 });

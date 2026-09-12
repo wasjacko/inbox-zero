@@ -111,6 +111,7 @@ import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { useThread } from "@/hooks/useThread";
 import { useContactPhotos } from "@/hooks/useContactPhotos";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
+import { useSimulatedWhatsApp } from "@/hooks/useSimulatedWhatsApp";
 import {
   MobileChannelsPreview,
   type MobileChannelConversation,
@@ -128,6 +129,11 @@ import {
 } from "@/utils/actions/mail";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { CHANNELS_THREADS_CACHE_KEY } from "@/utils/preview-data";
+import {
+  normalizeContactAddress,
+  readPreviewContactTags,
+  writePreviewContactTags,
+} from "@/utils/preview-contact-tags";
 
 type Channel = "gmail" | "outlook" | "whatsapp" | "slack" | "telegram";
 type AiMode = "manual" | "assist" | "suggest";
@@ -184,6 +190,10 @@ type InboxConversation = {
 };
 
 const initialLabels: InboxLabel[] = [
+  { id: "client", name: "Client", tone: "blue" },
+  { id: "contact", name: "Contact", tone: "slate" },
+  { id: "presta", name: "Presta", tone: "green" },
+  { id: "collaborateur", name: "Collaborateur", tone: "orange" },
   { id: "follow-up", name: "Relance", tone: "orange" },
   { id: "waiting", name: "En attente", tone: "slate" },
   { id: "finance", name: "Finance", tone: "green" },
@@ -543,6 +553,8 @@ export function ChannelsV4Preview() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { emailAccountId, provider, userEmail } = useAccount();
+  const { connected: simulatedWhatsAppConnected } =
+    useSimulatedWhatsApp(emailAccountId);
   const {
     data: realThreads,
     error: threadsError,
@@ -561,6 +573,8 @@ export function ChannelsV4Preview() {
     searchParams.get("tutorial") === "channel-tasks";
   const setup = usePreviewSetupProgress();
   const [conversations, setConversations] = useState<InboxConversation[]>([]);
+  const [contactTagsReady, setContactTagsReady] = useState(false);
+  const contactTagsRef = useRef(readPreviewContactTags());
   const [labels, setLabels] = useState(initialLabels);
   const [folder, setFolder] = useState<Folder>("all");
   const [source, setSource] = useState<Channel | "all">("all");
@@ -617,14 +631,60 @@ export function ChannelsV4Preview() {
   }, [realThreads]);
 
   useEffect(() => {
-    setConversations(
-      toRealChannelConversations({
-        provider,
-        threads: loadedThreads,
-        userEmail,
-      }),
+    const emailConversations = toRealChannelConversations({
+      provider,
+      threads: loadedThreads,
+      userEmail,
+    }).map((conversation) => ({
+      ...conversation,
+      labels:
+        contactTagsRef.current[normalizeContactAddress(conversation.address)] ??
+        [],
+    }));
+    const simulatedWhatsAppConversations = simulatedWhatsAppConnected
+      ? initialConversations
+          .filter((conversation) => conversation.channel === "whatsapp")
+          .map((conversation) => ({ ...conversation }))
+      : [];
+
+    setConversations([
+      ...simulatedWhatsAppConversations,
+      ...emailConversations,
+    ]);
+  }, [loadedThreads, provider, simulatedWhatsAppConnected, userEmail]);
+
+  useEffect(() => {
+    const storedTags = readPreviewContactTags();
+    contactTagsRef.current = storedTags;
+    setConversations((current) =>
+      current.map((conversation) => ({
+        ...conversation,
+        labels: storedTags[normalizeContactAddress(conversation.address)] ?? [],
+      })),
     );
-  }, [loadedThreads, provider, userEmail]);
+    setContactTagsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!contactTagsReady || conversations.length === 0) return;
+    const assignments = {
+      ...contactTagsRef.current,
+      ...Object.fromEntries(
+        conversations.flatMap((conversation) => {
+          const tags = conversation.labels ?? [];
+          return tags.length
+            ? [[normalizeContactAddress(conversation.address), tags]]
+            : [];
+        }),
+      ),
+    };
+    for (const conversation of conversations) {
+      if (!conversation.labels?.length)
+        delete assignments[normalizeContactAddress(conversation.address)];
+    }
+    contactTagsRef.current = assignments;
+    writePreviewContactTags(assignments);
+  }, [contactTagsReady, conversations]);
 
   useEffect(() => {
     if (!requestedConversationId || selectedId) return;
@@ -758,29 +818,42 @@ export function ChannelsV4Preview() {
   const selected =
     conversations.find((conversation) => conversation.id === selectedId) ??
     null;
-  const showInitialLoading = threadsLoading && conversations.length === 0;
+  const waitingForConversationProjection =
+    loadedThreads.length > 0 && conversations.length === 0;
+  const showInitialLoading =
+    conversations.length === 0 &&
+    !threadsError &&
+    (threadsLoading ||
+      realThreads === undefined ||
+      waitingForConversationProjection);
   const showThreadsError = Boolean(threadsError) && conversations.length === 0;
 
   const mobileConversations = useMemo<MobileChannelConversation[]>(
     () =>
-      conversations.map((conversation) => ({
-        id: conversation.id,
-        name: conversation.name,
-        subject: conversation.subject,
-        preview: conversation.preview,
-        channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
-        unread: conversation.unread ? 1 : 0,
-        time: conversation.time,
-        avatarUrl:
-          contactPhotos[conversation.address.toLowerCase()] ??
-          conversation.avatarUrl,
-        messages: conversation.messages.map((message) => ({
-          id: message.id,
-          author: message.author,
-          body: message.body,
-          time: message.time,
+      conversations
+        .filter(
+          (conversation) =>
+            conversation.channel === "gmail" ||
+            conversation.channel === "outlook",
+        )
+        .map((conversation) => ({
+          id: conversation.id,
+          name: conversation.name,
+          subject: conversation.subject,
+          preview: conversation.preview,
+          channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
+          unread: conversation.unread ? 1 : 0,
+          time: conversation.time,
+          avatarUrl:
+            contactPhotos[conversation.address.toLowerCase()] ??
+            conversation.avatarUrl,
+          messages: conversation.messages.map((message) => ({
+            id: message.id,
+            author: message.author,
+            body: message.body,
+            time: message.time,
+          })),
         })),
-      })),
     [contactPhotos, conversations],
   );
 
@@ -889,6 +962,34 @@ export function ChannelsV4Preview() {
   const sendReply = async () => {
     const clean = reply.trim();
     if (!selected || !clean) return;
+    if (selected.channel === "whatsapp") {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === selected.id
+            ? {
+                ...conversation,
+                preview: clean,
+                unread: false,
+                messages: [
+                  ...conversation.messages,
+                  {
+                    id: `simulated-${Date.now()}`,
+                    author: "me",
+                    body: clean,
+                    time: "À l’instant · simulation",
+                  },
+                ],
+              }
+            : conversation,
+        ),
+      );
+      setReply("");
+      toastSuccess({
+        description:
+          "Réponse simulée dans Freescale. Aucun message WhatsApp réel n’a été envoyé.",
+      });
+      return;
+    }
     const lastMessage = selectedThread?.thread.messages.at(-1);
     const freescaleActivity = lastMessage?.headers.from
       ?.toLowerCase()
@@ -978,7 +1079,37 @@ export function ChannelsV4Preview() {
     recipient: string,
     subject: string,
     body: string,
+    channel: Channel,
   ) => {
+    if (channel === "whatsapp") {
+      const simulatedConversation: InboxConversation = {
+        id: `whatsapp-simulated-${Date.now()}`,
+        name: recipient,
+        initials: recipient.slice(0, 2).toLocaleUpperCase("fr"),
+        address: recipient,
+        channel: "whatsapp",
+        contactType: "client",
+        subject: subject || "Conversation WhatsApp simulée",
+        preview: body,
+        time: "À l’instant",
+        unread: false,
+        messages: [
+          {
+            id: `simulated-${Date.now()}`,
+            author: "me",
+            body,
+            time: "À l’instant · simulation",
+          },
+        ],
+      };
+      setConversations((current) => [simulatedConversation, ...current]);
+      toastSuccess({
+        description:
+          "Message simulé dans Freescale. Aucun message WhatsApp réel n’a été envoyé.",
+      });
+      return true;
+    }
+
     const result = await sendEmailAction(emailAccountId, {
       freescaleActivity: "message",
       to: recipient,
@@ -997,6 +1128,17 @@ export function ChannelsV4Preview() {
   };
 
   const archiveMobileConversation = async (conversationId: string) => {
+    const conversation = conversations.find(({ id }) => id === conversationId);
+    if (conversation?.channel === "whatsapp") {
+      setConversations((current) =>
+        current.map((item) =>
+          item.id === conversationId ? { ...item, archived: true } : item,
+        ),
+      );
+      setSelectedId("");
+      toastSuccess({ description: "Conversation WhatsApp simulée archivée." });
+      return true;
+    }
     const result = await archiveThreadAction(emailAccountId, {
       threadId: conversationId,
     });
@@ -1011,6 +1153,20 @@ export function ChannelsV4Preview() {
   };
 
   const trashMobileConversation = async (conversationId: string) => {
+    const conversation = conversations.find(({ id }) => id === conversationId);
+    if (conversation?.channel === "whatsapp") {
+      setConversations((current) =>
+        current.map((item) =>
+          item.id === conversationId ? { ...item, trashed: true } : item,
+        ),
+      );
+      setSelectedId("");
+      toastSuccess({
+        description:
+          "Conversation WhatsApp simulée déplacée dans la corbeille.",
+      });
+      return true;
+    }
     const result = await trashThreadAction(emailAccountId, {
       threadId: conversationId,
     });
@@ -1029,6 +1185,15 @@ export function ChannelsV4Preview() {
   };
 
   const markMobileConversationRead = async (conversationId: string) => {
+    const conversation = conversations.find(({ id }) => id === conversationId);
+    if (conversation?.channel === "whatsapp") {
+      setConversations((current) =>
+        current.map((item) =>
+          item.id === conversationId ? { ...item, unread: false } : item,
+        ),
+      );
+      return true;
+    }
     const result = await markReadThreadAction(emailAccountId, {
       threadId: conversationId,
       read: true,
@@ -1052,6 +1217,18 @@ export function ChannelsV4Preview() {
 
   const archiveSelected = async () => {
     if (!selected) return;
+    if (selected.channel === "whatsapp") {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === selected.id
+            ? { ...conversation, archived: true }
+            : conversation,
+        ),
+      );
+      setSelectedId("");
+      toastSuccess({ description: "Conversation WhatsApp simulée archivée." });
+      return;
+    }
     const result = await archiveThreadAction(emailAccountId, {
       threadId: selected.id,
     });
@@ -1066,6 +1243,21 @@ export function ChannelsV4Preview() {
 
   const trashSelected = async () => {
     if (!selected) return;
+    if (selected.channel === "whatsapp") {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === selected.id
+            ? { ...conversation, trashed: true }
+            : conversation,
+        ),
+      );
+      setSelectedId("");
+      toastSuccess({
+        description:
+          "Conversation WhatsApp simulée déplacée dans la corbeille.",
+      });
+      return;
+    }
     const result = await trashThreadAction(emailAccountId, {
       threadId: selected.id,
     });
@@ -1085,6 +1277,21 @@ export function ChannelsV4Preview() {
   const toggleSelectedUnread = async () => {
     if (!selected) return;
     const read = selected.unread;
+    if (selected.channel === "whatsapp") {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === selected.id
+            ? { ...conversation, unread: !read }
+            : conversation,
+        ),
+      );
+      toastSuccess({
+        description: read
+          ? "Conversation WhatsApp simulée marquée comme lue."
+          : "Conversation WhatsApp simulée marquée comme non lue.",
+      });
+      return;
+    }
     const result = await markReadThreadAction(emailAccountId, {
       threadId: selected.id,
       read,
@@ -1393,9 +1600,20 @@ export function ChannelsV4Preview() {
                   tone: tones[current.length % tones.length] ?? "slate",
                 },
               ]);
-              setConversations((current) =>
-                current.map((conversation) =>
-                  organizationIds.includes(conversation.id)
+              setConversations((current) => {
+                const selectedAddresses = new Set(
+                  current
+                    .filter((conversation) =>
+                      organizationIds.includes(conversation.id),
+                    )
+                    .map((conversation) =>
+                      normalizeContactAddress(conversation.address),
+                    ),
+                );
+                return current.map((conversation) =>
+                  selectedAddresses.has(
+                    normalizeContactAddress(conversation.address),
+                  )
                     ? {
                         ...conversation,
                         labels: [
@@ -1403,8 +1621,8 @@ export function ChannelsV4Preview() {
                         ],
                       }
                     : conversation,
-                ),
-              );
+                );
+              });
             }}
             onDeleteLabel={(id) => {
               setLabels((current) =>
@@ -1438,9 +1656,22 @@ export function ChannelsV4Preview() {
               )
             }
             onToggleLabel={(id, assigned) =>
-              setConversations((current) =>
-                current.map((conversation) => {
-                  if (!organizationIds.includes(conversation.id))
+              setConversations((current) => {
+                const selectedAddresses = new Set(
+                  current
+                    .filter((conversation) =>
+                      organizationIds.includes(conversation.id),
+                    )
+                    .map((conversation) =>
+                      normalizeContactAddress(conversation.address),
+                    ),
+                );
+                return current.map((conversation) => {
+                  if (
+                    !selectedAddresses.has(
+                      normalizeContactAddress(conversation.address),
+                    )
+                  )
                     return conversation;
                   const currentLabels = conversation.labels ?? [];
                   return {
@@ -1449,8 +1680,8 @@ export function ChannelsV4Preview() {
                       ? [...new Set([...currentLabels, id])]
                       : currentLabels.filter((labelId) => labelId !== id),
                   };
-                }),
-              )
+                });
+              })
             }
             open={organizationOpen}
           />
@@ -1514,39 +1745,73 @@ export function ChannelsV4Preview() {
 
 function ChannelsLoadingState({ channel }: { channel: Channel }) {
   return (
-    <div className="flex min-w-0 flex-1" role="status">
+    <section
+      className="flex min-w-0 flex-1 flex-col bg-background"
+      role="status"
+    >
       <span className="sr-only">
         Synchronisation avec {channelName(channel)}…
       </span>
-      <aside className="hidden w-16 shrink-0 border-r bg-muted/15 lg:flex lg:flex-col lg:items-center lg:py-5">
-        <span className="flex size-10 items-center justify-center rounded-xl border bg-background shadow-sm">
-          <ChannelIcon channel={channel} size="md" />
-        </span>
-      </aside>
-      <section className="min-w-0 flex-1 px-4 py-4 lg:px-6">
-        <div className="mb-4 flex items-center gap-3 border-b pb-4">
-          <Skeleton className="h-9 w-64 max-w-[55%] rounded-lg" />
-          <Skeleton className="ml-auto h-8 w-24 rounded-lg" />
+      <div className="shrink-0 border-b px-4 pb-3 pt-4 sm:px-5 lg:px-6">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 min-w-0 flex-1 rounded-md" />
+          <Skeleton className="size-9 shrink-0 rounded-md" />
         </div>
-        <div className="space-y-2">
-          {Array.from({ length: 5 }, (_, index) => (
-            <div
-              className="flex items-center gap-4 rounded-xl px-3 py-3.5"
-              key={index}
-            >
-              <Skeleton className="size-10 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-4 w-36 rounded" />
-                  <Skeleton className="ml-auto h-4 w-16 rounded" />
+        <div className="mt-3 flex h-7 items-center gap-1.5 overflow-hidden">
+          <Skeleton className="h-7 w-[84px] shrink-0 rounded-full" />
+          <Skeleton className="h-7 w-[76px] shrink-0 rounded-full" />
+          <Skeleton className="h-7 w-[92px] shrink-0 rounded-full" />
+          <Skeleton className="h-7 w-[68px] shrink-0 rounded-full" />
+          <Skeleton className="h-7 w-[78px] shrink-0 rounded-full" />
+        </div>
+        <div className="mt-2 flex h-7 items-center gap-2 px-0.5">
+          <Skeleton className="h-3.5 w-16 rounded" />
+          <Skeleton className="h-3.5 w-24 rounded" />
+          <Skeleton className="ml-auto h-3.5 w-16 rounded" />
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-hidden px-2 py-2 sm:px-3 lg:px-4">
+        {Array.from({ length: 7 }, (_, index) => (
+          <div className="my-1 rounded-xl" key={index}>
+            <div className="px-3 py-3.5 sm:px-4 lg:px-5">
+              <div className="flex items-center gap-3.5 sm:gap-4">
+                <Skeleton className="size-10 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Skeleton
+                      className={cn(
+                        "h-4 rounded",
+                        index % 3 === 0 ? "w-32" : "w-40",
+                      )}
+                    />
+                    {index % 2 === 0 ? (
+                      <Skeleton className="h-4 w-14 rounded-full" />
+                    ) : null}
+                    <Skeleton className="ml-auto h-3.5 w-14 rounded" />
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <Skeleton className="h-3.5 w-36 shrink-0 rounded" />
+                    <Skeleton
+                      className={cn(
+                        "h-3.5 rounded",
+                        index % 2 === 0 ? "w-[58%]" : "w-[70%]",
+                      )}
+                    />
+                  </div>
                 </div>
-                <Skeleton className="h-3.5 w-[72%] rounded" />
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-    </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between border-t bg-background px-4 py-3 lg:px-5">
+        <Skeleton className="h-9 w-24 rounded-md" />
+        <Skeleton className="h-3.5 w-12 rounded" />
+        <Skeleton className="h-9 w-24 rounded-md" />
+      </div>
+    </section>
   );
 }
 
@@ -3441,6 +3706,7 @@ function NewMessageDialog({
     recipient: string,
     subject: string,
     message: string,
+    channel: Channel,
   ) => Promise<boolean>;
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -3499,7 +3765,12 @@ function NewMessageDialog({
     if (!cleanRecipient || !cleanMessage) return;
     setSending(true);
     try {
-      const sent = await onSend(cleanRecipient, subject.trim(), cleanMessage);
+      const sent = await onSend(
+        cleanRecipient,
+        subject.trim(),
+        cleanMessage,
+        channel,
+      );
       if (!sent) return;
       reset();
       onOpenChange(false);

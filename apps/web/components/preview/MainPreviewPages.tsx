@@ -100,6 +100,8 @@ import {
 import { COLORS } from "@/utils/colors";
 import { usePreviewSetupProgress } from "@/hooks/usePreviewSetupProgress";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useSession } from "@/utils/auth-client";
+import { useSimulatedWhatsApp } from "@/hooks/useSimulatedWhatsApp";
 import { toastError, toastSuccess } from "@/components/Toast";
 import { ButtonCheckbox } from "@/components/ButtonCheckbox";
 import { DomainIcon } from "@/components/charts/DomainIcon";
@@ -2352,7 +2354,7 @@ export function BriefsPreview() {
                       Prêt
                     </Badge>
                   ) : (
-                    <Badge>Planifié</Badge>
+                    <Badge color="gray">Planifié</Badge>
                   )}
                 </div>
                 <Button
@@ -2476,6 +2478,73 @@ function ConnectedRow({
   );
 }
 
+function ConnectedMailboxCards() {
+  const { data: session, isPending } = useSession();
+  const { data, isLoading, error } = useAccounts();
+  if (isPending || isLoading)
+    return <div className="p-4">Chargement des comptes…</div>;
+  if (error)
+    return (
+      <div className="p-4">Impossible de charger les comptes. Réessayez.</div>
+    );
+  const accounts = session?.user
+    ? (data?.emailAccounts.filter(
+        (account) => account.user.email === session.user.email,
+      ) ?? [])
+    : [];
+  if (!accounts.length)
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Aucune messagerie connectée à ce compte.
+      </div>
+    );
+  return accounts.map((account) => (
+    <div key={account.id} className="flex items-center gap-4 p-4">
+      <div className="min-w-0 flex-1">
+        <div className="font-medium">{account.name || account.email}</div>
+        <div className="break-all text-sm text-muted-foreground">
+          {account.email}
+        </div>
+      </div>
+      <Badge color="green">Connecté</Badge>
+    </div>
+  ));
+}
+
+function SignedInAccountCard() {
+  const { data: session, isPending } = useSession();
+  if (isPending)
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Chargement du compte…
+      </div>
+    );
+  if (!session?.user)
+    return (
+      <div className="p-4 text-sm">
+        Veuillez vous connecter pour consulter votre compte.
+      </div>
+    );
+  const user = session.user;
+  return (
+    <div className="flex items-center gap-4 p-4">
+      <div className="flex size-10 items-center justify-center rounded-full bg-orange-700 text-lg text-white">
+        {(user.name || user.email || "?").slice(0, 1).toLocaleUpperCase("fr")}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="font-medium">{user.name || "Votre compte"}</div>
+        <div className="break-all text-muted-foreground text-sm">
+          {user.email}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Compte de connexion Freescale — distinct des canaux connectés
+        </div>
+      </div>
+      <Badge color="green">Connecté</Badge>
+    </div>
+  );
+}
+
 export function SettingsPreview() {
   return (
     <>
@@ -2487,22 +2556,8 @@ export function SettingsPreview() {
               title="Paramètres"
               description="Gérez votre compte et vos préférences Freescale."
             />
-            <SettingsSection icon={<MailIcon />} title="Comptes de messagerie">
-              <div className="flex items-center gap-4 p-4">
-                <div className="flex size-10 items-center justify-center rounded-full bg-orange-700 text-lg text-white">
-                  W
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">Wacil ait</div>
-                  <div className="text-muted-foreground text-sm">
-                    webwacilait@gmail.com
-                  </div>
-                </div>
-                <Badge color="green">Connecté</Badge>
-                <Button variant="outline" size="sm">
-                  Gérer
-                </Button>
-              </div>
+            <SettingsSection icon={<MailIcon />} title="Compte Freescale">
+              <SignedInAccountCard />
             </SettingsSection>
             <SettingsSection icon={<CreditCardIcon />} title="Facturation">
               <SettingRow
@@ -3087,21 +3142,7 @@ export function AccountsPreview() {
         />
         <Card className="mt-6">
           <CardContent className="p-0">
-            <div className="flex items-center gap-4 p-4">
-              <div className="flex size-10 items-center justify-center rounded-full bg-orange-700 text-lg text-white">
-                W
-              </div>
-              <div className="flex-1">
-                <div className="font-medium">webwacilait@gmail.com</div>
-                <div className="text-muted-foreground text-sm">
-                  Google · Connecté
-                </div>
-              </div>
-              <Badge color="green">Actif</Badge>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontalIcon className="size-4" />
-              </Button>
-            </div>
+            <ConnectedMailboxCards />
           </CardContent>
         </Card>
         <Button className="mt-4" variant="outline">
@@ -3522,6 +3563,11 @@ export function SetupPreview() {
   const router = useRouter();
   const setup = usePreviewSetupProgress();
   const { data: accountsData, isLoading: accountsLoading } = useAccounts();
+  const emailAccountId = accountsData?.emailAccounts[0]?.id ?? "";
+  const {
+    connected: simulatedWhatsAppConnected,
+    connect: connectSimulatedWhatsApp,
+  } = useSimulatedWhatsApp(emailAccountId);
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [assistantDraft, setAssistantDraft] = useState(setup.assistant);
   const [newsletterDraft, setNewsletterDraft] = useState(setup.newsletters);
@@ -3556,10 +3602,14 @@ export function SetupPreview() {
       newsletterSelection.has(sender.email),
     );
 
-  const connectedChannels = useMemo(
-    () => getVerifiedMailboxChannels(accountsData?.emailAccounts ?? []),
-    [accountsData?.emailAccounts],
-  );
+  const connectedChannels = useMemo(() => {
+    const verified = getVerifiedMailboxChannels(
+      accountsData?.emailAccounts ?? [],
+    );
+    return simulatedWhatsAppConnected
+      ? [...new Set([...verified, "whatsapp"])]
+      : verified;
+  }, [accountsData?.emailAccounts, simulatedWhatsAppConnected]);
 
   useEffect(() => {
     if (accountsLoading || !setup.hydrated) return;
@@ -3630,20 +3680,25 @@ export function SetupPreview() {
   const connectSetupChannel = async (channel: string) => {
     if (connectedChannels.includes(channel) || connectingChannel) return;
 
+    if (channel === "whatsapp") {
+      setConnectingChannel(channel);
+      await new Promise((resolve) => window.setTimeout(resolve, 850));
+      connectSimulatedWhatsApp();
+      setConnectingChannel(null);
+      toastSuccess({
+        description:
+          "WhatsApp est connecté en mode simulation. Aucun message réel n’est synchronisé.",
+      });
+      return;
+    }
+
     const provider =
       channel === "gmail"
         ? "google"
         : channel === "outlook"
           ? "microsoft"
           : null;
-    if (!provider) {
-      toastError({
-        title: "WhatsApp bientôt disponible",
-        description:
-          "Ce canal ne sera proposé que lorsque sa connexion réelle sera prête.",
-      });
-      return;
-    }
+    if (!provider) return;
 
     setConnectingChannel(channel);
     try {
@@ -4277,7 +4332,7 @@ export function SetupPreview() {
                         )
                       : undefined;
                     const isConnecting = connectingChannel === id;
-                    const isAvailable = id !== "whatsapp";
+                    const isAvailable = true;
                     return (
                       <button
                         className={cn(
@@ -4315,7 +4370,9 @@ export function SetupPreview() {
                             : isConnecting
                               ? "Ouverture…"
                               : isAvailable
-                                ? "Connecter"
+                                ? id === "whatsapp"
+                                  ? "Tester"
+                                  : "Connecter"
                                 : "Bientôt"}
                         </span>
                       </button>

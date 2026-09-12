@@ -33,6 +33,7 @@ import { MobileMueSheet } from "@/components/mobile/MobileMueSheet";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_PREVIEW_WORKSPACE_NAME,
+  getPreviewWorkspaceInitial,
   PREVIEW_WORKSPACE_NAME_EVENT,
   PREVIEW_WORKSPACE_NAME_KEY,
 } from "@/utils/preview-workspace";
@@ -115,6 +116,7 @@ export function MobileAppNavigation() {
   const [workspaceName, setWorkspaceName] = useState(
     DEFAULT_PREVIEW_WORKSPACE_NAME,
   );
+  const workspaceInitial = getPreviewWorkspaceInitial(workspaceName);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -187,7 +189,7 @@ export function MobileAppNavigation() {
             type="button"
           >
             <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-teal-600 font-semibold text-white text-xs">
-              {workspaceName.charAt(0).toLocaleUpperCase("fr") || "W"}
+              {workspaceInitial}
             </span>
           </button>
         }
@@ -302,7 +304,7 @@ export function MobileAppNavigation() {
         <div className="space-y-5 pb-2">
           <div className="flex items-center gap-3 rounded-2xl border bg-card p-4">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-600 font-semibold text-white">
-              {workspaceName.charAt(0).toLocaleUpperCase("fr") || "W"}
+              {workspaceInitial}
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{workspaceName}</p>

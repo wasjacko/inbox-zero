@@ -79,8 +79,9 @@ const mobileAuthOrigins = env.MOBILE_AUTH_ORIGIN
 const googleSocialProvider =
   googleLoginEnabled && !useGoogleOauthEmulator
     ? {
-        clientId: env.GOOGLE_CLIENT_ID,
-        clientSecret: env.GOOGLE_CLIENT_SECRET,
+        clientId: env.GOOGLE_LOGIN_CLIENT_ID ?? env.GOOGLE_CLIENT_ID,
+        clientSecret:
+          env.GOOGLE_LOGIN_CLIENT_SECRET ?? env.GOOGLE_CLIENT_SECRET,
         // Signing in should only identify the user. Gmail permissions are
         // requested later, when the user explicitly connects a Gmail channel.
         scope: ["openid", "email", "profile"],

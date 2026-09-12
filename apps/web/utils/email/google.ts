@@ -1595,7 +1595,7 @@ export class GmailProvider implements EmailProvider {
             getMessages(this.client, {
               query: getQuery(),
               labelIds: getLabelIds(type) || [],
-              maxResults: Math.min(maxResults * 2, 100),
+              maxResults: Math.min(maxResults, 100),
               pageToken: options.pageToken || undefined,
             }),
             isUnfilteredInbox
@@ -1613,7 +1613,6 @@ export class GmailProvider implements EmailProvider {
           if (!latestMessageByThread.has(message.threadId)) {
             latestMessageByThread.set(message.threadId, message.id);
           }
-          if (latestMessageByThread.size >= maxResults) break;
         }
         const accessToken = getAccessTokenFromClient(this.client);
         const messageIdChunks = chunk([...latestMessageByThread.values()], 25);
@@ -1771,7 +1770,43 @@ export class GmailProvider implements EmailProvider {
     }));
   }
 
-  async getInboxStats(): Promise<{ total: number; unread: number }> {
+  async getInboxStats(options?: {
+    exact?: boolean;
+  }): Promise<{ total: number; unread: number }> {
+    if (options?.exact) {
+      const countMessages = async (labelIds: string[]) => {
+        let total = 0;
+        let pageToken: string | undefined;
+        const visitedPageTokens = new Set<string>();
+
+        do {
+          const page = await getMessages(this.client, {
+            labelIds,
+            maxResults: 500,
+            pageToken,
+          });
+          total += page.messages.length;
+          pageToken = page.nextPageToken;
+
+          if (pageToken) {
+            if (visitedPageTokens.has(pageToken)) {
+              throw new Error("Gmail returned a repeated inbox page token");
+            }
+            visitedPageTokens.add(pageToken);
+          }
+        } while (pageToken);
+
+        return total;
+      };
+
+      const [total, unread] = await Promise.all([
+        countMessages([GmailLabel.INBOX]),
+        countMessages([GmailLabel.INBOX, GmailLabel.UNREAD]),
+      ]);
+
+      return { total, unread };
+    }
+
     const label = await getLabelById({ gmail: this.client, id: "INBOX" });
     return {
       total: label.messagesTotal ?? 0,

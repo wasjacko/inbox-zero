@@ -43,7 +43,7 @@ import { NavUser } from "@/components/NavUser";
 import { PremiumCard } from "@/components/PremiumCard";
 import { SetupProgressCard } from "@/components/SetupProgressCard";
 import { SideNavMenu } from "@/components/SideNavMenu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CommandShortcut } from "@/components/ui/command";
 import {
@@ -339,17 +339,19 @@ export function SideNav({
               <SidebarGroup>
                 <SidebarGroupLabel>Gérer</SidebarGroupLabel>
                 <SideNavMenu
-                  items={navigation.manageItems}
                   activeHref={path}
+                  items={navigation.manageItems}
                   nativeNavigation={previewMode}
+                  prefetch={previewMode ? false : undefined}
                 />
               </SidebarGroup>
               <SidebarGroup>
                 <SidebarGroupLabel>Nettoyage</SidebarGroupLabel>
                 <SideNavMenu
                   items={navigation.cleanupItems}
-                  activeHref={path}
                   nativeNavigation={previewMode}
+                  activeHref={path}
+                  prefetch={previewMode ? false : undefined}
                 />
               </SidebarGroup>
             </>
@@ -362,7 +364,11 @@ export function SideNav({
       ) : null}
 
       <SidebarFooter className="pb-4">
-        <SideNavMenu items={visibleBottomLinks} activeHref={path} />
+        <SideNavMenu
+          items={visibleBottomLinks}
+          activeHref={path}
+          nativeNavigation={previewMode}
+        />
 
         <SidebarMenu>
           <SidebarMenuItem>
@@ -394,12 +400,17 @@ function PreviewAccount({ placement }: { placement: "header" | "footer" }) {
   const isFooter = placement === "footer";
   const { closeMobileSidebar, isMobile, state } = useSidebar();
   const { data: session } = useSession();
+  const { emailAccount, provider } = useAccount();
   const isExpandedSidebar = state.includes("left-sidebar");
   const [suggestionOpen, setSuggestionOpen] = useState(false);
   const [suggestion, setSuggestion] = useState("");
-  const displayName = session?.user.name?.trim() || "Mon compte";
-  const displayEmail = session?.user.email || "";
+  const displayName =
+    emailAccount?.name?.trim() || session?.user.name?.trim() || "Mon compte";
+  const displayEmail = emailAccount?.email || session?.user.email || "";
   const initial = displayName.charAt(0).toLocaleUpperCase("fr") || "M";
+  const googleProfileImage = isGoogleProvider(provider)
+    ? emailAccount?.image || session?.user.image || undefined
+    : undefined;
 
   const handleSignOut = async () => {
     closeMobileSidebar("left-sidebar");
@@ -418,6 +429,7 @@ function PreviewAccount({ placement }: { placement: "header" | "footer" }) {
                 size="lg"
               >
                 <Avatar className={isFooter ? "size-8 rounded-lg" : "size-10"}>
+                  <AvatarImage alt={displayName} src={googleProfileImage} />
                   <AvatarFallback
                     className={
                       isFooter

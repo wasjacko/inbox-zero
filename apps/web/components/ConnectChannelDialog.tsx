@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
-import { toastError } from "@/components/Toast";
+import { WhatsAppIcon } from "@/components/BrandIcons";
+import { toastError, toastSuccess } from "@/components/Toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +20,7 @@ import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { redirectToSafeUrl } from "@/utils/redirect";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { useSlackConnect } from "@/hooks/useSlackConnect";
+import { useSimulatedWhatsApp } from "@/hooks/useSimulatedWhatsApp";
 
 const channelOptions = [
   {
@@ -32,6 +34,12 @@ const channelOptions = [
     name: "Outlook",
     description: "E-mails Microsoft 365 et Outlook.",
     provider: "microsoft",
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    description: "Simulation de WhatsApp Business dans Freescale.",
+    provider: null,
   },
   {
     id: "slack",
@@ -55,6 +63,7 @@ export function ConnectChannelDialog({
   const [isConnecting, setIsConnecting] = useState(false);
   const { connect: connectSlack, connecting: connectingSlack } =
     useSlackConnect({ emailAccountId, openInNewTab: false });
+  const { connect: connectWhatsApp } = useSimulatedWhatsApp(emailAccountId);
 
   const handleOpenChange = (nextOpen: boolean) => {
     onOpenChange(nextOpen);
@@ -72,6 +81,17 @@ export function ConnectChannelDialog({
       if (selected.id === "slack") {
         await connectSlack();
         setIsConnecting(false);
+        return;
+      }
+
+      if (selected.id === "whatsapp") {
+        await new Promise((resolve) => window.setTimeout(resolve, 850));
+        connectWhatsApp();
+        toastSuccess({
+          description:
+            "WhatsApp est connecté en mode simulation. Aucun message réel n’est synchronisé.",
+        });
+        handleOpenChange(false);
         return;
       }
 
@@ -136,11 +156,17 @@ export function ConnectChannelDialog({
                         "Envoyer vos résumés et rappels dans votre workspace",
                         "Répondre depuis Slack sans quitter votre équipe",
                       ]
-                    : [
-                        "Importer vos nouvelles conversations dans Canaux",
-                        "Préparer vos briefs à partir de vos vrais échanges",
-                        "Synchroniser les statuts et les notifications",
-                      ]
+                    : selected.id === "whatsapp"
+                      ? [
+                          "Ajouter WhatsApp à vos canaux Freescale",
+                          "Afficher des conversations de démonstration",
+                          "Tester le tri et la réponse sans envoyer de message réel",
+                        ]
+                      : [
+                          "Importer vos nouvelles conversations dans Canaux",
+                          "Préparer vos briefs à partir de vos vrais échanges",
+                          "Synchroniser les statuts et les notifications",
+                        ]
                   ).map((permission) => (
                     <li className="flex items-start gap-3" key={permission}>
                       <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-green-100 text-green-700">
@@ -154,8 +180,9 @@ export function ConnectChannelDialog({
 
               <div className="flex items-start gap-3 rounded-xl bg-muted/50 p-3 text-muted-foreground text-xs leading-5">
                 <LockKeyholeIcon className="mt-0.5 size-4 shrink-0" />
-                Vous serez redirigé vers {selected.name} pour autoriser la
-                connexion, puis ramené directement sur votre accueil.
+                {selected.id === "whatsapp"
+                  ? "Mode simulation : aucune donnée n’est lue ni envoyée sur votre compte WhatsApp."
+                  : `Vous serez redirigé vers ${selected.name} pour autoriser la connexion, puis ramené directement sur votre accueil.`}
               </div>
             </div>
 
@@ -208,6 +235,10 @@ export function ConnectChannelDialog({
 }
 
 function ChannelLogo({ channel }: { channel: Channel["id"] }) {
+  if (channel === "whatsapp") {
+    return <WhatsAppIcon className="size-7 text-[#25D366]" />;
+  }
+
   if (channel === "slack") {
     return <Image alt="Slack" height={28} src="/images/slack.svg" width={28} />;
   }

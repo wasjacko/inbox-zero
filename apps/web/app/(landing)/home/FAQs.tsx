@@ -11,7 +11,6 @@ import {
 } from "@/components/new-landing/common/Typography";
 import { env } from "@/env";
 import { BRAND_NAME } from "@/utils/branding";
-import Script from "next/script";
 
 const faqs: {
   question: string;
@@ -105,7 +104,7 @@ const faqJsonLd = {
 export function FAQs() {
   return (
     <Section>
-      <Script
+      <script
         id="home-faq-json-ld"
         type="application/ld+json"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON.stringify on controlled object is safe

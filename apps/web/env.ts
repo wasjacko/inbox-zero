@@ -81,6 +81,9 @@ const parsedEnv = createEnv({
       ),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
+    // Keep identity-only sign-in isolated from the Gmail data-access client.
+    GOOGLE_LOGIN_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_LOGIN_CLIENT_SECRET: z.string().min(1).optional(),
     // Local Google emulation only; used for both OAuth and resource APIs.
     GOOGLE_BASE_URL: z.string().url().optional(),
     // Local Microsoft emulation only; used for both OAuth and Microsoft Graph APIs.
@@ -396,6 +399,10 @@ const parsedEnv = createEnv({
       .string()
       .optional()
       .default("support@getinboxzero.com"),
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: z
+      .string()
+      .regex(/^G-[A-Z0-9]+$/)
+      .optional(),
     NEXT_PUBLIC_GTM_ID: z.string().optional(),
     NEXT_PUBLIC_CONVERSION_ANALYTICS_SCRIPT_URL: z.string().optional(),
     NEXT_PUBLIC_CRISP_WEBSITE_ID: z.string().optional(),
@@ -502,6 +509,7 @@ const parsedEnv = createEnv({
       process.env.NEXT_PUBLIC_FREE_UNSUBSCRIBE_CREDITS,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
     NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
     NEXT_PUBLIC_GTM_ID: process.env.NEXT_PUBLIC_GTM_ID,
     NEXT_PUBLIC_CONVERSION_ANALYTICS_SCRIPT_URL:
       process.env.NEXT_PUBLIC_CONVERSION_ANALYTICS_SCRIPT_URL,

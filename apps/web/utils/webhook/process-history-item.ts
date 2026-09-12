@@ -158,8 +158,9 @@ export async function processHistoryItem(
     });
 
     if (sender) {
-      await provider.blockUnsubscribedEmail(messageId);
-      logger.info("Skipping. Blocked unsubscribed email.", { from: email });
+      logger.info("Skipping in Freescale. Sender is muted locally.", {
+        from: email,
+      });
       return;
     }
 

@@ -1,11 +1,17 @@
 interface OutlookProps {
+  className?: string;
   height?: string | number;
   width?: string | number;
 }
 
-export function Outlook({ width = "28", height = "27" }: OutlookProps) {
+export function Outlook({
+  className,
+  width = "28",
+  height = "27",
+}: OutlookProps) {
   return (
     <svg
+      className={className}
       width={width}
       height={height}
       viewBox="0 0 28 27"

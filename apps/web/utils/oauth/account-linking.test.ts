@@ -22,7 +22,7 @@ describe("handleAccountLinking", () => {
     prisma.user.findUnique.mockResolvedValue({ id: "target-user-id" } as any);
   });
 
-  it("should cleanup orphaned account and continue create", async () => {
+  it("never deletes another user's identity-only account", async () => {
     const { cleanupOrphanedAccount } = await import(
       "@/utils/user/orphaned-account"
     );
@@ -38,12 +38,48 @@ describe("handleAccountLinking", () => {
       logger,
     });
 
-    expect(cleanupOrphanedAccount).toHaveBeenCalledWith(
-      "orphaned-account-id",
-      logger,
-    );
-    expect(result).toEqual({ type: "continue_create" });
+    expect(cleanupOrphanedAccount).not.toHaveBeenCalled();
+    expect(result.type).toBe("redirect");
+    if (result.type === "redirect") {
+      expect(result.response.headers.get("location")).toContain(
+        "error=account_already_exists",
+      );
+    }
     expect(prisma.emailAccount.findUnique).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "google",
+    "microsoft",
+  ] as const)("attaches a mailbox to the existing %s login without deleting the user or session", async (provider) => {
+    const { cleanupOrphanedAccount } = await import(
+      "@/utils/user/orphaned-account"
+    );
+    const result = await handleAccountLinking({
+      existingAccountId: "login-account",
+      existingUserId: "target-user-id",
+      targetUserId: "target-user-id",
+      hasEmailAccount: false,
+      provider,
+      providerEmail: "test@example.com",
+      logger,
+    });
+    expect(result).toEqual({
+      type: "update_tokens",
+      existingAccountId: "login-account",
+    });
+    expect(prisma.emailAccount.upsert).toHaveBeenCalledWith({
+      where: { accountId: "login-account" },
+      create: {
+        accountId: "login-account",
+        userId: "target-user-id",
+        email: "test@example.com",
+      },
+      update: {},
+    });
+    expect(cleanupOrphanedAccount).not.toHaveBeenCalled();
+    expect(prisma.user.delete).not.toHaveBeenCalled();
+    expect(prisma.account.delete).not.toHaveBeenCalled();
   });
 
   it("should return continue_create when no existing account", async () => {

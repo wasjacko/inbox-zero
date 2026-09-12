@@ -36,8 +36,8 @@ export async function getAccountLinkingUrl(
       redirectTo?: string;
     } | null;
 
-    if (response.status === 401 && errorBody?.redirectTo) {
-      return errorBody.redirectTo;
+    if (response.status === 401) {
+      return errorBody?.redirectTo === "/logout" ? "/logout" : "/login";
     }
 
     throw new Error(

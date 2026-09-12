@@ -3,7 +3,6 @@ import { env } from "@/env";
 import prisma from "@/utils/prisma";
 import type { Logger } from "@/utils/logger";
 import { createAccountLinkingRedirect } from "@/utils/oauth/account-linking-redirect";
-import { cleanupOrphanedAccount } from "@/utils/user/orphaned-account";
 
 interface AccountLinkingParams {
   existingAccountId: string | null;
@@ -47,15 +46,28 @@ export async function handleAccountLinking({
   }
 
   if (existingAccountId && !hasEmailAccount) {
-    logger.warn("Found orphaned Account, cleaning up", {
-      orphanedAccountId: existingAccountId,
-      orphanedUserId: existingUserId,
-      email: providerEmail,
-      targetUserId,
-    });
+    // An identity-only OAuth account is a valid Freescale login, not an orphan.
+    // Never delete it (or its user) just because Gmail has not been linked yet.
+    if (existingUserId !== targetUserId) {
+      return {
+        type: "redirect",
+        response: createAccountLinkingRedirect({
+          query: { error: "account_already_exists" },
+          returnTo,
+        }),
+      };
+    }
 
-    await cleanupOrphanedAccount(existingAccountId, logger);
-    return { type: "continue_create" };
+    await prisma.emailAccount.upsert({
+      where: { accountId: existingAccountId },
+      create: {
+        accountId: existingAccountId,
+        userId: targetUserId,
+        email: providerEmail.trim().toLowerCase(),
+      },
+      update: {},
+    });
+    return { type: "update_tokens", existingAccountId };
   }
 
   if (!existingAccountId || !hasEmailAccount) {

@@ -73,7 +73,6 @@ export function ChatOnboarding() {
   const {
     isPremium,
     hasUnsubscribeAccess,
-    mutate: refetchPremium,
     isLoading: isPremiumLoading,
   } = usePremium();
   const { PremiumModal, openModal } = usePremiumModal();
@@ -475,7 +474,6 @@ export function ChatOnboarding() {
     hasUnsubscribeAccess,
     mutate: mutateNewsletters,
     posthog,
-    refetchPremium,
     emailAccountId,
     filter: "unhandled",
   });
