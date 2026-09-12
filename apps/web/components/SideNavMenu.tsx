@@ -106,7 +106,19 @@ export function SideNavMenu({
               ) : (
                 <Link
                   href={item.href}
-                  onClick={handleClick}
+                  onClick={(event) => {
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
+                    event.preventDefault();
+                    router.push(item.href);
+                    handleClick();
+                  }}
                   onMouseEnter={() => {
                     if (prefetch === false) router.prefetch(item.href);
                   }}
