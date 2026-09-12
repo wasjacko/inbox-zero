@@ -3010,6 +3010,7 @@ type AskMueMessage =
       prompt: string;
       suggestion?: AskMueSuggestionId;
       asset?: AskMueAsset;
+      restored?: boolean;
     };
 
 type AskMueSuggestionId = (typeof suggestions)[number]["id"];
@@ -3026,6 +3027,16 @@ type AskMuePayload = {
 };
 
 const ASK_MUE_ASSET_MARKER = ":::mue-asset:::";
+const ASK_MUE_CHAT_STORAGE_KEY = "freescale-ask-mue-chat-v1";
+
+const askSuggestionFinalCopy: Record<AskMueSuggestionId, string> = {
+  priorities:
+    "J’ai terminé. Les sujets suivants ressortent nettement aujourd’hui. Je les ai classés selon l’attente client, l’urgence et ce qu’ils débloquent pour la suite. Voici le plan que je vous propose :",
+  summary:
+    "J’ai regroupé les échanges qui parlent du même sujet, puis retiré les répétitions. Voici l’essentiel, avec un accès direct à chaque conversation :",
+  actions:
+    "J’ai transformé les demandes et engagements explicites en tâches concrètes. Elles sont prêtes, mais je vous laisse les vérifier avant de les ajouter :",
+};
 
 const askPriorityItems = [
   {
@@ -3383,20 +3394,24 @@ function AskMueThinkingTrace({ phase }: { phase: number }) {
 
 function AskMueTypedText({
   content,
+  instant = false,
   onComplete,
 }: {
   content: string;
+  instant?: boolean;
   onComplete: () => void;
 }) {
   const reducedMotion = useReducedMotion();
   const characters = Array.from(content);
-  const [visibleLength, setVisibleLength] = useState(0);
+  const [visibleLength, setVisibleLength] = useState(() =>
+    instant ? characters.length : 0,
+  );
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    if (reducedMotion) {
+    if (reducedMotion || instant) {
       setVisibleLength(characters.length);
       return;
     }
@@ -3412,7 +3427,7 @@ function AskMueTypedText({
     }, 24);
 
     return () => window.clearInterval(interval);
-  }, [reducedMotion, characters.length]);
+  }, [instant, reducedMotion, characters.length]);
 
   useEffect(() => {
     if (visibleLength < characters.length || completedRef.current) return;
@@ -3491,22 +3506,28 @@ function AskMueResultSkeleton({
 }
 
 function AskMueSuggestionReveal({
+  instant = false,
   messageId,
   suggestion,
 }: {
+  instant?: boolean;
   messageId: string;
   suggestion: AskMueSuggestionId;
 }) {
   const reducedMotion = useReducedMotion();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(instant);
 
   useEffect(() => {
+    if (instant) {
+      setReady(true);
+      return;
+    }
     const timeout = window.setTimeout(
       () => setReady(true),
       reducedMotion ? 120 : 1800,
     );
     return () => window.clearTimeout(timeout);
-  }, [reducedMotion]);
+  }, [instant, reducedMotion]);
 
   return (
     <AnimatePresence initial={false} mode="wait">
@@ -3536,6 +3557,33 @@ function AskMueSuggestionResult({
   );
   const [createdTaskIds, setCreatedTaskIds] = useState<string[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [decisionReady, setDecisionReady] = useState(false);
+  const decisionStorageKey = `${ASK_MUE_CHAT_STORAGE_KEY}:decision:${emailAccountId}:${messageId}`;
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(
+        sessionStorage.getItem(decisionStorageKey) ?? "null",
+      ) as {
+        decision?: "pending" | "accepted" | "declined";
+        createdTaskIds?: string[];
+      } | null;
+      if (saved?.decision) setDecision(saved.decision);
+      if (Array.isArray(saved?.createdTaskIds))
+        setCreatedTaskIds(saved.createdTaskIds);
+    } catch {}
+    setDecisionReady(true);
+  }, [decisionStorageKey]);
+
+  useEffect(() => {
+    if (!decisionReady) return;
+    try {
+      sessionStorage.setItem(
+        decisionStorageKey,
+        JSON.stringify({ decision, createdTaskIds }),
+      );
+    } catch {}
+  }, [createdTaskIds, decision, decisionReady, decisionStorageKey]);
 
   const createTasks = async (ids: string[]) => {
     const tasks = askSuggestedTasks.filter(
@@ -3979,6 +4027,8 @@ function ChatPanel({
     [],
   );
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
+  const [chatStorageReady, setChatStorageReady] = useState(false);
+  const skipNextChatPersistRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isStreaming = streamingMessageId !== null;
   const hasStarted = messages.length > 0;
@@ -3999,6 +4049,102 @@ function ChatPanel({
             ),
         );
   const showMentionMenu = mentionQuery !== null && mentionClients.length > 0;
+
+  useEffect(() => {
+    if (!emailAccountId) return;
+    skipNextChatPersistRef.current = true;
+    setChatStorageReady(false);
+    try {
+      const saved = JSON.parse(
+        sessionStorage.getItem(
+          `${ASK_MUE_CHAT_STORAGE_KEY}:${emailAccountId}`,
+        ) ?? "null",
+      ) as {
+        input?: string;
+        mentionedClientNames?: string[];
+        messages?: AskMueMessage[];
+        streamingMessageId?: string | null;
+      } | null;
+
+      const restoredMessages = (saved?.messages ?? [])
+        .slice(-50)
+        .map((message): AskMueMessage => {
+          if (message.role === "user") return message;
+          const wasInterrupted =
+            saved?.streamingMessageId === message.id || !message.content;
+          if (!wasInterrupted) return { ...message, restored: true };
+          if (message.suggestion) {
+            return {
+              ...message,
+              content: askSuggestionFinalCopy[message.suggestion],
+              restored: true,
+            };
+          }
+          const payload = getAskMuePayload(message.prompt);
+          return {
+            ...message,
+            content: payload.content,
+            asset: payload.asset,
+            restored: true,
+          };
+        });
+
+      setMessages(restoredMessages);
+      setMentionedClientNames(saved?.mentionedClientNames ?? []);
+      onInputChange(saved?.input ?? "");
+    } catch {
+      setMessages([]);
+      setMentionedClientNames([]);
+      onInputChange("");
+    }
+    setStreamingMessageId(null);
+    setThinkingPhase(-1);
+    setChatStorageReady(true);
+  }, [emailAccountId, onInputChange]);
+
+  useEffect(() => {
+    if (!(chatStorageReady && emailAccountId)) return;
+    if (skipNextChatPersistRef.current) {
+      skipNextChatPersistRef.current = false;
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const serializableMessages = messages.map(
+        (message): AskMueMessage =>
+          message.role === "user"
+            ? message
+            : {
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                prompt: message.prompt,
+                suggestion: message.suggestion,
+                asset: message.asset,
+              },
+      );
+      try {
+        sessionStorage.setItem(
+          `${ASK_MUE_CHAT_STORAGE_KEY}:${emailAccountId}`,
+          JSON.stringify({
+            input,
+            mentionedClientNames,
+            messages: serializableMessages,
+            streamingMessageId,
+          }),
+        );
+      } catch {}
+    }, 120);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    chatStorageReady,
+    emailAccountId,
+    input,
+    mentionedClientNames,
+    messages,
+    streamingMessageId,
+  ]);
 
   useEffect(() => {
     if (!(latestMessageId || isStreaming)) {
@@ -4440,6 +4586,7 @@ function ChatPanel({
                             {message.suggestion ? (
                               <AskMueTypedText
                                 content={message.content}
+                                instant={message.restored}
                                 onComplete={() =>
                                   setStreamingMessageId((current) =>
                                     current === message.id ? null : current,
@@ -4456,6 +4603,7 @@ function ChatPanel({
                             {streamingMessageId !== message.id &&
                               message.suggestion && (
                                 <AskMueSuggestionReveal
+                                  instant={message.restored}
                                   messageId={message.id}
                                   suggestion={message.suggestion}
                                 />
