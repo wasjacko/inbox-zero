@@ -22,14 +22,18 @@ export function readMueDemoReplies(accountId: string): DemoReply[] {
 }
 
 export function saveMueDemoReply(accountId: string, reply: DemoReply) {
-  const replies = readMueDemoReplies(accountId).filter(
-    (item) => item.id !== reply.id,
-  );
+  const storedReplies = readMueDemoReplies(accountId);
+  const previousReply = storedReplies.find((item) => item.id === reply.id);
+  const replies = storedReplies.filter((item) => item.id !== reply.id);
   localStorage.setItem(
     `${storageKey}:${accountId}`,
     JSON.stringify([
       ...replies,
-      { ...reply, sentAt: reply.sentAt ?? new Date().toISOString() },
+      {
+        ...reply,
+        sentAt:
+          reply.sentAt ?? previousReply?.sentAt ?? new Date().toISOString(),
+      },
     ]),
   );
   window.dispatchEvent(new Event(MUE_REPLIES_EVENT));

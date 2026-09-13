@@ -3693,6 +3693,20 @@ function AskMueSuggestionResult({
     keptReplyIds,
   ]);
 
+  useEffect(() => {
+    if (!decisionReady || !emailAccountId || sentReplyIds.length === 0) return;
+    for (const reply of askSuggestedReplies) {
+      if (!sentReplyIds.includes(reply.id)) continue;
+      saveMueDemoReply(emailAccountId, {
+        id: `${messageId}:${reply.id}`,
+        conversationId: reply.id === "reply-theo" ? "mue-theo" : "maya",
+        name: reply.contactName,
+        channel: reply.channel === "Gmail" ? "gmail" : "whatsapp",
+        body: replyDrafts[reply.id]?.trim() || reply.message,
+      });
+    }
+  }, [decisionReady, emailAccountId, messageId, replyDrafts, sentReplyIds]);
+
   const createTasks = async (ids: string[]) => {
     const tasks = askSuggestedTasks.filter(
       (task) => ids.includes(task.id) && !createdTaskIds.includes(task.id),
