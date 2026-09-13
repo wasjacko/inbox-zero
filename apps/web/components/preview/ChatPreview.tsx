@@ -3147,6 +3147,25 @@ const askSuggestedTasks = [
   },
 ] as const;
 
+const askSuggestedReplies = [
+  {
+    id: "reply-theo",
+    contactName: "Théo Manili",
+    contactAvatarUrl: "https://randomuser.me/api/portraits/men/57.jpg",
+    channel: "WhatsApp" as const,
+    message:
+      "Bonjour Théo, je te confirme que le planning d’intégration est bien maintenu. Je t’envoie le déroulé et les prochaines étapes aujourd’hui.",
+  },
+  {
+    id: "reply-maya",
+    contactName: "Maya Chen",
+    contactAvatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+    channel: "Gmail" as const,
+    message:
+      "Bonjour Maya, peux-tu me confirmer la date prévue pour le règlement de la facture F-2048 ? Merci d’avance pour ton retour.",
+  },
+] as const;
+
 function getAskMueResponse(prompt: string): AskMueResponse {
   const normalized = prompt.toLocaleLowerCase("fr-FR");
   const asksForMutation = [
@@ -3599,6 +3618,13 @@ function AskMueSuggestionResult({
   const [createdTaskIds, setCreatedTaskIds] = useState<string[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [decisionReady, setDecisionReady] = useState(false);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [sentReplyIds, setSentReplyIds] = useState<string[]>([]);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      askSuggestedReplies.map((reply) => [reply.id, reply.message]),
+    ),
+  );
   const decisionStorageKey = `${ASK_MUE_CHAT_STORAGE_KEY}:decision:${emailAccountId}:${messageId}`;
 
   useEffect(() => {
@@ -3608,10 +3634,15 @@ function AskMueSuggestionResult({
       ) as {
         decision?: "pending" | "accepted" | "declined";
         createdTaskIds?: string[];
+        sentReplyIds?: string[];
+        replyDrafts?: Record<string, string>;
       } | null;
       if (saved?.decision) setDecision(saved.decision);
       if (Array.isArray(saved?.createdTaskIds))
         setCreatedTaskIds(saved.createdTaskIds);
+      if (Array.isArray(saved?.sentReplyIds))
+        setSentReplyIds(saved.sentReplyIds);
+      if (saved?.replyDrafts) setReplyDrafts(saved.replyDrafts);
     } catch {}
     setDecisionReady(true);
   }, [decisionStorageKey]);
@@ -3621,10 +3652,17 @@ function AskMueSuggestionResult({
     try {
       sessionStorage.setItem(
         decisionStorageKey,
-        JSON.stringify({ decision, createdTaskIds }),
+        JSON.stringify({ decision, createdTaskIds, sentReplyIds, replyDrafts }),
       );
     } catch {}
-  }, [createdTaskIds, decision, decisionReady, decisionStorageKey]);
+  }, [
+    createdTaskIds,
+    decision,
+    decisionReady,
+    decisionStorageKey,
+    replyDrafts,
+    sentReplyIds,
+  ]);
 
   const createTasks = async (ids: string[]) => {
     const tasks = askSuggestedTasks.filter(
@@ -3903,6 +3941,145 @@ function AskMueSuggestionResult({
           </p>
         )}
       </div>
+
+      {decision === "accepted" && !isActions ? (
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-3 overflow-hidden rounded-2xl border border-blue-200/70 bg-gradient-to-br from-blue-50/70 via-background to-emerald-50/40 shadow-[0_18px_50px_-38px_rgba(37,99,235,0.5)] dark:border-blue-900/70 dark:from-blue-950/30 dark:to-emerald-950/20"
+          initial={{ opacity: 0, y: 8 }}
+        >
+          <div className="flex items-start gap-3 border-b border-blue-100/80 px-4 py-3.5 dark:border-blue-900/60">
+            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
+              <SparklesIcon className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-sm">On répond maintenant ?</p>
+              <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                Mue a préparé les deux réponses qui peuvent débloquer votre
+                journée. Relisez-les avant validation.
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full border border-blue-200 bg-background/80 px-2 py-1 font-medium text-[10px] text-blue-700 dark:border-blue-900 dark:text-blue-300">
+              2 réponses
+            </span>
+          </div>
+
+          <div className="grid gap-2.5 p-3 sm:grid-cols-2">
+            {askSuggestedReplies.map((reply) => {
+              const active = activeReplyId === reply.id;
+              const sent = sentReplyIds.includes(reply.id);
+              return (
+                <motion.div
+                  className={cn(
+                    "rounded-xl border bg-background/90 p-3 transition-[border-color,box-shadow]",
+                    active &&
+                      "border-blue-300 shadow-[0_10px_30px_-24px_rgba(37,99,235,0.7)] dark:border-blue-800",
+                    sent && "border-emerald-300 dark:border-emerald-800",
+                  )}
+                  key={reply.id}
+                  layout
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Image
+                      alt={`Photo de profil de ${reply.contactName}`}
+                      className="size-9 rounded-full object-cover ring-1 ring-border/70"
+                      height={36}
+                      src={reply.contactAvatarUrl}
+                      unoptimized
+                      width={36}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-sm">
+                        {reply.contactName}
+                      </p>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <DailyBriefChannelIcon channel={reply.channel} />
+                        {reply.channel}
+                      </span>
+                    </div>
+                    {sent ? (
+                      <span className="flex items-center gap-1 font-medium text-[10px] text-emerald-700 dark:text-emerald-300">
+                        <CheckIcon className="size-3" /> Prête
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {active ? (
+                    <motion.div
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mt-3"
+                      initial={{ opacity: 0, height: 0 }}
+                    >
+                      <Textarea
+                        aria-label={`Réponse proposée à ${reply.contactName}`}
+                        className="min-h-28 resize-none bg-background text-xs leading-5"
+                        onChange={(event) =>
+                          setReplyDrafts((current) => ({
+                            ...current,
+                            [reply.id]: event.target.value,
+                          }))
+                        }
+                        value={replyDrafts[reply.id] ?? ""}
+                      />
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="hidden text-[10px] text-muted-foreground sm:block">
+                          Rien ne part sans validation
+                        </span>
+                        <div className="ml-auto flex gap-1.5">
+                          <Button
+                            onClick={() => setActiveReplyId(null)}
+                            size="sm"
+                            variant="ghost"
+                          >
+                            Annuler
+                          </Button>
+                          <Button
+                            disabled={!replyDrafts[reply.id]?.trim()}
+                            onClick={() => {
+                              setSentReplyIds((current) => [
+                                ...new Set([...current, reply.id]),
+                              ]);
+                              setActiveReplyId(null);
+                              toastSuccess({
+                                title: `Réponse à ${reply.contactName.split(" ")[0]} prête`,
+                                description: `Le message a été validé pour ${reply.channel}.`,
+                              });
+                            }}
+                            size="sm"
+                          >
+                            <CheckIcon className="size-3.5" /> Valider la
+                            réponse
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <p className="mt-3 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
+                        {replyDrafts[reply.id]}
+                      </p>
+                      <Button
+                        className="mt-3 w-full"
+                        disabled={sent}
+                        onClick={() => setActiveReplyId(reply.id)}
+                        size="sm"
+                        variant={sent ? "ghost" : "outline"}
+                      >
+                        {sent ? (
+                          <CheckIcon className="size-3.5" />
+                        ) : (
+                          <MessageCircleIcon className="size-3.5" />
+                        )}
+                        {sent ? "Réponse validée" : "Relire et répondre"}
+                      </Button>
+                    </>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      ) : null}
     </motion.section>
   );
 }
