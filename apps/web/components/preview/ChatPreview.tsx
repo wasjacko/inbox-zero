@@ -80,6 +80,7 @@ import { useAccount } from "@/providers/EmailAccountProvider";
 import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import { useMueBriefTasks } from "@/hooks/useMueBriefTasks";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
+import { saveMueDemoReply } from "@/utils/mue-demo-replies";
 import {
   CREATED_TASK_IDS_STORAGE_KEY,
   CREATED_TASKS_STORAGE_KEY,
@@ -3618,9 +3619,12 @@ function AskMueSuggestionResult({
   const [createdTaskIds, setCreatedTaskIds] = useState<string[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [decisionReady, setDecisionReady] = useState(false);
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(
-    "reply-theo",
-  );
+  const [replyStage, setReplyStage] = useState<
+    "choice" | "loading" | "ready" | "dismissed"
+  >("choice");
+  const [confirmationDone, setConfirmationDone] = useState(false);
+  const [generatedReplyIds, setGeneratedReplyIds] = useState<string[]>([]);
+  const [keptReplyIds, setKeptReplyIds] = useState<string[]>([]);
   const [sentReplyIds, setSentReplyIds] = useState<string[]>([]);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -3636,15 +3640,24 @@ function AskMueSuggestionResult({
       ) as {
         decision?: "pending" | "accepted" | "declined";
         createdTaskIds?: string[];
-        sentReplyIds?: string[];
+        deliveredReplyIds?: string[];
         replyDrafts?: Record<string, string>;
+        replyStage?: "choice" | "ready" | "dismissed";
+        keptReplyIds?: string[];
       } | null;
       if (saved?.decision) setDecision(saved.decision);
       if (Array.isArray(saved?.createdTaskIds))
         setCreatedTaskIds(saved.createdTaskIds);
-      if (Array.isArray(saved?.sentReplyIds))
-        setSentReplyIds(saved.sentReplyIds);
+      if (Array.isArray(saved?.deliveredReplyIds))
+        setSentReplyIds(saved.deliveredReplyIds);
       if (saved?.replyDrafts) setReplyDrafts(saved.replyDrafts);
+      if (saved?.replyStage) {
+        setReplyStage(saved.replyStage);
+        setConfirmationDone(true);
+        if (saved.replyStage === "ready")
+          setGeneratedReplyIds(askSuggestedReplies.map((reply) => reply.id));
+      }
+      if (saved?.keptReplyIds) setKeptReplyIds(saved.keptReplyIds);
     } catch {}
     setDecisionReady(true);
   }, [decisionStorageKey]);
@@ -3654,7 +3667,14 @@ function AskMueSuggestionResult({
     try {
       sessionStorage.setItem(
         decisionStorageKey,
-        JSON.stringify({ decision, createdTaskIds, sentReplyIds, replyDrafts }),
+        JSON.stringify({
+          decision,
+          createdTaskIds,
+          deliveredReplyIds: sentReplyIds,
+          replyDrafts,
+          replyStage: replyStage === "loading" ? "ready" : replyStage,
+          keptReplyIds,
+        }),
       );
     } catch {}
   }, [
@@ -3664,6 +3684,8 @@ function AskMueSuggestionResult({
     decisionStorageKey,
     replyDrafts,
     sentReplyIds,
+    replyStage,
+    keptReplyIds,
   ]);
 
   const createTasks = async (ids: string[]) => {
@@ -3893,202 +3915,248 @@ function AskMueSuggestionResult({
         })}
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-2 rounded-2xl border border-border/80 bg-muted/15 px-4 py-3">
-        {decision === "pending" ? (
-          <>
-            <Button
-              disabled={isExecuting}
-              onClick={() =>
-                createTasks(askSuggestedTasks.map((task) => task.id))
-              }
-              size="sm"
-            >
-              {isExecuting ? (
-                <LoaderCircleIcon className="size-3.5 animate-spin" />
-              ) : (
-                <CheckIcon className="size-3.5" />
-              )}
-              {isActions
-                ? `Oui, ajouter les ${askSuggestedTasks.length}`
-                : "Oui, valider ce plan"}
-            </Button>
-            <Button
-              disabled={isExecuting}
-              onClick={() => setDecision("declined")}
-              size="sm"
-              variant="ghost"
-            >
-              Non, ajuster
-            </Button>
-          </>
-        ) : (
-          <p
-            className={cn(
-              "flex items-center gap-2 font-medium text-xs",
-              decision === "accepted"
-                ? "text-emerald-700 dark:text-emerald-300"
-                : "text-muted-foreground",
-            )}
+      {decision === "pending" ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            disabled={isExecuting}
+            onClick={() =>
+              createTasks(askSuggestedTasks.map((task) => task.id))
+            }
+            size="sm"
           >
-            {decision === "accepted" ? (
-              <CheckIcon className="size-4" />
+            {isExecuting ? (
+              <LoaderCircleIcon className="size-3.5 animate-spin" />
             ) : (
-              <RotateCcwIcon className="size-4" />
+              <CheckIcon className="size-3.5" />
             )}
-            {decision === "accepted"
-              ? isActions
-                ? "Les tâches ont été ajoutées."
-                : "Les priorités ont été ajoutées à Aujourd’hui."
-              : "D’accord. Dites-moi ce que vous voulez modifier."}
-          </p>
-        )}
-      </div>
-
-      {decision === "accepted" && !isActions ? (
-        <motion.div
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm"
-          initial={{ opacity: 0, y: 8 }}
-        >
-          <div className="flex items-start gap-3 px-4 py-4">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-foreground">
-              <SparklesIcon className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-sm">
-                Vos réponses, prêtes à relire
-              </p>
-              <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
-                Ajustez le message, puis gardez le brouillon. Aucun envoi
-                automatique.
-              </p>
+            {isActions ? "Ajouter les tâches" : "Oui, valider ce plan"}
+          </Button>
+          <Button
+            disabled={isExecuting}
+            onClick={() => setDecision("declined")}
+            size="sm"
+            variant="ghost"
+          >
+            Non, ajuster
+          </Button>
+        </div>
+      ) : decision === "declined" ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          D’accord. Dites-moi ce que vous voulez modifier.
+        </p>
+      ) : (
+        <div className="mt-6 space-y-4">
+          <AskMueTypedText
+            content="C’est fait. Vos priorités sont maintenant dans Aujourd’hui, sur la page Tâches. Vous pouvez reprendre votre journée, ou préparer les réponses à Théo et Maya avec moi."
+            onComplete={() => setConfirmationDone(true)}
+          />
+          {confirmationDone && !isActions && replyStage === "choice" ? (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => {
+                  setReplyStage("loading");
+                  window.setTimeout(() => setReplyStage("ready"), 1800);
+                }}
+                size="sm"
+              >
+                <SparklesIcon className="size-3.5" />
+                Me proposer des réponses
+              </Button>
+              <Button
+                onClick={() => setReplyStage("dismissed")}
+                size="sm"
+                variant="ghost"
+              >
+                Pas maintenant
+              </Button>
             </div>
-            <span className="shrink-0 px-2 py-1 font-medium text-[10px] tabular-nums text-muted-foreground">
-              {sentReplyIds.length} / 2 prêts
-            </span>
-          </div>
-
-          <div className="space-y-2 px-3 pb-3">
-            {askSuggestedReplies.map((reply) => {
-              const active = activeReplyId === reply.id;
-              const sent = sentReplyIds.includes(reply.id);
-              return (
-                <motion.div
-                  className={cn(
-                    "rounded-xl border border-transparent bg-muted/25 p-3 transition-[border-color,background-color]",
-                    active && "border-border bg-background",
-                    sent && "border-emerald-300 dark:border-emerald-800",
-                  )}
+          ) : null}
+          {replyStage === "dismissed" ? (
+            <p className="text-sm text-muted-foreground">
+              Très bien, vos tâches restent à portée de main.
+            </p>
+          ) : null}
+          {replyStage === "loading" ? (
+            <div
+              aria-label="Mue prépare vos réponses"
+              role="status"
+              className="space-y-3"
+            >
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <LoaderCircleIcon className="size-3.5 animate-spin" />
+                Je prépare les deux réponses…
+              </p>
+              {askSuggestedReplies.map((reply) => (
+                <div
                   key={reply.id}
-                  layout
+                  className="relative overflow-hidden rounded-2xl border p-4"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Image
-                      alt={`Photo de profil de ${reply.contactName}`}
-                      className="size-9 rounded-full object-cover ring-1 ring-border/70"
-                      height={36}
-                      src={reply.contactAvatarUrl}
-                      unoptimized
-                      width={36}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-sm">
-                        {reply.contactName}
-                      </p>
-                      <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                        <DailyBriefChannelIcon channel={reply.channel} />
-                        {reply.channel}
-                      </span>
+                  <AiSkeletonGlow />
+                  <Skeleton className="size-9 rounded-full" />
+                  <AiSkeletonLine className="mt-4 w-[90%]" />
+                  <AiSkeletonLine className="mt-2 w-[70%]" />
+                  <AiSkeletonLine className="mt-2 w-[80%]" />
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {replyStage === "ready" ? (
+            <>
+              <AskMueTypedText
+                content="Voici les deux propositions. Relisez-les, ajustez-les si besoin, puis envoyez ou gardez chaque brouillon."
+                onComplete={() => {}}
+              />
+              {askSuggestedReplies.map((reply, index) => {
+                const sent = sentReplyIds.includes(reply.id);
+                const generated = generatedReplyIds.includes(reply.id);
+                const canGenerate =
+                  index === 0 ||
+                  generatedReplyIds.includes(askSuggestedReplies[index - 1].id);
+                return (
+                  <motion.div
+                    key={reply.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl border border-border/80 bg-background p-4 shadow-sm"
+                  >
+                    <div className="mb-4 flex items-center gap-3">
+                      <Image
+                        alt={reply.contactName}
+                        className="size-9 rounded-full object-cover"
+                        src={reply.contactAvatarUrl}
+                        width={36}
+                        height={36}
+                        unoptimized
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">
+                          {reply.contactName}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {reply.channel} · contact de démonstration
+                        </span>
+                      </div>
+                      {sent ? (
+                        <span className="text-xs text-emerald-700">
+                          Envoyé · simulation
+                        </span>
+                      ) : keptReplyIds.includes(reply.id) ? (
+                        <span className="text-xs text-muted-foreground">
+                          Brouillon gardé
+                        </span>
+                      ) : null}
                     </div>
-                    {sent ? (
-                      <span className="flex items-center gap-1 font-medium text-[10px] text-emerald-700 dark:text-emerald-300">
-                        <CheckIcon className="size-3" /> Brouillon prêt
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {active ? (
-                    <motion.div
-                      animate={{ opacity: 1, height: "auto" }}
-                      className="mt-3"
-                      initial={{ opacity: 0, height: 0 }}
-                    >
+                    {!generated ? (
+                      canGenerate ? (
+                        <AskMueTypedText
+                          content={replyDrafts[reply.id] ?? reply.message}
+                          onComplete={() =>
+                            setGeneratedReplyIds((current) => [
+                              ...new Set([...current, reply.id]),
+                            ])
+                          }
+                        />
+                      ) : (
+                        <>
+                          <AiSkeletonLine className="w-[90%]" />
+                          <AiSkeletonLine className="mt-2 w-[65%]" />
+                        </>
+                      )
+                    ) : (
                       <Textarea
                         aria-label={`Réponse proposée à ${reply.contactName}`}
-                        className="min-h-28 resize-y border-0 bg-muted/30 p-3 text-sm leading-6 shadow-none focus-visible:ring-1 focus-visible:ring-border"
+                        disabled={sent}
+                        className="min-h-24 resize-y border-0 bg-muted/20 text-sm leading-6 shadow-none"
+                        value={replyDrafts[reply.id] ?? reply.message}
                         onChange={(event) =>
                           setReplyDrafts((current) => ({
                             ...current,
                             [reply.id]: event.target.value,
                           }))
                         }
-                        value={replyDrafts[reply.id] ?? ""}
                       />
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                        <span className="whitespace-nowrap text-[10px] text-muted-foreground">
-                          Brouillon uniquement · non envoyé
-                        </span>
-                        <div className="ml-auto flex gap-1.5">
-                          <Button
-                            onClick={() => setActiveReplyId(null)}
-                            size="sm"
-                            variant="ghost"
-                          >
-                            Réduire
-                          </Button>
-                          <Button
-                            disabled={!replyDrafts[reply.id]?.trim()}
-                            onClick={() => {
-                              setSentReplyIds((current) => [
-                                ...new Set([...current, reply.id]),
-                              ]);
-                              setActiveReplyId(
-                                askSuggestedReplies.find(
-                                  (item) =>
-                                    item.id !== reply.id &&
-                                    !sentReplyIds.includes(item.id),
-                                )?.id ?? null,
-                              );
-                              toastSuccess({
-                                title: `Réponse à ${reply.contactName.split(" ")[0]} prête`,
-                                description:
-                                  "Brouillon conservé dans cette conversation. Aucun message envoyé.",
-                              });
-                            }}
-                            size="sm"
-                          >
-                            <CheckIcon className="size-3.5" /> Garder le
-                            brouillon
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <>
-                      <p className="mt-2 line-clamp-1 text-[11px] leading-5 text-muted-foreground">
-                        {replyDrafts[reply.id]}
-                      </p>
-                      <Button
-                        className="mt-2 h-7 px-2 text-xs"
-                        onClick={() => setActiveReplyId(reply.id)}
-                        size="sm"
-                        variant="ghost"
-                      >
+                    )}
+                    {generated ? (
+                      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
                         {sent ? (
-                          <CheckIcon className="size-3.5" />
+                          <Link
+                            className="text-xs text-muted-foreground underline underline-offset-4"
+                            href={`/channels-v4?conversation=${reply.id === "reply-theo" ? "mue-theo" : "maya"}`}
+                          >
+                            Voir la conversation
+                          </Link>
                         ) : (
-                          <MessageCircleIcon className="size-3.5" />
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setKeptReplyIds((current) => [
+                                  ...new Set([...current, reply.id]),
+                                ]);
+                                toastSuccess({
+                                  description:
+                                    "Brouillon gardé dans ce chat. Aucun message envoyé.",
+                                });
+                              }}
+                            >
+                              Garder le brouillon
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={!replyDrafts[reply.id]?.trim()}
+                              onClick={() => {
+                                try {
+                                  if (!emailAccountId)
+                                    throw new Error("account_missing");
+                                  saveMueDemoReply(emailAccountId, {
+                                    id: `${messageId}:${reply.id}`,
+                                    conversationId:
+                                      reply.id === "reply-theo"
+                                        ? "mue-theo"
+                                        : "maya",
+                                    name: reply.contactName,
+                                    channel:
+                                      reply.channel === "Gmail"
+                                        ? "gmail"
+                                        : "whatsapp",
+                                    body: replyDrafts[reply.id].trim(),
+                                  });
+                                  setSentReplyIds((current) => [
+                                    ...new Set([...current, reply.id]),
+                                  ]);
+                                  toastSuccess({
+                                    description:
+                                      "Message ajouté à la conversation de démonstration. Aucun envoi externe.",
+                                  });
+                                } catch {
+                                  toastError({
+                                    description:
+                                      "Le message n’a pas été conservé. Réessayez.",
+                                  });
+                                }
+                              }}
+                            >
+                              <SendHorizontalIcon className="size-3.5" />
+                              Envoyer · simulation
+                            </Button>
+                          </>
                         )}
-                        {sent ? "Modifier le brouillon" : "Relire le brouillon"}
-                      </Button>
-                    </>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
-      ) : null}
+                      </div>
+                    ) : null}
+                  </motion.div>
+                );
+              })}
+              {sentReplyIds.length > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  ≈ {sentReplyIds.length * 3} min économisées · estimation pour
+                  la rédaction et l’envoi.
+                </p>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      )}
     </motion.section>
   );
 }

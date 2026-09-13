@@ -130,6 +130,10 @@ import {
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { CHANNELS_THREADS_CACHE_KEY } from "@/utils/preview-data";
 import {
+  MUE_REPLIES_EVENT,
+  readMueDemoReplies,
+} from "@/utils/mue-demo-replies";
+import {
   normalizeContactAddress,
   readPreviewContactTags,
   writePreviewContactTags,
@@ -204,6 +208,7 @@ const curatedContactAvatars: Record<string, string> = {
   lina: "https://randomuser.me/api/portraits/women/89.jpg",
   "louis-analytics": "https://randomuser.me/api/portraits/men/53.jpg",
   maya: "https://randomuser.me/api/portraits/women/44.jpg",
+  "mue-theo": "https://randomuser.me/api/portraits/men/57.jpg",
   "nina-northstar": "https://randomuser.me/api/portraits/women/12.jpg",
   nora: "https://randomuser.me/api/portraits/women/65.jpg",
   "romain-kickoff": "https://randomuser.me/api/portraits/men/46.jpg",
@@ -907,6 +912,7 @@ export function ChannelsV4Preview() {
     },
   );
   const requestedConversationId = searchParams.get("conversation");
+  const handledConversationRequest = useRef<string | null>(null);
   const taskTutorialRequested =
     searchParams.get("tutorial") === "channel-tasks";
   const setup = usePreviewSetupProgress();
@@ -1006,6 +1012,70 @@ export function ChannelsV4Preview() {
     ]);
   }, [loadedThreads, provider, simulatedWhatsAppConnected, userEmail]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Reapply demo messages after the source conversations are refreshed.
+  useEffect(() => {
+    const updateReplies = () => {
+      const replies = readMueDemoReplies(emailAccountId);
+      if (!replies.length) return;
+      setConversations((current) => {
+        const next = [...current];
+        for (const reply of replies) {
+          let conversation = next.find(
+            (item) => item.id === reply.conversationId,
+          );
+          if (!conversation) {
+            const seed = initialConversations.find(
+              (item) => item.id === reply.conversationId,
+            );
+            conversation = seed
+              ? { ...seed, messages: [...seed.messages] }
+              : {
+                  ...initialConversations[0],
+                  id: reply.conversationId,
+                  name: reply.name,
+                  initials: "TM",
+                  address: "",
+                  channel: reply.channel,
+                  subject: "Planning d’intégration · simulation",
+                  preview: "",
+                  messages: [],
+                };
+            next.unshift(conversation);
+          }
+          if (conversation.messages.some((message) => message.id === reply.id))
+            continue;
+          const index = next.findIndex(
+            (item) => item.id === reply.conversationId,
+          );
+          next[index] = {
+            ...conversation,
+            preview: reply.body,
+            unread: false,
+            messages: [
+              ...conversation.messages,
+              {
+                id: reply.id,
+                author: "me",
+                body: reply.body,
+                time: "À l’instant · simulation",
+              },
+            ],
+          };
+        }
+        return next;
+      });
+    };
+    updateReplies();
+    window.addEventListener(MUE_REPLIES_EVENT, updateReplies);
+    return () => window.removeEventListener(MUE_REPLIES_EVENT, updateReplies);
+  }, [
+    emailAccountId,
+    loadedThreads,
+    provider,
+    simulatedWhatsAppConnected,
+    userEmail,
+  ]);
+
   useEffect(() => {
     const storedTags = readPreviewContactTags();
     contactTagsRef.current = storedTags;
@@ -1040,11 +1110,18 @@ export function ChannelsV4Preview() {
   }, [contactTagsReady, conversations]);
 
   useEffect(() => {
-    if (!requestedConversationId || selectedId) return;
-    if (loadedThreads.some((thread) => thread.id === requestedConversationId)) {
-      setSelectedId(requestedConversationId);
+    if (!requestedConversationId) {
+      handledConversationRequest.current = null;
+      return;
     }
-  }, [loadedThreads, requestedConversationId, selectedId]);
+    if (handledConversationRequest.current === requestedConversationId) return;
+    if (conversations.some((thread) => thread.id === requestedConversationId)) {
+      setSelectedId(requestedConversationId);
+      handledConversationRequest.current = requestedConversationId;
+      setSource("all");
+      setFolder("all");
+    }
+  }, [conversations, requestedConversationId]);
 
   const loadMoreThreads = useCallback(async () => {
     const pageToken = realThreads?.nextPageToken;
@@ -1313,7 +1390,10 @@ export function ChannelsV4Preview() {
   const sendReply = async () => {
     const clean = reply.trim();
     if (!selected || !clean) return;
-    if (selected.channel === "whatsapp") {
+    if (
+      selected.channel === "whatsapp" ||
+      initialConversations.some((item) => item.id === selected.id)
+    ) {
       setConversations((current) =>
         current.map((conversation) =>
           conversation.id === selected.id
@@ -1337,7 +1417,7 @@ export function ChannelsV4Preview() {
       setReply("");
       toastSuccess({
         description:
-          "Réponse simulée dans Freescale. Aucun message WhatsApp réel n’a été envoyé.",
+          "Réponse simulée dans Freescale. Aucun message externe n’a été envoyé.",
       });
       return;
     }
