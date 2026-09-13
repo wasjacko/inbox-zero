@@ -35,7 +35,7 @@ import { WhatsAppIcon } from "@/components/BrandIcons";
 import { Gmail } from "@/components/new-landing/icons/Gmail";
 import { MueIcon } from "@/components/MueIcon";
 import { Outlook } from "@/components/new-landing/icons/Outlook";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -105,6 +105,37 @@ type MueWorkflowProjection = {
 
 type ProjectedMueTask = MueTaskEventDetail[number] & { revealed: boolean };
 type PendingTaskMove = { id: string; status: TaskStatus };
+
+const mueTaskContacts = {
+  "ask-theo-planning": {
+    name: "Théo Manili",
+    avatarPosition: "50% 50%",
+    avatarUrl: "https://randomuser.me/api/portraits/men/57.jpg",
+  },
+  "ask-maya-payment": {
+    name: "Maya Chen",
+    avatarPosition: "50% 0%",
+    avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+  },
+  "ask-jon-seo": {
+    name: "Jon Bell",
+    avatarPosition: "100% 100%",
+    avatarUrl: "https://randomuser.me/api/portraits/men/86.jpg",
+  },
+} as const;
+
+function getMueTaskContact(sourceThreadId?: string) {
+  if (!sourceThreadId) return;
+  const contactEntry = Object.entries(mueTaskContacts).find(([taskId]) =>
+    sourceThreadId.endsWith(`:${taskId}`),
+  );
+  return contactEntry?.[1];
+}
+
+function getTaskContactAvatarUrl(name: string) {
+  return Object.values(mueTaskContacts).find((contact) => contact.name === name)
+    ?.avatarUrl;
+}
 
 function parseCreatedTaskIds(value: string | null) {
   return (
@@ -354,6 +385,7 @@ export function TasksPreview() {
   );
   const moveTimerRef = useRef<number | undefined>(undefined);
   const arrivalTimerRef = useRef<number | undefined>(undefined);
+  const backfilledContactTaskIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (!taskTutorialRequested) return;
@@ -416,23 +448,32 @@ export function TasksPreview() {
 
   useEffect(() => {
     if (!storedTasks) return;
-    const serverTasks = storedTasks.tasks.map((task) => ({
-      id: task.id,
-      title: task.title,
-      status: task.status as TaskStatus,
-      due: task.due,
-      priority: task.priority as TaskPriority,
-      source: task.source as TaskSource,
-      assignees: task.assignees,
-      context: task.context ?? undefined,
-      sourceThreadId: task.sourceThreadId ?? undefined,
-      contact: task.contactName
-        ? {
-            name: task.contactName,
-            avatarPosition: task.contactAvatarPosition ?? "50% 50%",
-          }
-        : undefined,
-    }));
+    const serverTasks = storedTasks.tasks.map((task) => {
+      const inferredContact = getMueTaskContact(
+        task.sourceThreadId ?? undefined,
+      );
+      const contactName = task.contactName ?? inferredContact?.name;
+      return {
+        id: task.id,
+        title: task.title,
+        status: task.status as TaskStatus,
+        due: task.due,
+        priority: task.priority as TaskPriority,
+        source: task.source as TaskSource,
+        assignees: task.assignees,
+        context: task.context ?? undefined,
+        sourceThreadId: task.sourceThreadId ?? undefined,
+        contact: contactName
+          ? {
+              name: contactName,
+              avatarPosition:
+                task.contactAvatarPosition ??
+                inferredContact?.avatarPosition ??
+                "50% 50%",
+            }
+          : undefined,
+      };
+    });
     const serverTaskIds = new Set(serverTasks.map((task) => task.id));
     setTasks([
       ...pendingCreatedTasks.filter((task) => !serverTaskIds.has(task.id)),
@@ -449,6 +490,34 @@ export function TasksPreview() {
       } catch {}
     }
   }, [pendingCreatedTasks, storedTasks]);
+
+  useEffect(() => {
+    if (!emailAccountId || !storedTasks) return;
+    const tasksToBackfill = storedTasks.tasks.flatMap((task) => {
+      if (task.contactName || backfilledContactTaskIdsRef.current.has(task.id))
+        return [];
+      const contact = getMueTaskContact(task.sourceThreadId ?? undefined);
+      return contact ? [{ id: task.id, contact }] : [];
+    });
+    if (tasksToBackfill.length === 0) return;
+
+    for (const task of tasksToBackfill)
+      backfilledContactTaskIdsRef.current.add(task.id);
+    Promise.all(
+      tasksToBackfill.map(({ id, contact }) =>
+        taskRequest(emailAccountId, "PATCH", {
+          id,
+          contactName: contact.name,
+          contactAvatarPosition: contact.avatarPosition,
+        }),
+      ),
+    )
+      .then(() => refreshTasks())
+      .catch(() => {
+        for (const task of tasksToBackfill)
+          backfilledContactTaskIdsRef.current.delete(task.id);
+      });
+  }, [emailAccountId, refreshTasks, storedTasks]);
 
   useEffect(() => {
     const queryTaskIds = parseCreatedTaskIds(searchParams.get("created"));
@@ -2222,18 +2291,29 @@ function Assignees({ assignees }: { assignees: string[] }) {
 
 function TaskPeople({ task }: { task: Task }) {
   if (!task.contact) return <Assignees assignees={task.assignees} />;
+  const avatarUrl = getTaskContactAvatarUrl(task.contact.name);
 
   return (
     <span className="flex min-w-0 items-center gap-2 text-muted-foreground text-xs">
-      <span
-        aria-label={`Photo de profil de ${task.contact.name}`}
-        className="size-7 shrink-0 rounded-full bg-[url('/images/avatars/freescale-contacts-grid.webp')] bg-no-repeat ring-2 ring-background"
-        role="img"
-        style={{
-          backgroundPosition: task.contact.avatarPosition,
-          backgroundSize: "300% 300%",
-        }}
-      />
+      <Avatar className="size-7 shrink-0 ring-2 ring-background">
+        {avatarUrl ? (
+          <AvatarImage
+            alt={`Photo de profil de ${task.contact.name}`}
+            className="object-cover"
+            src={avatarUrl}
+          />
+        ) : (
+          <span
+            aria-label={`Photo de profil de ${task.contact.name}`}
+            className="size-full bg-[url('/images/avatars/freescale-contacts-grid.webp')] bg-no-repeat"
+            role="img"
+            style={{
+              backgroundPosition: task.contact.avatarPosition,
+              backgroundSize: "300% 300%",
+            }}
+          />
+        )}
+      </Avatar>
       <span className="truncate">{task.contact.name}</span>
     </span>
   );
