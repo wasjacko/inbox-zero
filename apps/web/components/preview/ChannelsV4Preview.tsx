@@ -215,10 +215,10 @@ function getContactAvatarUrl(
   conversation: InboxConversation,
   contactPhotos: Record<string, string> = {},
 ) {
-  const savedPhoto = contactPhotos[conversation.address.toLowerCase()];
-  if (savedPhoto) return savedPhoto;
   const curatedPhoto = curatedContactAvatars[conversation.id];
   if (curatedPhoto) return curatedPhoto;
+  const savedPhoto = contactPhotos[conversation.address.toLowerCase()];
+  if (savedPhoto) return savedPhoto;
   if (conversation.avatarUrl) return conversation.avatarUrl;
   if (organizationConversationIds.has(conversation.id)) return;
 
