@@ -129,6 +129,7 @@ import {
 } from "@/utils/actions/mail";
 import { getAccountLinkingUrl } from "@/utils/account-linking";
 import { CHANNELS_THREADS_CACHE_KEY } from "@/utils/preview-data";
+import { MUE_ACTIVITY_EVENT } from "@/utils/relations/savings";
 import {
   MUE_REPLIES_EVENT,
   readMueDemoReplies,
@@ -1387,7 +1388,7 @@ export function ChannelsV4Preview() {
     setOrganizationOpen(true);
   };
 
-  const sendReply = async () => {
+  const sendReply = async (assisted = false) => {
     const clean = reply.trim();
     if (!selected || !clean) return;
     if (
@@ -1431,6 +1432,7 @@ export function ChannelsV4Preview() {
     try {
       const result = await sendEmailAction(emailAccountId, {
         freescaleActivity,
+        freescaleAssisted: assisted,
         to: selected.address,
         subject: selected.subject,
         messageHtml: textToSafeHtml(clean),
@@ -1447,6 +1449,7 @@ export function ChannelsV4Preview() {
 
       setReply("");
       await Promise.all([refreshSelectedThread(), refreshThreads()]);
+      window.dispatchEvent(new Event(MUE_ACTIVITY_EVENT));
       toastSuccess({
         description: `Réponse envoyée via ${channelName(selected.channel)}.`,
       });
@@ -3326,7 +3329,7 @@ function MessageReader({
   onOrganize: () => void;
   onReplyChange: (reply: string) => void;
   onResolve: () => void;
-  onSendReply: () => void;
+  onSendReply: (assisted: boolean) => void;
   onTrash: () => void;
   onToggleStar: () => void;
   onToggleUnread: () => void;
@@ -3348,6 +3351,10 @@ function MessageReader({
   const suggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationId = conversation?.id;
   const messageCount = conversation?.messages.length ?? 0;
+
+  useEffect(() => {
+    if (!reply && !mueGenerating) setMueDraftActive(false);
+  }, [reply, mueGenerating]);
 
   function stopSuggestion() {
     if (suggestionTimerRef.current !== null) {
@@ -3957,8 +3964,7 @@ function MessageReader({
               disabled={!reply.trim()}
               Icon={SendHorizontalIcon}
               onClick={() => {
-                onSendReply();
-                setMueDraftActive(false);
+                onSendReply(mueDraftActive);
                 setAttachments([]);
               }}
               size="iconSm"

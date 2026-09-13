@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import type { GetFreescaleTasksResponse } from "@/app/api/user/tasks/route";
 import { WhatsAppIcon } from "@/components/BrandIcons";
@@ -1244,10 +1244,18 @@ export function MobileRelationsPreview({
   activity = { actions: 0, followups: 0, messages: 0, replies: 0, tasks: 0 },
   onPeriodChange,
   period = "30 jours",
+  savingsTime = "0 min",
+  savingsValue = "—",
+  assistedActions = 0,
+  activityDetails,
 }: {
   activity?: MobileRelationActivity;
   onPeriodChange?: (period: MobileRelationsPeriod) => void;
   period?: MobileRelationsPeriod;
+  savingsTime?: string;
+  savingsValue?: string;
+  assistedActions?: number;
+  activityDetails?: ReactNode;
 } = {}) {
   const [periodOpen, setPeriodOpen] = useState(false);
 
@@ -1268,16 +1276,24 @@ export function MobileRelationsPreview({
       </div>
 
       <div className="grid grid-cols-1 gap-3 px-4 min-[360px]:grid-cols-2">
-        <MetricCard icon={Clock3Icon} label="Temps gagné" value="0 min" />
-        <MetricCard icon={MailIcon} label="Valeur libérée" value="0 €" />
         <MetricCard
-          icon={CheckIcon}
-          label="Actions enregistrées"
-          value={String(activity.actions)}
+          icon={Clock3Icon}
+          label="Temps estimé gagné"
+          value={savingsTime}
         />
         <MetricCard
           icon={MailIcon}
-          label="Réponses envoyées"
+          label="Valeur estimée"
+          value={savingsValue}
+        />
+        <MetricCard
+          icon={CheckIcon}
+          label="Actions assistées"
+          value={String(assistedActions)}
+        />
+        <MetricCard
+          icon={MailIcon}
+          label="Réponses envoyées réellement"
           value={String(activity.replies)}
         />
       </div>
@@ -1291,10 +1307,11 @@ export function MobileRelationsPreview({
             message
             {activity.messages > 1 ? "s" : ""} · {activity.tasks} tâche
             {activity.tasks > 1 ? "s" : ""} terminée
-            {activity.tasks > 1 ? "s" : ""}. Le temps gagné reste à zéro tant
-            qu’aucune estimation fiable n’est configurée.
+            {activity.tasks > 1 ? "s" : ""}. Les actions de démonstration sont
+            distinguées dans l’historique ci-dessous.
           </p>
         </div>
+        {activityDetails}
       </section>
 
       <MobileSheet

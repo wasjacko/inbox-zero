@@ -7,6 +7,7 @@ type DemoReply = {
   name: string;
   channel: "gmail" | "whatsapp";
   body: string;
+  sentAt?: string;
 };
 
 export function readMueDemoReplies(accountId: string): DemoReply[] {
@@ -26,7 +27,10 @@ export function saveMueDemoReply(accountId: string, reply: DemoReply) {
   );
   localStorage.setItem(
     `${storageKey}:${accountId}`,
-    JSON.stringify([...replies, reply]),
+    JSON.stringify([
+      ...replies,
+      { ...reply, sentAt: reply.sentAt ?? new Date().toISOString() },
+    ]),
   );
   window.dispatchEvent(new Event(MUE_REPLIES_EVENT));
 }

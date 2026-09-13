@@ -68,6 +68,7 @@ model User {
   // additional fields
   completedOnboardingAt   DateTime? // questions about the user. e.g. their role
   onboardingAnswers       Json?
+  freescaleDayRateCents    Int?
   lastLogin               DateTime?
   utms                    Json?
   errorMessages           Json? // eg. user set incorrect AI API key
@@ -267,12 +268,19 @@ model FreescaleActivity {
   type           FreescaleActivityType
   threadId       String?
   contactAddress String?
+  contactName    String?
+  source         String?
+  assisted       Boolean @default(false)
+  demo           Boolean @default(false)
+  estimatedSeconds Int @default(0)
+  externalId     String?
 
   emailAccountId String
   emailAccount   EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
 
   @@index([emailAccountId, createdAt])
   @@index([emailAccountId, type, createdAt])
+  @@unique([emailAccountId, externalId])
 }
 
 enum FreescaleActivityType {

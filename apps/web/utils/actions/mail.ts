@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import prisma from "@/utils/prisma";
+import { MUE_REPLY_ESTIMATE_SECONDS } from "@/utils/relations/savings";
 import { sendEmailBody } from "@/utils/gmail/mail";
 import { actionClient } from "@/utils/actions/safe-action";
 import { SafeError } from "@/utils/error";
@@ -313,6 +314,7 @@ export const updateLabelsAction = actionClient
 
 const trackedSendEmailBody = sendEmailBody.extend({
   freescaleActivity: z.enum(["reply", "followup", "message"]).optional(),
+  freescaleAssisted: z.boolean().optional(),
 });
 
 export const sendEmailAction = actionClient
@@ -320,7 +322,8 @@ export const sendEmailAction = actionClient
   .inputSchema(trackedSendEmailBody)
   .action(
     async ({ ctx: { emailAccountId, provider, logger }, parsedInput }) => {
-      const { freescaleActivity, ...emailInput } = parsedInput;
+      const { freescaleActivity, freescaleAssisted, ...emailInput } =
+        parsedInput;
       const emailProvider = await createEmailProvider({
         emailAccountId,
         provider,
@@ -334,13 +337,19 @@ export const sendEmailAction = actionClient
           await prisma.freescaleActivity.create({
             data: {
               emailAccountId,
-              type: {
-                reply: "REPLY_SENT",
-                followup: "FOLLOW_UP_SENT",
-                message: "MESSAGE_SENT",
-              }[freescaleActivity],
+              type:
+                freescaleActivity === "reply"
+                  ? "REPLY_SENT"
+                  : freescaleActivity === "followup"
+                    ? "FOLLOW_UP_SENT"
+                    : "MESSAGE_SENT",
               threadId: result.threadId ?? emailInput.replyToEmail?.threadId,
               contactAddress: emailInput.to.trim().toLowerCase(),
+              assisted: Boolean(freescaleAssisted),
+              source: freescaleAssisted ? "channels" : undefined,
+              estimatedSeconds: freescaleAssisted
+                ? MUE_REPLY_ESTIMATE_SECONDS
+                : 0,
             },
           });
         } catch (error) {

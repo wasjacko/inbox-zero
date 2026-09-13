@@ -22,7 +22,7 @@ it("retains a reply once and isolates accounts", () => {
   saveMueDemoReply("account-a", reply);
   saveMueDemoReply("account-a", { ...reply, body: "Bonjour Maya" });
   expect(readMueDemoReplies("account-a")).toEqual([
-    { ...reply, body: "Bonjour Maya" },
+    { ...reply, body: "Bonjour Maya", sentAt: expect.any(String) },
   ]);
   expect(readMueDemoReplies("account-b")).toEqual([]);
 });

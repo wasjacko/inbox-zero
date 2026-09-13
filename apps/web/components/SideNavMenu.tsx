@@ -12,6 +12,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
+import { useUnseenMueActivity } from "@/hooks/useFreescaleActivity";
+import { cn } from "@/utils";
 import {
   getAppPageFromNavItem,
   getAppPageFromPathname,
@@ -48,6 +50,7 @@ export function SideNavMenu({
   const router = useRouter();
   const posthog = usePostHog();
   const currentAppPage = getAppPageFromPathname(pathname);
+  const hasNewMueActivity = useUnseenMueActivity();
 
   // Closing the mobile drawer inside the link click used to enqueue a
   // competing state update while Next was starting its route transition.
@@ -60,6 +63,7 @@ export function SideNavMenu({
   return (
     <SidebarMenu>
       {items.map((item) => {
+        const newGain = hasNewMueActivity && item.href === "/stats";
         const handleClick = () => {
           const destinationAppPage = getAppPageFromNavItem({
             name: item.name,
@@ -84,6 +88,12 @@ export function SideNavMenu({
           <>
             <item.icon />
             <span>{item.name}</span>
+            {newGain ? (
+              <span
+                title="Nouveau temps gagné"
+                className="ml-auto size-1.5 rounded-full bg-emerald-500"
+              />
+            ) : null}
             {item.new && (
               <Badge variant="green" className="ml-auto text-[10px]">
                 New!
@@ -102,7 +112,11 @@ export function SideNavMenu({
             <SidebarMenuButton
               asChild
               isActive={item.active || activeHref === item.href}
-              className="h-9"
+              className={cn(
+                "h-9",
+                newGain &&
+                  "bg-emerald-50/80 text-emerald-800 hover:bg-emerald-100/70 dark:bg-emerald-950/30 dark:text-emerald-300",
+              )}
               tooltip={item.name}
               sidebarName="left-sidebar"
             >

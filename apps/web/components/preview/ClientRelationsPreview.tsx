@@ -8,9 +8,17 @@ import {
   TimerResetIcon,
   ZapIcon,
 } from "lucide-react";
-import { useState } from "react";
-import useSWR from "swr";
-import type { GetFreescaleActivityResponse } from "@/app/api/user/activity/route";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useFreescaleActivity } from "@/hooks/useFreescaleActivity";
+import { FreescaleDayRateSetting } from "@/components/preview/FreescaleDayRateSetting";
+import {
+  formatSavingsTime,
+  MUE_ACTIVITY_EVENT,
+  MUE_SAVINGS_SOURCE,
+} from "@/utils/relations/savings";
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Button } from "@/components/ui/button";
@@ -301,6 +309,7 @@ const _gainRelations: Array<{
 export function ClientRelationsPreview() {
   const { isMobile, state } = useSidebar();
   const { emailAccountId } = useAccount();
+  const pathname = usePathname();
   const isMueOpen = !isMobile && state.includes("mue-panel");
   const [period, setPeriod] = useState<Period>("31 derniers jours");
   const [activeMetric, setActiveMetric] = useState<SavingsMetric>("total");
@@ -309,30 +318,183 @@ export function ClientRelationsPreview() {
     "31 derniers jours": "31d",
     "3 derniers mois": "90d",
   }[period] as "7d" | "31d" | "90d";
-  const { data: activity } = useSWR<GetFreescaleActivityResponse>(
-    emailAccountId ? `/api/user/activity?period=${activityPeriod}` : null,
-  );
+  const { data: activity, error: activityError } =
+    useFreescaleActivity(activityPeriod);
+  useEffect(() => {
+    if (
+      !pathname.endsWith("/stats") ||
+      !activity?.latestAssistedAt ||
+      !emailAccountId
+    )
+      return;
+    try {
+      localStorage.setItem(
+        `freescale:mue-activity-seen:${emailAccountId}`,
+        new Date(activity.latestAssistedAt).toISOString(),
+      );
+      window.dispatchEvent(new Event(MUE_ACTIVITY_EVENT));
+    } catch {}
+  }, [activity?.latestAssistedAt, emailAccountId, pathname]);
   const activitySummary = activity?.summary ?? {
     actions: 0,
     followups: 0,
     messages: 0,
     replies: 0,
     tasks: 0,
+    assistedActions: 0,
+    demoActions: 0,
+    estimatedSeconds: 0,
+    contextSeconds: 0,
   };
   const hasRecordedActivity = activitySummary.actions > 0;
   const savings = {
-    total: "0 min",
+    total: formatSavingsTime(activitySummary.estimatedSeconds),
     trend: hasRecordedActivity
       ? `${activitySummary.actions} action${activitySummary.actions > 1 ? "s" : ""} enregistrée${activitySummary.actions > 1 ? "s" : ""}`
       : "Aucune action terminée",
-    value: "0 €",
-    actions: String(activitySummary.actions),
+    value:
+      activity?.valueCents === null || activity?.valueCents === undefined
+        ? "—"
+        : new Intl.NumberFormat("fr-FR", {
+            style: "currency",
+            currency: "EUR",
+            maximumFractionDigits: 2,
+          }).format(activity.valueCents / 100),
+    actions: String(activitySummary.assistedActions),
   };
+  const activityDetails = (
+    <div className="mt-6 space-y-4">
+      {activityError ? (
+        <p role="alert" className="text-sm text-destructive">
+          L’activité n’a pas pu être chargée. Vos actions enregistrées sont
+          conservées.
+        </p>
+      ) : null}
+      <div className="rounded-2xl border bg-background p-5">
+        <FreescaleDayRateSetting />
+      </div>
+      <section className="rounded-2xl border bg-background p-5">
+        <h2 className="text-sm font-semibold">Actions assistées par Mue</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Chaque validation est enregistrée une seule fois. Les anciens envois
+          sont repris à leur date connue ou, si elle manque, à la date de
+          reprise.
+        </p>
+        {activity?.recent.length ? (
+          <ul className="mt-4 divide-y">
+            {activity.recent.map((item) => (
+              <li
+                key={item.id}
+                className="flex items-start gap-3 py-4 first:pt-0 last:pb-0"
+              >
+                {item.contactName === "Théo Manili" ||
+                item.contactName === "Maya Chen" ? (
+                  <Image
+                    alt={item.contactName}
+                    src={
+                      item.contactName === "Maya Chen"
+                        ? "https://randomuser.me/api/portraits/women/44.jpg"
+                        : "https://randomuser.me/api/portraits/men/57.jpg"
+                    }
+                    width={36}
+                    height={36}
+                    unoptimized
+                    className="size-9 rounded-full"
+                  />
+                ) : (
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted">
+                    <ZapIcon className="size-4" />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    Réponse à{" "}
+                    {item.contactName || item.contactAddress || "un contact"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Mue · {item.source === "home" ? "Accueil IA" : "Canaux"} ·{" "}
+                    {item.demo ? "conversation de démonstration" : "envoi réel"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Enregistrée le{" "}
+                    {new Date(item.createdAt).toLocaleString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                  {item.threadId ? (
+                    <Link
+                      href={`/channels-v4?conversation=${encodeURIComponent(item.threadId)}`}
+                      className="mt-2 inline-block text-xs text-blue-700 underline underline-offset-4"
+                    >
+                      Voir la conversation
+                    </Link>
+                  ) : null}
+                </div>
+                <span className="shrink-0 text-sm font-medium tabular-nums">
+                  ≈ {formatSavingsTime(item.estimatedSeconds)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Vos premières réponses validées apparaîtront ici.
+          </p>
+        )}
+        {activitySummary.contextSeconds > 0 ? (
+          <p className="mt-4 border-t pt-4 text-xs text-muted-foreground">
+            Contexte et synthèse mutualisés : ≈{" "}
+            {formatSavingsTime(activitySummary.contextSeconds)} ajoutées une
+            seule fois par plan. Cette étape ne crée pas de troisième réponse
+            assistée.
+          </p>
+        ) : null}
+      </section>
+      <details className="rounded-2xl border bg-background p-5">
+        <summary className="cursor-pointer text-sm font-medium">
+          Comment le gain est estimé
+        </summary>
+        <div className="mt-3 space-y-2 text-xs leading-5 text-muted-foreground">
+          <p>
+            6 minutes de rédaction par réponse assistée validée, plus 6 minutes
+            de recherche et synthèse partagées par plan. Ce sont deux benchmarks
+            distincts utilisés par Microsoft dans son tableau de bord Copilot.
+            Le contexte n’est compté qu’une fois pour Théo et Maya.
+          </p>
+          <p>
+            Il s’agit d’une extrapolation générale, pas d’une moyenne freelance
+            ni d’un chronométrage de votre travail. L’envoi seul n’ajoute aucun
+            gain. Les suggestions non validées ne comptent pas.
+          </p>
+          <p>
+            Valeur estimée = temps gagné ÷ 8 heures × TJM. Les résultats
+            incluent les actions de démonstration identifiées dans l’historique
+            ; ils ne représentent pas un revenu encaissé.
+          </p>
+          <a
+            href={MUE_SAVINGS_SOURCE}
+            target="_blank"
+            rel="noreferrer"
+            className="text-blue-700 underline underline-offset-4"
+          >
+            Source : Microsoft Learn · Copilot assisted hours
+          </a>
+        </div>
+      </details>
+    </div>
+  );
 
   return (
     <>
       <MobileRelationsPreview
         activity={activitySummary}
+        savingsTime={savings.total}
+        savingsValue={savings.value}
+        assistedActions={activitySummary.assistedActions}
+        activityDetails={activityDetails}
         onPeriodChange={(mobilePeriod) =>
           setPeriod(
             mobilePeriod === "7 jours"
@@ -401,7 +563,7 @@ export function ClientRelationsPreview() {
                     <div className="min-w-0">
                       <p className="font-medium text-sm">Temps gagné</p>
                       <p className="mt-0.5 text-muted-foreground text-xs">
-                        grâce à Freescale
+                        estimation · actions assistées par Mue
                       </p>
                     </div>
                   </div>
@@ -439,10 +601,9 @@ export function ClientRelationsPreview() {
                   <div className="border-blue-100/80 px-5 py-3 text-xs sm:border-l dark:border-blue-950">
                     {hasRecordedActivity ? (
                       <span className="font-medium">
-                        {activitySummary.replies} réponse
-                        {activitySummary.replies > 1 ? "s" : ""} ·{" "}
-                        {activitySummary.followups} relance
-                        {activitySummary.followups > 1 ? "s" : ""}
+                        {activitySummary.assistedActions} action
+                        {activitySummary.assistedActions > 1 ? "s" : ""}{" "}
+                        assistée{activitySummary.assistedActions > 1 ? "s" : ""}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">
@@ -455,12 +616,14 @@ export function ClientRelationsPreview() {
             </Card>
 
             <ValueCard
-              actionLabel="Informer Mue d’un nouveau TJM"
+              actionLabel="Modifier mon TJM"
+              actionHref="#freescale-tjm"
               actionPrompt="Je souhaite mettre à jour mon TJM utilisé pour calculer la valeur libérée."
               detail={
-                hasRecordedActivity
-                  ? "Calculée sur la base de votre TJM actuel de 500 €."
-                  : "La valeur apparaîtra dès qu’une action aura réellement été terminée."
+                activity?.dayRateCents !== null &&
+                activity?.dayRateCents !== undefined
+                  ? `TJM de ${activity.dayRateCents / 100} €/jour, base 8 h. Valeur estimée, non encaissée.`
+                  : "Renseignez votre TJM ci-dessous pour estimer la valeur de votre temps."
               }
               icon={CircleDollarSignIcon}
               label="Valeur libérée"
@@ -472,7 +635,7 @@ export function ClientRelationsPreview() {
               actionPrompt="Quelles sont précisément les actions assistées comptabilisées sur cette période ?"
               detail={
                 hasRecordedActivity
-                  ? "Tris, résumés, brouillons et relances réalisés avec Freescale."
+                  ? `${activitySummary.demoActions} action${activitySummary.demoActions > 1 ? "s" : ""} de démonstration incluse${activitySummary.demoActions > 1 ? "s" : ""}. Les simples suggestions ne sont pas comptées.`
                   : "Les suggestions détectées ne sont pas comptées tant qu’elles ne sont pas validées."
               }
               icon={ZapIcon}
@@ -489,13 +652,14 @@ export function ClientRelationsPreview() {
                   Activité enregistrée
                 </h2>
                 <p className="mt-1 text-muted-foreground text-sm">
-                  Uniquement les actions réellement effectuées dans Freescale.
+                  Validations effectuées dans Freescale. Les démonstrations sont
+                  distinguées des envois réels.
                 </p>
               </div>
 
               <div className="mt-4 grid overflow-hidden rounded-2xl border bg-background sm:grid-cols-4">
                 {[
-                  ["Réponses envoyées", activitySummary.replies],
+                  ["Réponses envoyées réellement", activitySummary.replies],
                   ["Relances envoyées", activitySummary.followups],
                   ["Nouveaux messages", activitySummary.messages],
                   ["Tâches terminées", activitySummary.tasks],
@@ -563,6 +727,8 @@ export function ClientRelationsPreview() {
             </section>
           )}
 
+          <div id="freescale-tjm">{activityDetails}</div>
+
           <Card className="mt-4">
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -571,7 +737,7 @@ export function ClientRelationsPreview() {
                     Actions enregistrées dans le temps
                   </CardTitle>
                   <p className="mt-1 text-muted-foreground text-sm">
-                    Réponses, relances et autres validations réelles.
+                    Actions validées, y compris celles de démonstration.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -611,6 +777,7 @@ export function ClientRelationsPreview() {
 
 function ValueCard({
   actionLabel,
+  actionHref,
   actionPrompt,
   detail,
   icon: Icon,
@@ -619,6 +786,7 @@ function ValueCard({
   value,
 }: {
   actionLabel: string;
+  actionHref?: string;
   actionPrompt: string;
   detail: string;
   icon: typeof ZapIcon;
@@ -648,20 +816,30 @@ function ValueCard({
         </span>
       </div>
       <p className="mt-4 text-muted-foreground text-xs leading-5">{detail}</p>
-      <button
-        className="mt-auto flex items-center gap-1.5 pt-4 text-left font-medium text-blue-700 text-xs transition-colors hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
-        onClick={() =>
-          window.dispatchEvent(
-            new CustomEvent("freescale:prefill-mue", {
-              detail: actionPrompt,
-            }),
-          )
-        }
-        type="button"
-      >
-        <span>{actionLabel}</span>
-        <ArrowUpRightIcon className="size-3.5 shrink-0" />
-      </button>
+      {actionHref ? (
+        <a
+          href={actionHref}
+          className="mt-auto flex items-center gap-1.5 pt-4 text-left font-medium text-blue-700 text-xs hover:text-blue-900 dark:text-blue-300"
+        >
+          {actionLabel}
+          <ArrowUpRightIcon className="size-3.5 shrink-0" />
+        </a>
+      ) : (
+        <button
+          className="mt-auto flex items-center gap-1.5 pt-4 text-left font-medium text-blue-700 text-xs transition-colors hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+          onClick={() =>
+            window.dispatchEvent(
+              new CustomEvent("freescale:prefill-mue", {
+                detail: actionPrompt,
+              }),
+            )
+          }
+          type="button"
+        >
+          <span>{actionLabel}</span>
+          <ArrowUpRightIcon className="size-3.5 shrink-0" />
+        </button>
+      )}
     </Card>
   );
 }

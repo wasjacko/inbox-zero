@@ -1,3 +1,5 @@
+import { MUE_SHARED_CONTEXT_ESTIMATE_SECONDS } from "./savings";
+
 export const freescaleActivityPeriods = ["7d", "31d", "90d"] as const;
 
 export type FreescaleActivityPeriod = (typeof freescaleActivityPeriods)[number];
@@ -11,6 +13,11 @@ export type FreescaleActivityType =
 type Activity = {
   createdAt: Date;
   type: FreescaleActivityType;
+  assisted?: boolean;
+  demo?: boolean;
+  estimatedSeconds?: number;
+  source?: string | null;
+  externalId?: string | null;
 };
 
 const daysByPeriod: Record<FreescaleActivityPeriod, number> = {
@@ -53,14 +60,36 @@ export function summarizeFreescaleActivity({
     messages: 0,
     replies: 0,
     tasks: 0,
+    assistedActions: 0,
+    demoActions: 0,
+    estimatedSeconds: 0,
+    contextSeconds: 0,
   };
+  const countedPlans = new Set<string>();
 
   for (const activity of activities) {
     if (activity.createdAt < start || activity.createdAt > now) continue;
     summary.actions += 1;
-    if (activity.type === "REPLY_SENT") summary.replies += 1;
-    if (activity.type === "FOLLOW_UP_SENT") summary.followups += 1;
-    if (activity.type === "MESSAGE_SENT") summary.messages += 1;
+    if (activity.assisted) {
+      summary.assistedActions += 1;
+      summary.estimatedSeconds += Math.max(0, activity.estimatedSeconds ?? 0);
+      if (activity.demo && activity.source === "home") {
+        const planId =
+          activity.externalId?.replace(/:reply-(theo|maya)$/, "") ??
+          "legacy-home";
+        if (!countedPlans.has(planId)) {
+          countedPlans.add(planId);
+          summary.contextSeconds += MUE_SHARED_CONTEXT_ESTIMATE_SECONDS;
+          summary.estimatedSeconds += MUE_SHARED_CONTEXT_ESTIMATE_SECONDS;
+        }
+      }
+    }
+    if (activity.demo) summary.demoActions += 1;
+    if (activity.type === "REPLY_SENT" && !activity.demo) summary.replies += 1;
+    if (activity.type === "FOLLOW_UP_SENT" && !activity.demo)
+      summary.followups += 1;
+    if (activity.type === "MESSAGE_SENT" && !activity.demo)
+      summary.messages += 1;
     if (activity.type === "TASK_COMPLETED") summary.tasks += 1;
 
     const dayOffset = Math.floor(

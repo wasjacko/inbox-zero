@@ -6,6 +6,7 @@ import {
   freescaleActivityPeriods,
   summarizeFreescaleActivity,
 } from "@/utils/relations/activity";
+import { estimateSavingsValueCents } from "@/utils/relations/savings";
 
 const querySchema = z.enum(freescaleActivityPeriods).default("31d");
 
@@ -36,7 +37,37 @@ async function getActivity({
   const activities = await prisma.freescaleActivity.findMany({
     where: { emailAccountId, createdAt: { gte: oldestStart, lte: now } },
     orderBy: { createdAt: "asc" },
-    select: { createdAt: true, type: true },
+    select: {
+      id: true,
+      createdAt: true,
+      type: true,
+      assisted: true,
+      demo: true,
+      estimatedSeconds: true,
+      source: true,
+      threadId: true,
+      contactName: true,
+      contactAddress: true,
+      externalId: true,
+    },
   });
-  return summarizeFreescaleActivity({ activities, now, period });
+  const account = await prisma.emailAccount.findUnique({
+    where: { id: emailAccountId },
+    select: { user: { select: { freescaleDayRateCents: true } } },
+  });
+  const summarized = summarizeFreescaleActivity({ activities, now, period });
+  const dayRateCents = account?.user.freescaleDayRateCents ?? null;
+  const assisted = activities.filter((item) => item.assisted);
+  return {
+    ...summarized,
+    dayRateCents,
+    valueCents: estimateSavingsValueCents(
+      summarized.summary.estimatedSeconds,
+      dayRateCents,
+    ),
+    latestAssistedAt: assisted.at(-1)?.createdAt ?? null,
+    recent: assisted
+      .filter((item) => item.createdAt >= summarized.start)
+      .reverse(),
+  };
 }

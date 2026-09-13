@@ -60,6 +60,7 @@ import {
   startPreviewOnboarding,
 } from "@/utils/preview-onboarding";
 import { savePreviewFreelancerName } from "@/utils/preview-profile";
+import { FreescaleDayRateSetting } from "@/components/preview/FreescaleDayRateSetting";
 import { savePreviewWorkspaceName } from "@/utils/preview-workspace";
 import { redirectToSafeUrl } from "@/utils/redirect";
 
@@ -1941,6 +1942,7 @@ function BusinessProfileStep({
             value={profile.businessName}
           />
         </label>
+        <FreescaleDayRateSetting />
       </div>
     </>
   );

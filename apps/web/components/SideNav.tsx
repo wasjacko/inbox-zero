@@ -87,6 +87,7 @@ import {
 } from "@/hooks/useFeatureFlags";
 import { useComposeModal } from "@/providers/ComposeModalProvider";
 import { useAccount } from "@/providers/EmailAccountProvider";
+import { useSyncMueDemoActivity } from "@/hooks/useSyncMueDemoActivity";
 import type { EmailLabel } from "@/providers/email-label-types";
 import { isGoogleProvider } from "@/utils/email/provider-types";
 import { prefixPath } from "@/utils/path";
@@ -273,6 +274,7 @@ export function SideNav({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { previewMode?: boolean }) {
   const navigation = useNavigation(previewMode);
+  useSyncMueDemoActivity();
   const path = usePathname();
   const showMailNav = path.includes("/compose");
 

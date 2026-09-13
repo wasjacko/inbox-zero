@@ -82,6 +82,11 @@ import { useMueBriefTasks } from "@/hooks/useMueBriefTasks";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { saveMueDemoReply } from "@/utils/mue-demo-replies";
 import {
+  MUE_REPLY_ESTIMATE_SECONDS,
+  MUE_SHARED_CONTEXT_ESTIMATE_SECONDS,
+  formatSavingsTime,
+} from "@/utils/relations/savings";
+import {
   CREATED_TASK_IDS_STORAGE_KEY,
   CREATED_TASKS_STORAGE_KEY,
   getLocalDateKey,
@@ -3856,7 +3861,7 @@ function AskMueSuggestionResult({
         <div>
           <p className="font-semibold text-sm">
             {isActions
-              ? `${askSuggestedTasks.length} tâche${askSuggestedTasks.length === 1 ? "" : "s"} prête${askSuggestedTasks.length === 1 ? "" : "s"} à créer`
+              ? `${askSuggestedTasks.length} tâches prêtes à créer`
               : "Plan proposé pour aujourd’hui"}
           </p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -4149,8 +4154,15 @@ function AskMueSuggestionResult({
               })}
               {sentReplyIds.length > 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  ≈ {sentReplyIds.length * 3} min économisées · estimation pour
-                  la rédaction et l’envoi.
+                  ≈{" "}
+                  {formatSavingsTime(
+                    sentReplyIds.length * MUE_REPLY_ESTIMATE_SECONDS +
+                      MUE_SHARED_CONTEXT_ESTIMATE_SECONDS,
+                  )}{" "}
+                  économisées · estimation avec contexte mutualisé.{" "}
+                  <Link href="/stats" className="underline underline-offset-4">
+                    Voir dans Relations clients
+                  </Link>
                 </p>
               ) : null}
             </>
