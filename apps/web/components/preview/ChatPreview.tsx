@@ -3154,7 +3154,7 @@ const askSuggestedReplies = [
     contactAvatarUrl: "https://randomuser.me/api/portraits/men/57.jpg",
     channel: "WhatsApp" as const,
     message:
-      "Bonjour Théo, je te confirme que le planning d’intégration est bien maintenu. Je t’envoie le déroulé et les prochaines étapes aujourd’hui.",
+      "Bonjour Théo, je fais le point sur le planning d’intégration et je reviens vers toi avec les créneaux et les prochaines étapes. Merci pour ta patience !",
   },
   {
     id: "reply-maya",
@@ -3618,7 +3618,9 @@ function AskMueSuggestionResult({
   const [createdTaskIds, setCreatedTaskIds] = useState<string[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [decisionReady, setDecisionReady] = useState(false);
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(
+    "reply-theo",
+  );
   const [sentReplyIds, setSentReplyIds] = useState<string[]>([]);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -3945,35 +3947,36 @@ function AskMueSuggestionResult({
       {decision === "accepted" && !isActions ? (
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="mt-3 overflow-hidden rounded-2xl border border-blue-200/70 bg-gradient-to-br from-blue-50/70 via-background to-emerald-50/40 shadow-[0_18px_50px_-38px_rgba(37,99,235,0.5)] dark:border-blue-900/70 dark:from-blue-950/30 dark:to-emerald-950/20"
+          className="mt-4 overflow-hidden rounded-2xl border border-border/80 bg-background shadow-sm"
           initial={{ opacity: 0, y: 8 }}
         >
-          <div className="flex items-start gap-3 border-b border-blue-100/80 px-4 py-3.5 dark:border-blue-900/60">
-            <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
+          <div className="flex items-start gap-3 px-4 py-4">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-foreground">
               <SparklesIcon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-sm">On répond maintenant ?</p>
+              <p className="font-semibold text-sm">
+                Vos réponses, prêtes à relire
+              </p>
               <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
-                Mue a préparé les deux réponses qui peuvent débloquer votre
-                journée. Relisez-les avant validation.
+                Ajustez le message, puis gardez le brouillon. Aucun envoi
+                automatique.
               </p>
             </div>
-            <span className="shrink-0 rounded-full border border-blue-200 bg-background/80 px-2 py-1 font-medium text-[10px] text-blue-700 dark:border-blue-900 dark:text-blue-300">
-              2 réponses
+            <span className="shrink-0 px-2 py-1 font-medium text-[10px] tabular-nums text-muted-foreground">
+              {sentReplyIds.length} / 2 prêts
             </span>
           </div>
 
-          <div className="grid gap-2.5 p-3 sm:grid-cols-2">
+          <div className="space-y-2 px-3 pb-3">
             {askSuggestedReplies.map((reply) => {
               const active = activeReplyId === reply.id;
               const sent = sentReplyIds.includes(reply.id);
               return (
                 <motion.div
                   className={cn(
-                    "rounded-xl border bg-background/90 p-3 transition-[border-color,box-shadow]",
-                    active &&
-                      "border-blue-300 shadow-[0_10px_30px_-24px_rgba(37,99,235,0.7)] dark:border-blue-800",
+                    "rounded-xl border border-transparent bg-muted/25 p-3 transition-[border-color,background-color]",
+                    active && "border-border bg-background",
                     sent && "border-emerald-300 dark:border-emerald-800",
                   )}
                   key={reply.id}
@@ -3999,7 +4002,7 @@ function AskMueSuggestionResult({
                     </div>
                     {sent ? (
                       <span className="flex items-center gap-1 font-medium text-[10px] text-emerald-700 dark:text-emerald-300">
-                        <CheckIcon className="size-3" /> Prête
+                        <CheckIcon className="size-3" /> Brouillon prêt
                       </span>
                     ) : null}
                   </div>
@@ -4012,7 +4015,7 @@ function AskMueSuggestionResult({
                     >
                       <Textarea
                         aria-label={`Réponse proposée à ${reply.contactName}`}
-                        className="min-h-28 resize-none bg-background text-xs leading-5"
+                        className="min-h-28 resize-y border-0 bg-muted/30 p-3 text-sm leading-6 shadow-none focus-visible:ring-1 focus-visible:ring-border"
                         onChange={(event) =>
                           setReplyDrafts((current) => ({
                             ...current,
@@ -4021,9 +4024,9 @@ function AskMueSuggestionResult({
                         }
                         value={replyDrafts[reply.id] ?? ""}
                       />
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <span className="hidden text-[10px] text-muted-foreground sm:block">
-                          Rien ne part sans validation
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+                          Brouillon uniquement · non envoyé
                         </span>
                         <div className="ml-auto flex gap-1.5">
                           <Button
@@ -4031,7 +4034,7 @@ function AskMueSuggestionResult({
                             size="sm"
                             variant="ghost"
                           >
-                            Annuler
+                            Réduire
                           </Button>
                           <Button
                             disabled={!replyDrafts[reply.id]?.trim()}
@@ -4039,38 +4042,44 @@ function AskMueSuggestionResult({
                               setSentReplyIds((current) => [
                                 ...new Set([...current, reply.id]),
                               ]);
-                              setActiveReplyId(null);
+                              setActiveReplyId(
+                                askSuggestedReplies.find(
+                                  (item) =>
+                                    item.id !== reply.id &&
+                                    !sentReplyIds.includes(item.id),
+                                )?.id ?? null,
+                              );
                               toastSuccess({
                                 title: `Réponse à ${reply.contactName.split(" ")[0]} prête`,
-                                description: `Le message a été validé pour ${reply.channel}.`,
+                                description:
+                                  "Brouillon conservé dans cette conversation. Aucun message envoyé.",
                               });
                             }}
                             size="sm"
                           >
-                            <CheckIcon className="size-3.5" /> Valider la
-                            réponse
+                            <CheckIcon className="size-3.5" /> Garder le
+                            brouillon
                           </Button>
                         </div>
                       </div>
                     </motion.div>
                   ) : (
                     <>
-                      <p className="mt-3 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
+                      <p className="mt-2 line-clamp-1 text-[11px] leading-5 text-muted-foreground">
                         {replyDrafts[reply.id]}
                       </p>
                       <Button
-                        className="mt-3 w-full"
-                        disabled={sent}
+                        className="mt-2 h-7 px-2 text-xs"
                         onClick={() => setActiveReplyId(reply.id)}
                         size="sm"
-                        variant={sent ? "ghost" : "outline"}
+                        variant="ghost"
                       >
                         {sent ? (
                           <CheckIcon className="size-3.5" />
                         ) : (
                           <MessageCircleIcon className="size-3.5" />
                         )}
-                        {sent ? "Réponse validée" : "Relire et répondre"}
+                        {sent ? "Modifier le brouillon" : "Relire le brouillon"}
                       </Button>
                     </>
                   )}
