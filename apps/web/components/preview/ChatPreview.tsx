@@ -4138,7 +4138,7 @@ function AskMueSuggestionResult({
                               }}
                             >
                               <SendHorizontalIcon className="size-3.5" />
-                              Envoyer · simulation
+                              Envoyer
                             </Button>
                           </>
                         )}
