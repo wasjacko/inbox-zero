@@ -60,7 +60,7 @@ import { Outlook } from "@/components/new-landing/icons/Outlook";
 import { PageHeader } from "@/components/PageHeader";
 import { PageWrapper } from "@/components/PageWrapper";
 import { toastError, toastSuccess } from "@/components/Toast";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -188,6 +188,23 @@ type InboxConversation = {
   projectSource?: "manual" | "ai";
   messages: ThreadMessage[];
 };
+
+const organizationConversationIds = new Set(["github", "orbital"]);
+
+function getContactAvatarUrl(
+  conversation: InboxConversation,
+  contactPhotos: Record<string, string> = {},
+) {
+  const savedPhoto = contactPhotos[conversation.address.toLowerCase()];
+  if (savedPhoto) return savedPhoto;
+  if (conversation.avatarUrl) return conversation.avatarUrl;
+  if (organizationConversationIds.has(conversation.id)) return;
+
+  const stableContactId = `${conversation.name}-${conversation.address}`
+    .trim()
+    .toLowerCase();
+  return `https://i.pravatar.cc/160?u=${encodeURIComponent(stableContactId)}`;
+}
 
 const initialLabels: InboxLabel[] = [
   { id: "client", name: "Client", tone: "blue" },
@@ -1158,9 +1175,7 @@ export function ChannelsV4Preview() {
           channel: conversation.channel === "outlook" ? "Outlook" : "Gmail",
           unread: conversation.unread ? 1 : 0,
           time: conversation.time,
-          avatarUrl:
-            contactPhotos[conversation.address.toLowerCase()] ??
-            conversation.avatarUrl,
+          avatarUrl: getContactAvatarUrl(conversation, contactPhotos),
           messages: conversation.messages.map((message) => ({
             id: message.id,
             author: message.author,
@@ -5167,13 +5182,7 @@ function ChannelAvatar({
   small?: boolean;
 }) {
   const contactPhotos = useContext(ContactPhotosContext);
-  const senderDomain = conversation.address.split("@").at(1);
-  const photoUrl =
-    contactPhotos[conversation.address.toLowerCase()] ??
-    conversation.avatarUrl ??
-    (senderDomain
-      ? `https://icons.duckduckgo.com/ip3/${encodeURIComponent(senderDomain)}.ico`
-      : undefined);
+  const photoUrl = getContactAvatarUrl(conversation, contactPhotos);
 
   return (
     <div className="relative shrink-0 self-center">
@@ -5195,13 +5204,10 @@ function ChannelAvatar({
             <LandmarkIcon className={small ? "size-4" : "size-5"} />
           </span>
         ) : photoUrl ? (
-          <Image
+          <AvatarImage
             alt={conversation.name}
             className="size-full bg-background object-cover"
-            height={40}
             src={photoUrl}
-            unoptimized
-            width={40}
           />
         ) : (
           <AvatarFallback>{conversation.initials}</AvatarFallback>
