@@ -80,6 +80,7 @@ import { useAccount } from "@/providers/EmailAccountProvider";
 import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import { useMueBriefTasks } from "@/hooks/useMueBriefTasks";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
+import { recordMueDemoReplyAction } from "@/utils/actions/mue-activity";
 import { saveMueDemoReply } from "@/utils/mue-demo-replies";
 import {
   MUE_REPLY_ESTIMATE_SECONDS,
@@ -3695,16 +3696,27 @@ function AskMueSuggestionResult({
 
   useEffect(() => {
     if (!decisionReady || !emailAccountId || sentReplyIds.length === 0) return;
-    for (const reply of askSuggestedReplies) {
-      if (!sentReplyIds.includes(reply.id)) continue;
-      saveMueDemoReply(emailAccountId, {
-        id: `${messageId}:${reply.id}`,
-        conversationId: reply.id === "reply-theo" ? "mue-theo" : "maya",
-        name: reply.contactName,
-        channel: reply.channel === "Gmail" ? "gmail" : "whatsapp",
-        body: replyDrafts[reply.id]?.trim() || reply.message,
-      });
-    }
+    const sync = async () => {
+      for (const reply of askSuggestedReplies) {
+        if (!sentReplyIds.includes(reply.id)) continue;
+        const storedReply = {
+          id: `${messageId}:${reply.id}`,
+          conversationId: reply.id === "reply-theo" ? "mue-theo" : "maya",
+          name: reply.contactName,
+          channel:
+            reply.channel === "Gmail"
+              ? ("gmail" as const)
+              : ("whatsapp" as const),
+          body: replyDrafts[reply.id]?.trim() || reply.message,
+        };
+        saveMueDemoReply(emailAccountId, storedReply);
+        await recordMueDemoReplyAction(emailAccountId, {
+          externalId: storedReply.id,
+          conversationId: storedReply.conversationId as "mue-theo" | "maya",
+        });
+      }
+    };
+    sync().catch(() => {});
   }, [decisionReady, emailAccountId, messageId, replyDrafts, sentReplyIds]);
 
   const createTasks = async (ids: string[]) => {
