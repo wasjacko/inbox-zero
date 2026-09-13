@@ -3114,6 +3114,8 @@ const askSuggestionThinkingSteps = [
 const askSuggestedTasks = [
   {
     id: "ask-theo-planning",
+    contactName: "Théo Manili",
+    contactAvatarUrl: "https://randomuser.me/api/portraits/men/57.jpg",
     title: "Confirmer le planning avec Théo",
     meta: "WhatsApp · réponse attendue aujourd’hui",
     source: "WhatsApp" as const,
@@ -3122,6 +3124,8 @@ const askSuggestedTasks = [
   },
   {
     id: "ask-maya-payment",
+    contactName: "Maya Chen",
+    contactAvatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
     title: "Relancer Maya pour le règlement",
     meta: "Gmail · facture F-2048 arrivée à échéance",
     source: "Gmail" as const,
@@ -3130,6 +3134,8 @@ const askSuggestedTasks = [
   },
   {
     id: "ask-jon-seo",
+    contactName: "Jon Bell",
+    contactAvatarUrl: "https://randomuser.me/api/portraits/men/86.jpg",
     title: "Valider les prochaines étapes SEO avec Jon",
     meta: "Outlook · projet livré, confirmation attendue",
     source: "Outlook" as const,
@@ -3794,22 +3800,27 @@ function AskMueSuggestionResult({
       </div>
 
       <div className="mt-2.5 grid gap-2.5 sm:grid-cols-3">
-        {askSuggestedTasks.map((task, index) => {
+        {askSuggestedTasks.map((task) => {
           const created = createdTaskIds.includes(task.id);
           return (
             <div
               className="flex min-h-40 flex-col items-start rounded-2xl border border-border/80 bg-card p-4 shadow-[0_12px_34px_-28px_rgba(15,23,42,0.5)]"
               key={task.id}
             >
-              <span
-                className={cn(
-                  "grid size-7 shrink-0 place-items-center rounded-lg font-semibold text-xs",
-                  created
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                    : "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300",
-                )}
-              >
-                {created ? <CheckIcon className="size-4" /> : index + 1}
+              <span className="relative shrink-0">
+                <Image
+                  alt={`Photo de profil de ${task.contactName}`}
+                  className="size-9 rounded-full object-cover ring-1 ring-border/80"
+                  height={36}
+                  src={task.contactAvatarUrl}
+                  unoptimized
+                  width={36}
+                />
+                {created ? (
+                  <span className="absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-emerald-500 text-white ring-2 ring-card">
+                    <CheckIcon className="size-2.5" />
+                  </span>
+                ) : null}
               </span>
               <div className="mt-3 min-w-0 flex-1">
                 <p className="font-medium text-sm leading-5">{task.title}</p>
