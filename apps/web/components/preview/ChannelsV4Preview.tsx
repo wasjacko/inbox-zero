@@ -548,6 +548,15 @@ const channels: Channel[] = [
   "telegram",
 ];
 const DESKTOP_CONVERSATIONS_PER_PAGE = 25;
+const simulatedSlackConversations = initialConversations.filter(
+  (conversation) => conversation.channel === "slack",
+);
+const simulatedGmailConversations = initialConversations.filter(
+  (conversation) => conversation.channel === "gmail",
+);
+const simulatedOutlookConversations = initialConversations.filter(
+  (conversation) => conversation.channel === "outlook",
+);
 
 export function ChannelsV4Preview() {
   const router = useRouter();
@@ -572,7 +581,11 @@ export function ChannelsV4Preview() {
   const taskTutorialRequested =
     searchParams.get("tutorial") === "channel-tasks";
   const setup = usePreviewSetupProgress();
-  const [conversations, setConversations] = useState<InboxConversation[]>([]);
+  const [conversations, setConversations] = useState<InboxConversation[]>(() =>
+    [...simulatedSlackConversations, ...simulatedGmailConversations].map(
+      (conversation) => ({ ...conversation }),
+    ),
+  );
   const [contactTagsReady, setContactTagsReady] = useState(false);
   const contactTagsRef = useRef(readPreviewContactTags());
   const [labels, setLabels] = useState(initialLabels);
@@ -646,10 +659,21 @@ export function ChannelsV4Preview() {
           .filter((conversation) => conversation.channel === "whatsapp")
           .map((conversation) => ({ ...conversation }))
       : [];
+    const simulatedEmailConversations =
+      provider === "microsoft"
+        ? simulatedOutlookConversations
+        : simulatedGmailConversations;
 
     setConversations([
+      ...simulatedSlackConversations.map((conversation) => ({
+        ...conversation,
+      })),
       ...simulatedWhatsAppConversations,
-      ...emailConversations,
+      ...(emailConversations.length > 0
+        ? emailConversations
+        : simulatedEmailConversations.map((conversation) => ({
+            ...conversation,
+          }))),
     ]);
   }, [loadedThreads, provider, simulatedWhatsAppConnected, userEmail]);
 
