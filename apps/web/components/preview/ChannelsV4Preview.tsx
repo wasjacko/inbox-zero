@@ -190,6 +190,26 @@ type InboxConversation = {
 };
 
 const organizationConversationIds = new Set(["github", "orbital"]);
+const curatedContactAvatars: Record<string, string> = {
+  alex: "https://randomuser.me/api/portraits/men/32.jpg",
+  "arthur-workshop": "https://randomuser.me/api/portraits/men/62.jpg",
+  capucine: "https://randomuser.me/api/portraits/women/79.jpg",
+  "chloe-atlas": "https://randomuser.me/api/portraits/women/47.jpg",
+  "emma-design-system": "https://randomuser.me/api/portraits/women/68.jpg",
+  "hugo-invoice": "https://randomuser.me/api/portraits/men/29.jpg",
+  "ines-operations": "https://randomuser.me/api/portraits/women/26.jpg",
+  jon: "https://randomuser.me/api/portraits/men/86.jpg",
+  "karim-estimate": "https://randomuser.me/api/portraits/men/83.jpg",
+  "lea-brand-review": "https://randomuser.me/api/portraits/women/23.jpg",
+  lina: "https://randomuser.me/api/portraits/women/89.jpg",
+  "louis-analytics": "https://randomuser.me/api/portraits/men/53.jpg",
+  maya: "https://randomuser.me/api/portraits/women/44.jpg",
+  "nina-northstar": "https://randomuser.me/api/portraits/women/12.jpg",
+  nora: "https://randomuser.me/api/portraits/women/65.jpg",
+  "romain-kickoff": "https://randomuser.me/api/portraits/men/46.jpg",
+  sarah: "https://randomuser.me/api/portraits/women/90.jpg",
+  thomas: "https://randomuser.me/api/portraits/men/75.jpg",
+};
 
 function getContactAvatarUrl(
   conversation: InboxConversation,
@@ -197,6 +217,8 @@ function getContactAvatarUrl(
 ) {
   const savedPhoto = contactPhotos[conversation.address.toLowerCase()];
   if (savedPhoto) return savedPhoto;
+  const curatedPhoto = curatedContactAvatars[conversation.id];
+  if (curatedPhoto) return curatedPhoto;
   if (conversation.avatarUrl) return conversation.avatarUrl;
   if (organizationConversationIds.has(conversation.id)) return;
 
