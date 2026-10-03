@@ -21,6 +21,7 @@ import { markdownToSlackMrkdwn } from "@/utils/messaging/providers/slack/format"
 import { disableSlackLinkUnfurls } from "@/utils/messaging/providers/slack/send";
 import prisma from "@/utils/prisma";
 import { getEmailAccountWithAi } from "@/utils/user/get";
+import { getProductAccess } from "@/utils/trial/access";
 
 const MAX_CHAT_CONTEXT_MESSAGES = 12;
 
@@ -81,6 +82,14 @@ export async function processSlackSlashCommand({
   }
 
   try {
+    const productAccess = await getProductAccess(emailAccountUser.userId);
+    if (!productAccess.canUseProduct) {
+      await postToSlackResponseUrl(responseUrl, {
+        response_type: "ephemeral",
+        text: "Votre accès Freescale nécessite un essai actif ou un abonnement. Ouvrez Freescale pour continuer.",
+      });
+      return;
+    }
     const responseText = await runSlackSlashCommandAi({
       emailAccountId: channel.emailAccountId,
       emailAccountUser,

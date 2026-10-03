@@ -10,7 +10,7 @@ import {
   premiumEntitlementSelect,
 } from "@/utils/premium";
 import { SafeError } from "@/utils/error";
-import { env } from "@/env";
+import { getTrialStatus } from "@/utils/trial/status";
 
 const logger = createScopedLogger("premium");
 
@@ -191,11 +191,10 @@ export async function checkHasAccess({
   userId: string;
   minimumTier: PremiumTier;
 }): Promise<boolean> {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return true;
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      freescaleTrialStartedAt: true,
       premium: {
         select: premiumEntitlementSelect,
       },
@@ -204,7 +203,12 @@ export async function checkHasAccess({
 
   if (!user) throw new SafeError("User not found");
 
-  if (!isPremiumRecord(user?.premium)) {
+  if (
+    getTrialStatus({ startedAt: user.freescaleTrialStartedAt, paid: false })
+      .canUseProduct
+  )
+    return true;
+  if (!isPremiumRecord(user?.premium, { ignoreBypass: true })) {
     return false;
   }
 

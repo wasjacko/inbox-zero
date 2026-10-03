@@ -1,6 +1,5 @@
 "use client";
 
-import { env } from "@/env";
 import { useUser } from "@/hooks/useUser";
 import {
   getUserTier,
@@ -18,21 +17,13 @@ export function usePremium() {
 
   const unsubscribeCreditsRemaining = data?.unsubscribeCreditsRemaining;
 
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) {
-    return {
-      ...swrResponse,
-      premium,
-      isPremium: true,
-      hasUnsubscribeAccess: true,
-      unsubscribeCreditsRemaining,
-      hasAiAccess: true,
-      isProPlanWithoutApiKey: false,
-      tier: "PROFESSIONAL_ANNUALLY" as const,
-    };
-  }
-
-  const isUserPremium = isPremiumRecord(premium);
-  const tier = getUserTier(premium);
+  const isTrialActive = data?.productAccess?.state === "active";
+  const isUserPremium = isPremiumRecord(premium, { ignoreBypass: true });
+  const tier = isTrialActive
+    ? "PROFESSIONAL_MONTHLY"
+    : isUserPremium
+      ? getUserTier(premium, { ignoreBypass: true })
+      : null;
 
   const isProPlanWithoutApiKey =
     (tier === "PRO_MONTHLY" || tier === "PRO_ANNUALLY") && !hasAiApiKey;
@@ -42,10 +33,13 @@ export function usePremium() {
     premium,
     isPremium: isUserPremium,
     hasUnsubscribeAccess:
+      isTrialActive ||
       isUserPremium ||
       hasUnsubscribeAccess(tier || null, unsubscribeCreditsRemaining),
     unsubscribeCreditsRemaining,
-    hasAiAccess: isUserPremium && hasAiAccess(tier || null, hasAiApiKey),
+    hasAiAccess:
+      isTrialActive ||
+      (isUserPremium && hasAiAccess(tier || null, hasAiApiKey)),
     isProPlanWithoutApiKey,
     tier,
   };

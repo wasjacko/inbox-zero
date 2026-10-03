@@ -6,6 +6,7 @@ import {
   premiumEntitlementSelect,
 } from "@/utils/premium";
 import prisma from "@/utils/prisma";
+import { getTrialStatus } from "@/utils/trial/status";
 
 export async function assertHasAiAccess({
   userId,
@@ -14,7 +15,15 @@ export async function assertHasAiAccess({
   userId: string;
   hasUserApiKey?: boolean | null;
 }) {
-  const premium = await getUserPremiumForLimits({ userId });
+  const user = await getUserPremiumForLimits({ userId });
+  const premium = user.premium;
+  if (
+    getTrialStatus({
+      startedAt: user.freescaleTrialStartedAt ?? null,
+      paid: false,
+    }).canUseProduct
+  )
+    return;
 
   if (!isPremiumRecord(premium)) {
     throw new SafeError("Please upgrade for AI access", 403);
@@ -31,6 +40,7 @@ async function getUserPremiumForLimits({ userId }: { userId: string }) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      freescaleTrialStartedAt: true,
       premium: {
         select: premiumEntitlementSelect,
       },
@@ -39,5 +49,5 @@ async function getUserPremiumForLimits({ userId }: { userId: string }) {
 
   if (!user) throw new SafeError("User not found", 404);
 
-  return user.premium;
+  return user;
 }

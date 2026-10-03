@@ -16,7 +16,7 @@ import { isSupportedAutomationMessagingProvider } from "@/utils/automation-jobs/
 
 export async function canEnableAutomationJobs(userId: string) {
   const premium = await getUserPremium({ userId });
-  return isActivePremium(premium);
+  return isActivePremium(premium, { ignoreBypass: true });
 }
 
 export async function assertCanEnableAutomationJobs(userId: string) {

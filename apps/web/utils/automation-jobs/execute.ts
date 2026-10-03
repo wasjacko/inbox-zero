@@ -145,7 +145,7 @@ export async function executeAutomationJobRun({
     const premium = await getUserPremium({
       userId: run.automationJob.messagingChannel.emailAccount.userId,
     });
-    if (!isActivePremium(premium)) {
+    if (!isActivePremium(premium, { ignoreBypass: true })) {
       runLogger.info(
         "Skipping automation job run because owner is not premium",
       );

@@ -90,6 +90,16 @@ describe("assertHasAiAccess", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("allows AI during the full-access trial without a subscription or API key", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      premium: null,
+      freescaleTrialStartedAt: new Date(),
+    } as never);
+    await expect(
+      assertHasAiAccess({ userId: "trial-user", hasUserApiKey: false }),
+    ).resolves.toBeUndefined();
+  });
+
   it("allows lower-tier premium users when they provide their own API key", async () => {
     prisma.user.findUnique.mockResolvedValue({
       premium: {

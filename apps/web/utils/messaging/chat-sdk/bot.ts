@@ -86,6 +86,7 @@ import {
   getEmailUrlForOptionalMessage,
 } from "@/utils/url";
 import { getEmailAccountWithAi } from "@/utils/user/get";
+import { getProductAccess } from "@/utils/trial/access";
 
 const MAX_CHAT_CONTEXT_MESSAGES = 12;
 const CHAT_SDK_STATE_KEY_PREFIX = "inbox-zero:chat-sdk";
@@ -628,6 +629,14 @@ async function processMessagingAssistantMessage({
         provider: context.provider,
       });
       return false;
+    }
+
+    const productAccess = await getProductAccess(emailAccountUser.userId);
+    if (!productAccess.canUseProduct) {
+      await thread.post(
+        "Votre accès Freescale nécessite un essai actif ou un abonnement. Ouvrez Freescale pour continuer.",
+      );
+      return true;
     }
 
     const chat = await prisma.chat.upsert({

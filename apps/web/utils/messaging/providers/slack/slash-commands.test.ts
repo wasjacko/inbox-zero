@@ -92,6 +92,28 @@ describe("processSlackSlashCommand", () => {
     vi.unstubAllGlobals();
   });
 
+  it("does not invoke Mue from Slack after the trial expires", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      freescaleTrialStartedAt: new Date("2020-01-01"),
+      premium: null,
+    } as never);
+    await processSlackSlashCommand({
+      command: "/summary",
+      userId: "slack-user",
+      teamId: "slack-team",
+      responseUrl: "https://hooks.slack.com/commands/response",
+      logger,
+    });
+    expect(mockAiProcessAssistantChat).not.toHaveBeenCalled();
+    expect(prisma.chatMessage.create).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://hooks.slack.com/commands/response",
+      expect.objectContaining({
+        body: expect.stringContaining("essai actif ou un abonnement"),
+      }),
+    );
+  });
+
   it("fails closed when the slash-command chat row belongs to another account", async () => {
     prisma.chat.upsert.mockResolvedValueOnce({
       id: "slack-cmd-slack-user-slack-team-target-email-account",

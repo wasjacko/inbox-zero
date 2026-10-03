@@ -23,6 +23,10 @@ import { createEmailProvider } from "@/utils/email/provider";
 import type { EmailProvider } from "@/utils/email/types";
 import { startRequestTimer } from "@/utils/request-timing";
 import {
+  assertProductAccess,
+  requiresProductAccess,
+} from "@/utils/trial/access";
+import {
   type AuditActorType,
   runWithAuditContext,
   setAuditContext,
@@ -302,6 +306,9 @@ async function authMiddleware(
   }
 
   const authReq = req as RequestWithAuth;
+  if (requiresProductAccess(new URL(req.url).pathname)) {
+    await assertProductAccess(session.user.id);
+  }
   authReq.auth = { userId: session.user.id };
 
   authReq.logger = baseLogger.with({ userId: session.user.id });

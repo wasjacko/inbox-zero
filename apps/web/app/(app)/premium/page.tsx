@@ -1,5 +1,5 @@
-import { PremiumPreview } from "@/components/preview/MainPreviewPages";
+import { FreescaleBilling } from "@/components/FreescaleBilling";
 
 export default function PremiumPage() {
-  return <PremiumPreview />;
+  return <FreescaleBilling />;
 }

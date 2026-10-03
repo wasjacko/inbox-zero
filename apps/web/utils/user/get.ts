@@ -2,7 +2,7 @@ import prisma from "@/utils/prisma";
 import type { EmailAccountWithAI } from "@/utils/llms/types";
 import type { Prisma } from "@/generated/prisma/client";
 import type { DraftReplyConfidence } from "@/generated/prisma/enums";
-import { env } from "@/env";
+import { getTrialStatus } from "@/utils/trial/status";
 
 export type EmailAccountWithAIAndTokens = Prisma.EmailAccountGetPayload<{
   select: {
@@ -156,15 +156,21 @@ export async function getEmailAccountWithAiAndTokens({
 }
 
 export async function getUserPremium({ userId }: { userId: string }) {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) {
-    return { lemonSqueezyRenewsAt: null, stripeSubscriptionStatus: "active" };
-  }
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { premium: true },
+    select: { premium: true, freescaleTrialStartedAt: true },
   });
-
+  if (
+    user &&
+    getTrialStatus({ startedAt: user.freescaleTrialStartedAt, paid: false })
+      .canUseProduct
+  ) {
+    return {
+      tier: "PROFESSIONAL_MONTHLY" as const,
+      lemonSqueezyRenewsAt: null,
+      stripeSubscriptionStatus: "active",
+    };
+  }
   return user?.premium || null;
 }
 

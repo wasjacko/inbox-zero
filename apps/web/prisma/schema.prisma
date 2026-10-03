@@ -67,6 +67,7 @@ model User {
 
   // additional fields
   completedOnboardingAt   DateTime? // questions about the user. e.g. their role
+  freescaleTrialStartedAt DateTime?
   onboardingAnswers       Json?
   freescaleDayRateCents    Int?
   lastLogin               DateTime?

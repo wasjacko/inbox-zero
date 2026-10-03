@@ -97,8 +97,10 @@ type PremiumStatusRecord = {
 
 export const isPremiumRecord = (
   premium?: PremiumStatusRecord | null,
+  options?: { ignoreBypass?: boolean },
 ): boolean => {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return true;
+  if (!options?.ignoreBypass && env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS)
+    return true;
   if (!premium) return false;
 
   return (
@@ -109,8 +111,10 @@ export const isPremiumRecord = (
 
 export const isActivePremium = (
   premium?: PremiumStatusRecord | null,
+  options?: { ignoreBypass?: boolean },
 ): boolean => {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return true;
+  if (!options?.ignoreBypass && env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS)
+    return true;
 
   if (!premium) return false;
 
@@ -132,8 +136,9 @@ export const getUserTier = (
     | "lemonSqueezyRenewsAt"
     | "stripeSubscriptionStatus"
   > | null,
+  options?: { ignoreBypass?: boolean },
 ) => {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) {
+  if (!options?.ignoreBypass && env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) {
     return "PROFESSIONAL_ANNUALLY" as const;
   }
 
@@ -272,10 +277,12 @@ export function isOnHigherTier(
 
 export function getPremiumUserFilter({
   minimumTier,
+  ignoreBypass,
 }: {
   minimumTier?: PremiumTier;
+  ignoreBypass?: boolean;
 } = {}) {
-  if (env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return {};
+  if (!ignoreBypass && env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS) return {};
 
   const minimumTiers = minimumTier ? getTiersAtOrAbove(minimumTier) : undefined;
   const tierFilter = minimumTiers

@@ -88,6 +88,10 @@ describe("Middleware", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    prisma.user.findUnique.mockResolvedValue({
+      premium: null,
+      freescaleTrialStartedAt: new Date(),
+    } as never);
     mockReq = createMockRequest();
   });
 
@@ -268,6 +272,36 @@ describe("Middleware", () => {
   });
 
   describe("withAuth", () => {
+    it("blocks direct product API requests without an active trial", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "trial-user" } } as never);
+      prisma.user.findUnique.mockResolvedValue({
+        premium: null,
+        freescaleTrialStartedAt: null,
+      } as never);
+      const handler = vi.fn(async () => NextResponse.json({ ok: true }));
+      const response = await withAuth(handler)(
+        createMockRequest("GET", "http://localhost/api/user/tasks"),
+        mockContext,
+      );
+      expect(response.status).toBe(402);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("allows direct product API requests during the full-access trial", async () => {
+      mockAuth.mockResolvedValue({ user: { id: "trial-user" } } as never);
+      prisma.user.findUnique.mockResolvedValue({
+        premium: null,
+        freescaleTrialStartedAt: new Date(),
+      } as never);
+      const handler = vi.fn(async () => NextResponse.json({ ok: true }));
+      const response = await withAuth(handler)(
+        createMockRequest("GET", "http://localhost/api/user/tasks"),
+        mockContext,
+      );
+      expect(response.status).toBe(200);
+      expect(handler).toHaveBeenCalled();
+    });
+
     const mockUserId = "user-123";
 
     it("should call the handler with auth info if session exists", async () => {

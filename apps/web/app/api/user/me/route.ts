@@ -6,8 +6,10 @@ import { auth } from "@/utils/auth";
 import {
   getRemainingUnsubscribeCredits,
   isAdminForPremium,
+  isPremiumRecord,
   premiumEntitlementSelect,
 } from "@/utils/premium";
+import { getTrialStatus } from "@/utils/trial/status";
 
 export type UserResponse = Awaited<ReturnType<typeof getUser>> | null;
 
@@ -23,6 +25,7 @@ async function getUser({
     select: {
       id: true,
       createdAt: true,
+      freescaleTrialStartedAt: true,
       aiProvider: true,
       aiModel: true,
       aiApiKey: true,
@@ -95,6 +98,10 @@ async function getUser({
     announcementDismissedAt: user.announcementDismissedAt,
     dismissedHints: user.dismissedHints,
     premium,
+    productAccess: getTrialStatus({
+      startedAt: user.freescaleTrialStartedAt,
+      paid: isPremiumRecord(user.premium, { ignoreBypass: true }),
+    }),
     // Resolved here so the client never compares periods against its own clock.
     unsubscribeCreditsRemaining: getRemainingUnsubscribeCredits(
       user.premium ?? {},

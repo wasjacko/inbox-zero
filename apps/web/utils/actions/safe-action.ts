@@ -17,6 +17,10 @@ import {
 import { env } from "@/env";
 import { runWithAuditContext, setAuditContext } from "@/utils/audit/context";
 import { isEmailProviderRateLimitError } from "@/utils/email/is-provider-rate-limit-error";
+import {
+  assertProductAccess,
+  requiresProductAccessForAction,
+} from "@/utils/trial/access";
 
 const baseClient = createSafeActionClient({
   defineMetadataSchema() {
@@ -133,6 +137,8 @@ export const actionClient = baseClient
     if (!userEmail) throw new SafeError("Unauthorized");
 
     const userId = session.user.id;
+    if (requiresProductAccessForAction(metadata.name))
+      await assertProductAccess(userId);
     const emailAccountId = bindArgsClientInputs[0] as string;
     setAuditContext({ actorType: "user", userId });
 
@@ -201,6 +207,8 @@ export const actionClientUser = baseClient.use(
     }
 
     const userId = session.user.id;
+    if (requiresProductAccessForAction(metadata.name))
+      await assertProductAccess(userId);
     const userEmail = session.user.email;
     setAuditContext({ actorType: "user", userId });
 

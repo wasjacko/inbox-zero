@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { env } from "@/env";
+import { getTrialStatus } from "@/utils/trial/status";
 import {
   getUserTier,
   hasAiAccess,
@@ -60,6 +60,7 @@ const webhookEmailAccountSelect = {
       aiProvider: true,
       aiModel: true,
       aiApiKey: true,
+      freescaleTrialStartedAt: true,
       premium: {
         select: premiumEntitlementSelect,
       },
@@ -295,7 +296,10 @@ export async function validateWebhookAccount(
 function getWebhookAccountPremium(
   emailAccount: NonNullable<ValidatedWebhookAccountData>,
 ) {
-  return env.NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS
+  return getTrialStatus({
+    startedAt: emailAccount.user.freescaleTrialStartedAt,
+    paid: false,
+  }).canUseProduct
     ? {
         tier: "PROFESSIONAL_ANNUALLY" as const,
         stripeSubscriptionStatus: "active",
@@ -306,7 +310,7 @@ function getWebhookAccountPremium(
         adminGrantExpiresAt: null,
         adminGrantTier: null,
       }
-    : isPremiumRecord(emailAccount.user.premium)
+    : isPremiumRecord(emailAccount.user.premium, { ignoreBypass: true })
       ? emailAccount.user.premium
       : undefined;
 }

@@ -6,6 +6,7 @@ import {
   premiumEntitlementSelect,
 } from "@/utils/premium";
 import prisma from "@/utils/prisma";
+import { getTrialStatus } from "@/utils/trial/status";
 
 export async function validateUserAndAiAccess({
   emailAccountId,
@@ -28,6 +29,7 @@ export async function validateUserAndAiAccess({
           aiProvider: true,
           aiModel: true,
           aiApiKey: true,
+          freescaleTrialStartedAt: true,
           premium: {
             select: premiumEntitlementSelect,
           },
@@ -38,7 +40,16 @@ export async function validateUserAndAiAccess({
   });
   if (!emailAccount) throw new SafeError("User not found");
 
-  const isUserPremium = isPremiumRecord(emailAccount.user.premium);
+  if (
+    getTrialStatus({
+      startedAt: emailAccount.user.freescaleTrialStartedAt,
+      paid: false,
+    }).canUseProduct
+  )
+    return { emailAccount };
+  const isUserPremium = isPremiumRecord(emailAccount.user.premium, {
+    ignoreBypass: true,
+  });
   if (!isUserPremium) throw new SafeError("Please upgrade for AI access");
 
   const userHasAiAccess = hasAiAccess(

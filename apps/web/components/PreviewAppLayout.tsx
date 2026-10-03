@@ -6,6 +6,7 @@ import { SideNavWithTopNav } from "@/components/SideNavWithTopNav";
 import { EmailAccountProvider } from "@/providers/EmailAccountProvider";
 import { StatLoaderProvider } from "@/providers/StatLoaderProvider";
 import { SWRProvider } from "@/providers/SWRProvider";
+import { TrialAccessGate } from "@/components/TrialAccessGate";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -23,9 +24,11 @@ export function PreviewAppLayout({ children }: { children: React.ReactNode }) {
           <PreviewOnboardingGate>
             <div className={`${inter.variable} min-h-svh font-inter`}>
               <SideNavWithTopNav defaultOpen previewMode>
-                <PersistentPreviewContent>
-                  <PreviewDataGate>{children}</PreviewDataGate>
-                </PersistentPreviewContent>
+                <TrialAccessGate>
+                  <PersistentPreviewContent>
+                    <PreviewDataGate>{children}</PreviewDataGate>
+                  </PersistentPreviewContent>
+                </TrialAccessGate>
               </SideNavWithTopNav>
             </div>
           </PreviewOnboardingGate>

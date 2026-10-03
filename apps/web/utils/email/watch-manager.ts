@@ -14,6 +14,7 @@ import { createManagedOutlookSubscription } from "@/utils/outlook/subscription-m
 import { isMicrosoftProvider } from "@/utils/email/provider-types";
 import { logErrorWithDedupe } from "@/utils/log-error-with-dedupe";
 import { clearWatchLapsedErrorIfResolved } from "@/utils/error-messages";
+import { getTrialStatus, TRIAL_DURATION_DAYS } from "@/utils/trial/status";
 
 export type WatchEmailAccountResult =
   | {
@@ -43,7 +44,16 @@ async function getEmailAccountsToWatch(userIds: string[] | null) {
   return prisma.emailAccount.findMany({
     where: {
       ...(userIds ? { userId: { in: userIds } } : {}),
-      ...getPremiumUserFilter(),
+      OR: [
+        getPremiumUserFilter({ ignoreBypass: true }),
+        {
+          user: {
+            freescaleTrialStartedAt: {
+              gt: new Date(Date.now() - TRIAL_DURATION_DAYS * 86_400_000),
+            },
+          },
+        },
+      ],
       account: { disconnectedAt: null },
     },
     select: {
@@ -64,6 +74,7 @@ async function getEmailAccountsToWatch(userIds: string[] | null) {
         select: {
           id: true,
           aiApiKey: true,
+          freescaleTrialStartedAt: true,
           premium: {
             select: premiumEntitlementSelect,
           },
@@ -135,10 +146,9 @@ async function watchEmailAccount(
 ): Promise<WatchEmailAccountResult | null> {
   const { account, user, watchEmailsExpirationDate } = emailAccount;
 
-  const userHasAiAccess = hasAiAccess(
-    getUserTier(user.premium),
-    !!user.aiApiKey,
-  );
+  const userHasAiAccess =
+    getTrialStatus({ startedAt: user.freescaleTrialStartedAt, paid: false })
+      .canUseProduct || hasAiAccess(getUserTier(user.premium), !!user.aiApiKey);
 
   if (!userHasAiAccess) {
     logger.info("User does not have access to AI or cold email");

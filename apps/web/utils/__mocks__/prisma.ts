@@ -7,6 +7,16 @@ const prisma = mockDeep<PrismaClient>();
 
 beforeEach(() => {
   mockReset(prisma);
+  // Existing feature tests exercise an eligible account unless they override its access state.
+  prisma.user.findUnique.mockImplementation((args) => {
+    if (args?.select?.freescaleTrialStartedAt) {
+      return Promise.resolve({
+        freescaleTrialStartedAt: new Date(),
+        premium: null,
+      }) as never;
+    }
+    return Promise.resolve(null) as never;
+  });
 });
 
 export default prisma;

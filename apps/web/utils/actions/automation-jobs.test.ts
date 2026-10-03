@@ -19,7 +19,8 @@ vi.mock("@/utils/auth", () => ({
     user: { id: "user-1", email: "user@example.com" },
   })),
 }));
-vi.mock("@/utils/premium", () => ({
+vi.mock("@/utils/premium", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/utils/premium")>()),
   isActivePremium: vi.fn(),
 }));
 vi.mock("@/utils/user/get", () => ({
@@ -39,6 +40,10 @@ describe("automation job actions", () => {
     vi.clearAllMocks();
     mockGetUserPremium.mockResolvedValue({});
     mockIsActivePremium.mockReturnValue(true);
+    prisma.user.findUnique.mockResolvedValue({
+      premium: null,
+      freescaleTrialStartedAt: new Date(),
+    } as never);
     prisma.emailAccount.findUnique.mockResolvedValue({
       email: "user@example.com",
       account: {
@@ -46,6 +51,20 @@ describe("automation job actions", () => {
         provider: "google",
       },
     } as any);
+  });
+
+  it("rejects product mutations after the trial ends even if the automation check would allow them", async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      premium: null,
+      freescaleTrialStartedAt: new Date("2020-01-01"),
+    } as never);
+    const result = await saveAutomationJobAction("email-account-1", {
+      cronExpression: "0 9 * * 1-5",
+      messagingChannelId: CHANNEL_ID,
+      prompt: null,
+    });
+    expect(result?.serverError).toContain("Votre essai est terminé");
+    expect(prisma.automationJob.create).not.toHaveBeenCalled();
   });
 
   it("creates a scheduled check-in direct route when saving", async () => {

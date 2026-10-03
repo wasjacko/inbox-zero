@@ -619,7 +619,7 @@ export const generateCheckoutSessionAction = actionClientUser
       cancel_url: `${env.NEXT_PUBLIC_BASE_URL}/premium`,
       mode: "subscription",
       subscription_data: {
-        trial_period_days: 7,
+        // The in-app trial is the only trial; checkout starts the paid subscription.
         ...(Object.keys(conversionMetadata).length
           ? {
               metadata: conversionMetadata,
