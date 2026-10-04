@@ -1,6 +1,7 @@
 import "server-only";
 import { redis } from "@/utils/redis";
 import prisma from "@/utils/prisma";
+import { env } from "@/env";
 
 const EXPIRATION = 60 * 60; // 1 hour
 
@@ -33,10 +34,13 @@ export async function getEmailAccount({
   if (!userId || !emailAccountId) return null;
 
   const key = getValidationKey({ userId, emailAccountId });
+  const cacheConfigured = Boolean(
+    env.UPSTASH_REDIS_URL && env.UPSTASH_REDIS_TOKEN,
+  );
 
   // Check Redis cache first
   try {
-    const cachedResult = await redis.get<string>(key);
+    const cachedResult = cacheConfigured ? await redis.get<string>(key) : null;
     if (cachedResult !== null) {
       return cachedResult;
     }
@@ -52,7 +56,8 @@ export async function getEmailAccount({
 
   // Cache the result (best-effort)
   try {
-    await redis.set(key, emailAccount?.email ?? null, { ex: EXPIRATION });
+    if (cacheConfigured)
+      await redis.set(key, emailAccount?.email ?? null, { ex: EXPIRATION });
   } catch {
     // Redis unavailable — skip caching
   }
@@ -71,6 +76,7 @@ export async function invalidateAccountValidation({
   userId: string;
   emailAccountId: string;
 }): Promise<void> {
+  if (!env.UPSTASH_REDIS_URL || !env.UPSTASH_REDIS_TOKEN) return;
   const key = getValidationKey({ userId, emailAccountId });
   try {
     await redis.del(key);

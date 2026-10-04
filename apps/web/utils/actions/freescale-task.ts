@@ -9,7 +9,7 @@ export const createFreescaleTasksAction = actionClient
   .inputSchema(createFreescaleTasksBody)
   .action(async ({ ctx: { emailAccountId }, parsedInput: { due, tasks } }) => {
     const dueDate = new Date(`${due}T12:00:00.000Z`);
-    const savedTasks = await Promise.all(
+    const savedTasks = await prisma.$transaction(
       tasks.map((task) => {
         const sourceThreadId = `ask-mue-priority:${due}:${task.id}`;
         return prisma.freescaleTask.upsert({
@@ -26,13 +26,15 @@ export const createFreescaleTasksAction = actionClient
             priority: "medium",
             source: "ai",
             assignees: [],
+            contactName: task.contactName,
+            contactAvatarPosition: task.contactAvatarPosition,
             sourceThreadId,
             emailAccountId,
           },
           update: {
             title: task.title,
-            status: "scope",
-            due: dueDate,
+            contactName: task.contactName,
+            contactAvatarPosition: task.contactAvatarPosition,
           },
           select: { id: true, title: true },
         });

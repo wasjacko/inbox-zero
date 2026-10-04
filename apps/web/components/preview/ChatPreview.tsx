@@ -78,7 +78,7 @@ import { DesktopRealBrief } from "@/components/preview/DesktopRealBrief";
 import { useSession } from "@/utils/auth-client";
 import { useAccount } from "@/providers/EmailAccountProvider";
 import { useMueBriefTasks } from "@/hooks/useMueBriefTasks";
-import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
+import { createFreescaleTasksAction } from "@/utils/actions/freescale-task";
 import { recordMueDemoReplyAction } from "@/utils/actions/mue-activity";
 import { saveMueDemoReply } from "@/utils/mue-demo-replies";
 import {
@@ -3734,32 +3734,13 @@ function AskMueSuggestionResult({
     setIsExecuting(true);
     try {
       const due = getLocalDateKey();
-      const persistedTasks = await Promise.all(
-        tasks.map(async (task) => {
-          const response = await fetch("/api/user/tasks", {
-            method: "POST",
-            cache: "no-store",
-            headers: {
-              "Content-Type": "application/json",
-              [EMAIL_ACCOUNT_HEADER]: emailAccountId,
-            },
-            body: JSON.stringify({
-              title: task.title,
-              status: "scope",
-              due,
-              priority: "medium",
-              source: "ai",
-              assignees: [],
-              contactName: task.contactName,
-              contactAvatarPosition: task.contactAvatarPosition,
-              sourceThreadId: `ask-mue-priority:${due}:${task.id}`,
-            }),
-          });
-          if (!response.ok) throw new Error("task_request_failed");
-          const result = (await response.json()) as { task: { id: string } };
-          return result.task;
-        }),
-      );
+      const result = await createFreescaleTasksAction(emailAccountId, {
+        due,
+        tasks,
+      });
+      if (!result?.data)
+        throw new Error(result?.serverError || "task_request_failed");
+      const persistedTasks = result.data.tasks;
 
       const nextCreatedIds = [
         ...new Set([...createdTaskIds, ...tasks.map((task) => task.id)]),
