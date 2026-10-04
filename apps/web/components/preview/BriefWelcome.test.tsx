@@ -28,7 +28,7 @@ afterEach(() => {
 it("keeps the brief quiet when Mue detects no real task", () => {
   render(<BriefWelcome freelancerName="Other" />);
   expect(screen.getByText("Bonjour Wassil")).toBeTruthy();
-  expect(screen.getByText(/93 messages non lus/)).toBeTruthy();
+  expect(screen.getByText("Vous n’avez pas d’urgence détectée.")).toBeTruthy();
   expect(screen.queryByText(/Mue a repéré/)).toBeNull();
   expect(screen.queryByRole("link")).toBeNull();
 });

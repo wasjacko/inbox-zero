@@ -77,7 +77,6 @@ import { useMobileViewport } from "@/hooks/useMobileViewport";
 import { DesktopRealBrief } from "@/components/preview/DesktopRealBrief";
 import { useSession } from "@/utils/auth-client";
 import { useAccount } from "@/providers/EmailAccountProvider";
-import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import { useMueBriefTasks } from "@/hooks/useMueBriefTasks";
 import { EMAIL_ACCOUNT_HEADER } from "@/utils/config";
 import { recordMueDemoReplyAction } from "@/utils/actions/mue-activity";
@@ -4326,9 +4325,6 @@ function ChatPanel({
   const { data: session } = useSession();
   const reducedMotion = useReducedMotion();
   const { emailAccountId } = useAccount();
-  const { data: summary, error: summaryError } = usePreloadedPageData<{
-    unreadEmails: number;
-  }>("/api/user/brief-summary");
   const { data: brief } = useMueBriefTasks();
   const userId = session?.user?.id;
   const [onboardingName, setOnboardingName] = useState<{
@@ -5041,11 +5037,11 @@ function ChatPanel({
                 >
                   {!emailAccountId
                     ? "Connectez une messagerie pour retrouver vos messages."
-                    : summary
-                      ? `Vous avez ${summary.unreadEmails.toLocaleString("fr-FR")} message${summary.unreadEmails === 1 ? "" : "s"} non lu${summary.unreadEmails === 1 ? "" : "s"}.`
-                      : summaryError
-                        ? "Le nombre de messages est momentanément indisponible."
-                        : "Chargement de vos messages…"}
+                    : brief
+                      ? priorityCount > 0
+                        ? "Vos priorités sont réunies, avancez à votre rythme."
+                        : "Vous n’avez pas d’urgence détectée."
+                      : "Mue prépare votre vue d’ensemble…"}
                 </p>
                 {priorityCount > 0 && (
                   <p

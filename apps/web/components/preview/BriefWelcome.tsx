@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAccount } from "@/providers/EmailAccountProvider";
-import { usePreloadedPageData } from "@/hooks/usePreloadedPageData";
 import { useMueBriefTasks } from "@/hooks/useMueBriefTasks";
 import { useContactPhotos } from "@/hooks/useContactPhotos";
 import {
@@ -21,9 +20,6 @@ export function BriefWelcome({ freelancerName }: { freelancerName: string }) {
     accountEmail: emailAccount?.email,
     fallbackName: freelancerName,
   });
-  const { data: summary, error: summaryError } = usePreloadedPageData<{
-    unreadEmails: number;
-  }>("/api/user/brief-summary");
   const { data: brief } = useMueBriefTasks();
   const tasks = brief?.tasks ?? [];
   const { photos } = useContactPhotos(tasks.map((task) => task.senderEmail));
@@ -43,11 +39,11 @@ export function BriefWelcome({ freelancerName }: { freelancerName: string }) {
           {getPreviewGreeting(name)}
         </h1>
         <p className="mt-4 min-h-6 text-muted-foreground" aria-live="polite">
-          {summary
-            ? `Vous avez ${summary.unreadEmails} message${summary.unreadEmails === 1 ? "" : "s"} non lu${summary.unreadEmails === 1 ? "" : "s"}.`
-            : summaryError
-              ? "Vos messages sont connectés."
-              : "Chargement de vos messages…"}
+          {brief
+            ? tasks.length > 0
+              ? "Vos priorités sont réunies, avancez à votre rythme."
+              : "Vous n’avez pas d’urgence détectée."
+            : "Mue prépare votre vue d’ensemble…"}
         </p>
       </header>
 
